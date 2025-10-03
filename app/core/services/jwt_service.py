@@ -1,0 +1,6 @@
+# Placeholder for future JWT service implementation
+# class JWTService:
+#     def encode_token(self, payload: dict) -> str:
+#         ...
+#     def decode_token(self, token: str) -> dict:
+#         ...
