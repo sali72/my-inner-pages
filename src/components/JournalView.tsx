@@ -49,6 +49,11 @@ export const JournalView: React.FC<JournalViewProps> = ({
             theme={theme}
             font={font}
             fontSize={fontSize}
+            dragOffset={dragOffset}
+            isFlipping={isFlipping}
+            onDragStart={onDragStart}
+            onDragMove={onDragMove}
+            onDragEnd={onDragEnd}
             onSave={onSaveNewEntry}
           />
         ) : (

@@ -9,6 +9,11 @@ interface NewEntryPageProps {
   theme: ThemeType;
   font: FontType;
   fontSize: FontSizeType;
+  dragOffset: number;
+  isFlipping: boolean;
+  onDragStart: (e: React.MouseEvent | React.TouchEvent) => void;
+  onDragMove: (e: React.MouseEvent | React.TouchEvent) => void;
+  onDragEnd: () => void;
   onSave: (title: string, content: string, tags: string[]) => void;
 }
 
@@ -16,6 +21,11 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
   theme,
   font,
   fontSize,
+  dragOffset,
+  isFlipping,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
   onSave,
 }) => {
   const [title, setTitle] = useState('');
@@ -58,28 +68,70 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
     setTags(tags.filter((_, i) => i !== index));
   };
 
+  const hasContent = title.trim() || content.trim() || tags.length > 0;
+
   return (
     <div
-      className={`${themeConfig.paper} rounded-xl shadow-2xl border ${themeConfig.border} overflow-hidden`}
+      className={`${themeConfig.paper} rounded-xl shadow-2xl border ${themeConfig.border} overflow-hidden ${
+        !hasContent ? 'cursor-grab active:cursor-grabbing' : ''
+      }`}
       style={{
         minHeight: '600px',
         backgroundImage: isDark
           ? 'none'
           : 'linear-gradient(to bottom, rgba(255,250,240,0.9), rgba(254,243,199,0.5))',
+        touchAction: 'none',
+        transform: `translateX(${
+          isFlipping ? (dragOffset > 0 ? '100%' : '-100%') : dragOffset * 0.5
+        }px) rotateY(${
+          isFlipping ? (dragOffset > 0 ? '180deg' : '-180deg') : dragOffset * 0.15
+        }deg)`,
+        transition: isFlipping ? 'transform 0.6s ease' : 'none',
+        opacity: isFlipping ? 0 : Math.max(0.3, 1 - Math.abs(dragOffset) * 0.002),
+        transformOrigin: dragOffset > 0 ? 'left center' : 'right center',
       }}
+      onMouseDown={!hasContent ? onDragStart : undefined}
+      onMouseMove={!hasContent ? onDragMove : undefined}
+      onMouseUp={!hasContent ? onDragEnd : undefined}
+      onMouseLeave={!hasContent ? onDragEnd : undefined}
+      onTouchStart={!hasContent ? onDragStart : undefined}
+      onTouchMove={!hasContent ? onDragMove : undefined}
+      onTouchEnd={!hasContent ? onDragEnd : undefined}
     >
       <div className="p-8 md:p-12 overflow-y-auto" style={{ minHeight: '600px' }}>
-        <div className="mb-6">
-          <p className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-amber-600'}`}>
-            Today
-          </p>
-          <h2
-            className={`text-2xl ${getFontClass(font)} font-bold ${
-              themeConfig.accent
-            } mt-2`}
-          >
-            New Entry
-          </h2>
+        <div className="mb-6 flex justify-between items-start">
+          <div className="flex-1">
+            <p className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-amber-600'}`}>
+              Today
+            </p>
+            <h2
+              className={`text-2xl ${getFontClass(font)} font-bold ${
+                themeConfig.accent
+              } mt-2`}
+            >
+              New Entry
+            </h2>
+          </div>
+          {isWriting && (
+            <div className="flex gap-2 ml-4">
+              <button
+                onClick={handleSave}
+                className={`p-2 rounded-lg ${isDark ? 'bg-slate-700' : 'bg-amber-100'}`}
+                title="Save Entry"
+              >
+                <Save className={`w-5 h-5 ${themeConfig.accent}`} />
+              </button>
+              <button
+                onClick={handleCancel}
+                className={`p-2 rounded-lg ${
+                  isDark ? 'hover:bg-slate-700' : 'hover:bg-amber-100'
+                }`}
+                title="Cancel"
+              >
+                <X className={`w-5 h-5 ${themeConfig.accent}`} />
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -147,27 +199,6 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
             }}
             autoFocus
           />
-
-          {isWriting && (
-            <div className="flex justify-end gap-2 pt-4">
-              <button
-                onClick={handleSave}
-                className={`p-2 rounded-lg ${isDark ? 'bg-slate-700' : 'bg-amber-100'}`}
-                title="Save Entry"
-              >
-                <Save className={`w-5 h-5 ${themeConfig.accent}`} />
-              </button>
-              <button
-                onClick={handleCancel}
-                className={`p-2 rounded-lg ${
-                  isDark ? 'hover:bg-slate-700' : 'hover:bg-amber-100'
-                }`}
-                title="Cancel"
-              >
-                <X className={`w-5 h-5 ${themeConfig.accent}`} />
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>
