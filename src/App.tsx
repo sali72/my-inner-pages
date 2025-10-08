@@ -14,7 +14,7 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>('journal');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const { entries, addEntry, updateEntry, deleteEntry } = useJournalEntries();
+  const { entries, loading, addEntry, updateEntry, deleteEntry } = useJournalEntries();
   const {
     theme,
     setTheme,
@@ -37,25 +37,35 @@ const App: React.FC = () => {
     goToPage,
   } = usePageFlip(pages.length);
 
-  const handleSaveNewEntry = (title: string, content: string, tags: string[]) => {
-    const newEntry = addEntry({
-      date: new Date().toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      }),
-      title,
-      tags,
-      content,
-    });
-    goToPage(entries.length);
+  const handleSaveNewEntry = async (title: string, content: string, tags: string[]) => {
+    try {
+      await addEntry({
+        date: new Date().toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        }),
+        title,
+        tags,
+        content,
+      });
+      goToPage(entries.length);
+    } catch (error) {
+      console.error('Failed to save entry:', error);
+      alert('Failed to save journal entry. Please try again.');
+    }
   };
 
-  const handleDeleteEntry = (id: number | string) => {
-    deleteEntry(id);
-    const newLength = entries.length - 1;
-    if (currentPageIndex >= newLength) {
-      goToPage(Math.max(0, newLength));
+  const handleDeleteEntry = async (id: number | string) => {
+    try {
+      await deleteEntry(id);
+      const newLength = entries.length - 1;
+      if (currentPageIndex >= newLength) {
+        goToPage(Math.max(0, newLength));
+      }
+    } catch (error) {
+      console.error('Failed to delete entry:', error);
+      alert('Failed to delete journal entry. Please try again.');
     }
   };
 
@@ -78,7 +88,13 @@ const App: React.FC = () => {
       />
 
       <main className="pt-20 min-h-screen pb-8">
-        {activeView === 'journal' && (
+        {activeView === 'journal' && loading ? (
+          <div className="flex items-center justify-center min-h-[600px]">
+            <p className={`text-lg ${theme === 'dark' ? 'text-slate-400' : 'text-amber-600'}`}>
+              Loading journals...
+            </p>
+          </div>
+        ) : activeView === 'journal' ? (
           <JournalView
             entries={entries}
             currentPageIndex={currentPageIndex}
@@ -95,7 +111,7 @@ const App: React.FC = () => {
             onSaveNewEntry={handleSaveNewEntry}
             onGoToNewEntry={() => goToPage(pages.length - 1)}
           />
-        )}
+        ) : null}
 
         {activeView === 'insights' && <InsightsView theme={theme} />}
 
