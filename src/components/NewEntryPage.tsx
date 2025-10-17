@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Save, X, Tag } from 'lucide-react';
-import { ThemeType, FontType, FontSizeType } from '@types/index';
+import { ThemeType, FontType, FontSizeType } from '@/types';
 import { THEMES } from '@constants/themes';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { detectRTL } from '@utils/textDirection';
@@ -194,9 +194,8 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
             style={{
               background: 'transparent',
               minHeight: '250px',
-              direction: 'auto',
               unicodeBidi: 'plaintext',
-            }}
+            } as React.CSSProperties}
             autoFocus
           />
         </div>

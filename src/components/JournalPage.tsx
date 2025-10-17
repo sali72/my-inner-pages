@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Save, X } from 'lucide-react';
-import { JournalEntry, ThemeType, FontType, FontSizeType } from '@types/index';
+import { JournalEntry, ThemeType, FontType, FontSizeType } from '@/types';
 import { THEMES } from '@constants/themes';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { detectRTL, renderTextWithLineDirection } from '@utils/textDirection';
@@ -198,9 +198,8 @@ export const JournalPage: React.FC<JournalPageProps> = ({
               style={{
                 background: 'transparent',
                 minHeight: '400px',
-                direction: 'auto',
                 unicodeBidi: 'plaintext',
-              }}
+              } as React.CSSProperties}
             />
           ) : (
             <div

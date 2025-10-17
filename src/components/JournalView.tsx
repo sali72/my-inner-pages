@@ -1,6 +1,6 @@
 import React from 'react';
 import { Edit2 } from 'lucide-react';
-import { JournalEntry, ThemeType, FontType, FontSizeType } from '@types/index';
+import { JournalEntry, ThemeType, FontType, FontSizeType } from '@/types';
 import { JournalPage } from './JournalPage';
 import { NewEntryPage } from './NewEntryPage';
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Tag } from 'lucide-react';
-import { ThemeType } from '@types/index';
+import { ThemeType } from '@/types';
 import { THEMES } from '@constants/themes';
 
 interface TagInputProps {

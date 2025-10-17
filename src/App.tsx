@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ViewType } from '@types/index';
+import { ViewType } from '@/types';
 import { THEMES } from '@constants/themes';
 import { useJournalEntries } from '@hooks/useJournalEntries';
 import { usePageFlip } from '@hooks/usePageFlip';

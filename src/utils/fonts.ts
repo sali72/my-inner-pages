@@ -1,4 +1,4 @@
-import { FontType, FontSizeType } from '@types/index';
+import { FontType, FontSizeType } from '@/types';
 
 const FONT_CLASSES: Record<FontType, string> = {
   serif: 'font-serif',

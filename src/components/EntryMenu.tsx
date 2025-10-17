@@ -1,6 +1,6 @@
 import React from 'react';
 import { MoreVertical, Edit2, Copy, Share2, Trash2 } from 'lucide-react';
-import { ThemeType } from '@types/index';
+import { ThemeType } from '@/types';
 import { THEMES } from '@constants/themes';
 
 interface EntryMenuProps {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { JournalEntry } from '@types/index';
+import { JournalEntry } from '@/types';
 import { api } from '@utils/api';
 
 interface BackendJournal {

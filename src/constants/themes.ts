@@ -1,4 +1,4 @@
-import { ThemeConfig, ThemeType } from '@types/index';
+import { ThemeConfig, ThemeType } from '@/types';
 
 export const THEMES: Record<ThemeType, ThemeConfig> = {
   vintage: {

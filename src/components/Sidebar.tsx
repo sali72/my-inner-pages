@@ -1,6 +1,6 @@
 import React from 'react';
 import { BookOpen, Lightbulb, Settings } from 'lucide-react';
-import { ViewType, ThemeType } from '@types/index';
+import { ViewType, ThemeType } from '@/types';
 import { THEMES } from '@constants/themes';
 
 interface SidebarProps {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ThemeType, FontType, FontSizeType } from '@types/index';
+import { ThemeType, FontType, FontSizeType } from '@/types';
 
 export const useSettings = () => {
   const [theme, setTheme] = useState<ThemeType>('vintage');

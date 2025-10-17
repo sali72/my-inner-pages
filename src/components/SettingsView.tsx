@@ -1,6 +1,6 @@
 import React from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
-import { ThemeType, FontType, FontSizeType } from '@types/index';
+import { ThemeType, FontType, FontSizeType } from '@/types';
 import { THEMES } from '@constants/themes';
 
 interface SettingsViewProps {

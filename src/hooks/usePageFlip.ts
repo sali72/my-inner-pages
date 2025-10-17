@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { PageFlipState } from '@types/index';
 
 const FLIP_THRESHOLD = 100;
 const FLIP_DURATION = 400;

@@ -1,4 +1,4 @@
-import { JournalEntry } from '@types/index';
+import { JournalEntry } from '@/types';
 
 export const INITIAL_ENTRIES: JournalEntry[] = [
   {
