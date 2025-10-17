@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     )
     
     # MongoDB Configuration
-    mongodb_url: str = "mongodb://localhost:27017"
+    mongo_url: str = "mongodb://localhost:27017"
     database_name: str = "journaling_app"
     
     # Application Configuration

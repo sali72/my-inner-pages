@@ -19,7 +19,7 @@ class DatabaseManager:
         Args:
             document_models: List of Beanie document model classes to initialize
         """
-        self.client = AsyncIOMotorClient(self.settings.mongodb_url)
+        self.client = AsyncIOMotorClient(self.settings.mongo_url)
         database = self.client[self.settings.database_name]
         
         await init_beanie(
