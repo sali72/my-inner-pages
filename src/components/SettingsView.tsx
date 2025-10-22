@@ -1,7 +1,8 @@
 import React from 'react';
-import { Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX, LogOut } from 'lucide-react';
 import { ThemeType, FontType, FontSizeType } from '@/types';
 import { THEMES } from '@constants/themes';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SettingsViewProps {
   theme: ThemeType;
@@ -47,6 +48,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const isDark = theme === 'dark';
   const themeConfig = THEMES[theme];
+  const { logout, user } = useAuth();
+
+  const handleLogout = async () => {
+    if (confirm('Are you sure you want to logout?')) {
+      await logout();
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto p-8">
@@ -170,6 +178,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               ))}
             </div>
           )}
+        </div>
+
+        {/* Account Section */}
+        <div>
+          <h3 className={`text-lg font-semibold ${themeConfig.accent} mb-4`}>Account</h3>
+          <div className={`p-4 rounded-lg border ${themeConfig.border} ${isDark ? 'bg-slate-800/50' : 'bg-amber-50/50'} mb-3`}>
+            <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'} mb-1`}>Logged in as:</p>
+            <p className={`font-medium ${themeConfig.accent}`}>{user?.email}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className={`w-full p-4 rounded-lg border-2 flex justify-between items-center transition-all ${
+              isDark
+                ? 'border-red-900 bg-red-950/30 text-red-400 hover:bg-red-950/50'
+                : 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+            }`}
+          >
+            <span className="font-medium">Logout</span>
+            <LogOut className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </div>

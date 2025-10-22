@@ -1,8 +1,18 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
+const getAuthHeaders = () => {
+    const token = localStorage.getItem('authToken');
+    return {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+    };
+};
+
 export const api = {
     async get<T>(endpoint: string): Promise<T> {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`);
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            headers: getAuthHeaders(),
+        });
         if (!response.ok) throw new Error(`API error: ${response.statusText}`);
         return response.json();
     },
@@ -10,7 +20,7 @@ export const api = {
     async post<T>(endpoint: string, data: unknown): Promise<T> {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify(data),
         });
         if (!response.ok) throw new Error(`API error: ${response.statusText}`);
@@ -20,7 +30,7 @@ export const api = {
     async put<T>(endpoint: string, data: unknown): Promise<T> {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify(data),
         });
         if (!response.ok) throw new Error(`API error: ${response.statusText}`);
@@ -30,6 +40,7 @@ export const api = {
     async delete<T>(endpoint: string): Promise<T> {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'DELETE',
+            headers: getAuthHeaders(),
         });
         if (!response.ok) throw new Error(`API error: ${response.statusText}`);
         return response.json();
