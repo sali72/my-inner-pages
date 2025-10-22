@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     app_name: str = "Note Taking API"
     app_version: str = "0.1.0"
     
+    # JWT Configuration
+    jwt_secret_key: str = "dev-secret-key-change-in-production"
+    
     @property
     def is_production(self) -> bool:
         return self.environment.lower() == "production"

@@ -1,35 +1,63 @@
-# Note Taking API
+# My Inner Pages - Backend
 
-AI-boosted Journaling app with focus on self-knowledge.
+FastAPI backend with MongoDB for journaling app with authentication.
 
-## Setup
+## Quick Start
 
-1. Install dependencies:
 ```bash
-poetry install
+pip install -r requirements.txt
+uvicorn app.main:app --reload
 ```
 
-2. Create `.env` file:
+## Structure
+
+```
+app/
+├── auth/              # Authentication module
+│   ├── api/v0/routes/ # Auth endpoints
+│   ├── db/            # User model & repository
+│   └── facade/        # Business logic
+├── journals/          # Journals module
+│   ├── api/v0/routes/ # Journal endpoints
+│   ├── db/            # Journal model & repository
+│   └── facade/        # Business logic
+└── core/              # Shared services
+    ├── services/      # JWT, password hashing
+    └── deps/          # Auth dependencies
+```
+
+## API Endpoints
+
+### Auth (`/api/v0/auth`)
+- `POST /register` - Register user
+- `POST /login` - Login (returns JWT)
+- `GET /me` - Get current user
+- `GET /verify` - Verify token
+- `POST /reset-password` - Request password reset
+
+### Journals (`/api/v0/journals`)
+- `POST /` - Create journal
+- `GET /` - List journals (paginated)
+- `GET /{id}` - Get journal
+- `PUT /{id}` - Update journal
+- `DELETE /{id}` - Delete journal
+
+## Configuration (.env)
+
 ```env
-MONGODB_URL=mongodb://localhost:27017
+MONGO_URL=mongodb://localhost:27017
 DATABASE_NAME=journaling_app
+JWT_SECRET_KEY=change-in-production
 ```
 
-3. Run the application:
-```bash
-poetry run uvicorn app.main:app --reload
-```
+## Tech Stack
 
-## API Documentation
+- FastAPI - Web framework
+- MongoDB + Beanie - Database
+- PyJWT - JWT tokens
+- Bcrypt - Password hashing
+- Pydantic - Validation
 
-Once running, visit:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+## API Docs
 
-## Project Structure
-
-- `app/core/` - Shared infrastructure (config, database, dependencies)
-- `app/journals/` - Journal module with layered architecture
-  - `api/v0/` - REST endpoints and schemas
-  - `facade/` - Business logic layer
-  - `db/` - Data access layer (models, repository)
+http://localhost:8000/docs

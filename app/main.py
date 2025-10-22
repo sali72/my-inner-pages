@@ -6,7 +6,9 @@ from app.core.config import Settings
 from app.core.db import DatabaseManager
 from app.core.deps.database import set_db_manager
 from app.journals.db.models import Journal
+from app.auth.db.models import User
 from app.journals.api.v0.routes import journals as journals_router
+from app.auth.api.v0.routes import auth as auth_router
 
 
 @asynccontextmanager
@@ -20,7 +22,7 @@ async def lifespan(app: FastAPI):
     db_manager = DatabaseManager(settings)
     
     # Initialize Beanie with all document models
-    await db_manager.connect(document_models=[Journal])
+    await db_manager.connect(document_models=[Journal, User])
     
     # Set global database manager
     set_db_manager(db_manager)
@@ -56,6 +58,7 @@ def create_app() -> FastAPI:
     )
     
     # Register routers
+    app.include_router(auth_router.router, prefix="/api/v0")
     app.include_router(journals_router.router, prefix="/api/v0")
     
     @app.get("/", tags=["health"])
