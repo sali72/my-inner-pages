@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 from typing import Annotated
 
 from app.journals.api.v0.schemas.request import CreateJournalRequest, UpdateJournalRequest
@@ -8,6 +8,8 @@ from app.journals.api.v0.schemas.response import (
     MessageResponse
 )
 from app.journals.facade.journal_facade import JournalFacade
+from app.core.deps.auth import get_current_user
+from app.auth.db.models import User
 
 
 router = APIRouter(prefix="/journals", tags=["journals"])
@@ -19,9 +21,12 @@ router = APIRouter(prefix="/journals", tags=["journals"])
     status_code=status.HTTP_201_CREATED,
     summary="Create a new journal entry"
 )
-async def create_journal(request: CreateJournalRequest) -> JournalResponse:
+async def create_journal(
+    request: CreateJournalRequest,
+    current_user: User = Depends(get_current_user)
+) -> JournalResponse:
     """
-    Create a new journal entry.
+    Create a new journal entry (requires authentication).
     
     - **title**: Journal title (required, max 200 chars)
     - **content**: Journal content (required, max 50000 chars)
@@ -50,10 +55,11 @@ async def create_journal(request: CreateJournalRequest) -> JournalResponse:
 )
 async def list_journals(
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
-    page_size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 20
+    page_size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 20,
+    current_user: User = Depends(get_current_user)
 ) -> JournalListResponse:
     """
-    List all journal entries with pagination.
+    List all journal entries with pagination (requires authentication).
     
     - **page**: Page number (default: 1)
     - **page_size**: Items per page (default: 20, max: 100)
@@ -75,9 +81,12 @@ async def list_journals(
     response_model=JournalResponse,
     summary="Get a specific journal entry"
 )
-async def get_journal(journal_id: str) -> JournalResponse:
+async def get_journal(
+    journal_id: str,
+    current_user: User = Depends(get_current_user)
+) -> JournalResponse:
     """
-    Get a specific journal entry by ID.
+    Get a specific journal entry by ID (requires authentication).
     
     - **journal_id**: MongoDB ObjectId of the journal
     """
@@ -101,10 +110,11 @@ async def get_journal(journal_id: str) -> JournalResponse:
 )
 async def update_journal(
     journal_id: str,
-    request: UpdateJournalRequest
+    request: UpdateJournalRequest,
+    current_user: User = Depends(get_current_user)
 ) -> JournalResponse:
     """
-    Update an existing journal entry.
+    Update an existing journal entry (requires authentication).
     
     - **journal_id**: MongoDB ObjectId of the journal
     - **title**: New title (optional)
@@ -140,9 +150,12 @@ async def update_journal(
     response_model=MessageResponse,
     summary="Delete a journal entry"
 )
-async def delete_journal(journal_id: str) -> MessageResponse:
+async def delete_journal(
+    journal_id: str,
+    current_user: User = Depends(get_current_user)
+) -> MessageResponse:
     """
-    Delete a journal entry (soft delete by default).
+    Delete a journal entry (requires authentication).
     
     - **journal_id**: MongoDB ObjectId of the journal
     """
