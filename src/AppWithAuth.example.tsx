@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ViewType } from '@/types';
 import { THEMES } from '@constants/themes';
-import { useAuth } from './contexts/AuthContext';
+import { useAuth } from '@hooks/useAuth';
 import { useJournalEntries } from '@hooks/useJournalEntries';
 import { usePageFlip } from '@hooks/usePageFlip';
 import { useSettings } from '@hooks/useSettings';
@@ -12,24 +12,19 @@ import { JournalView } from '@components/JournalView';
 import { InsightsView } from '@components/InsightsView';
 import { SettingsView } from '@components/SettingsView';
 
-const App: React.FC = () => {
+/**
+ * Example implementation showing how to integrate authentication
+ * with the existing journal application.
+ * 
+ * To use this:
+ * 1. Rename this file from AppWithAuth.example.tsx to AppWithAuth.tsx
+ * 2. Update main.tsx to import AppWithAuth instead of App
+ * 3. Connect the useAuth hook to your backend API endpoints
+ */
+const AppWithAuth: React.FC = () => {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [activeView, setActiveView] = useState<ViewType>('journal');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  console.log('App render - isAuthenticated:', isAuthenticated, 'authLoading:', authLoading, 'user:', user);
-
-  // Clean up URL - remove any paths since this is a single-page app
-  useEffect(() => {
-    if (window.location.pathname !== '/') {
-      window.history.replaceState({}, '', '/');
-    }
-  }, []);
-
-  // Debug: Log when isAuthenticated changes
-  useEffect(() => {
-    console.log('isAuthenticated changed to:', isAuthenticated);
-  }, [isAuthenticated]);
 
   const { entries, loading, addEntry, updateEntry, deleteEntry } = useJournalEntries();
   const {
@@ -109,7 +104,7 @@ const App: React.FC = () => {
       <AuthContainer
         theme={theme}
         onAuthSuccess={() => {
-          // Auth state will update automatically via useAuth hook
+          // User successfully authenticated, component will re-render
           console.log('User authenticated:', user);
         }}
       />
@@ -178,4 +173,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default AppWithAuth;
