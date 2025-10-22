@@ -12,11 +12,12 @@ class JournalRepository:
     def __init__(self):
         self.model = Journal
     
-    async def create(self, title: str, content: str, tags: Optional[list[str]] = None) -> Journal:
+    async def create(self, user_id: str, title: str, content: str, tags: Optional[list[str]] = None) -> Journal:
         """
-        Create a new journal entry.
+        Create a new journal entry for a user.
         
         Args:
+            user_id: User ID who owns this journal
             title: Journal title
             content: Journal content
             tags: Optional list of tags
@@ -25,6 +26,7 @@ class JournalRepository:
             Created journal document
         """
         journal = Journal(
+            user_id=user_id,
             title=title,
             content=content,
             tags=tags or []
@@ -32,75 +34,67 @@ class JournalRepository:
         await journal.insert()
         return journal
     
-    async def find_by_id(self, journal_id: PydanticObjectId, include_deleted: bool = False) -> Optional[Journal]:
+    async def find_by_id(self, journal_id: PydanticObjectId, user_id: str) -> Optional[Journal]:
         """
-        Find a journal by ID.
+        Find a journal by ID for a specific user.
         
         Args:
             journal_id: Journal document ID
-            include_deleted: Whether to include soft-deleted journals
+            user_id: User ID who owns the journal
             
         Returns:
             Journal document or None if not found
         """
-        query = {"_id": journal_id}
-        if not include_deleted:
-            query["is_deleted"] = False
-        
+        query = {"_id": journal_id, "user_id": user_id}
         return await self.model.find_one(query)
     
-    async def find_all(
+    async def find_all_by_user(
         self,
+        user_id: str,
         skip: int = 0,
-        limit: int = 20,
-        include_deleted: bool = False
+        limit: int = 20
     ) -> list[Journal]:
         """
-        Find all journals with pagination.
+        Find all journals for a specific user with pagination.
         
         Args:
+            user_id: User ID who owns the journals
             skip: Number of documents to skip
             limit: Maximum number of documents to return
-            include_deleted: Whether to include soft-deleted journals
             
         Returns:
             List of journal documents
         """
-        query = self.model.find()
-        
-        if not include_deleted:
-            query = query.find({"is_deleted": False})
-        
-        return await query.sort("-created_at").skip(skip).limit(limit).to_list()
+        query = {"user_id": user_id}
+        return await self.model.find(query).sort("-created_at").skip(skip).limit(limit).to_list()
     
-    async def count(self, include_deleted: bool = False) -> int:
+    async def count_by_user(self, user_id: str) -> int:
         """
-        Count total journals.
+        Count total journals for a specific user.
         
         Args:
-            include_deleted: Whether to include soft-deleted journals
+            user_id: User ID who owns the journals
             
         Returns:
-            Total count of journals
+            Total count of journals for the user
         """
-        query = {}
-        if not include_deleted:
-            query["is_deleted"] = False
-        
+        query = {"user_id": user_id}
         return await self.model.find(query).count()
     
     async def update(
         self,
         journal_id: PydanticObjectId,
+        user_id: str,
         title: Optional[str] = None,
         content: Optional[str] = None,
         tags: Optional[list[str]] = None
     ) -> Optional[Journal]:
         """
-        Update a journal entry.
+        Update a journal entry for a specific user.
         
         Args:
             journal_id: Journal document ID
+            user_id: User ID who owns the journal
             title: New title (optional)
             content: New content (optional)
             tags: New tags (optional)
@@ -108,7 +102,7 @@ class JournalRepository:
         Returns:
             Updated journal document or None if not found
         """
-        journal = await self.find_by_id(journal_id)
+        journal = await self.find_by_id(journal_id, user_id)
         if not journal:
             return None
         
@@ -124,55 +118,20 @@ class JournalRepository:
         await journal.set(update_data)
         return journal
     
-    async def soft_delete(self, journal_id: PydanticObjectId) -> bool:
+    async def delete(self, journal_id: PydanticObjectId, user_id: str) -> bool:
         """
-        Soft delete a journal (mark as deleted).
+        Delete a journal for a specific user.
         
         Args:
             journal_id: Journal document ID
+            user_id: User ID who owns the journal
             
         Returns:
             True if deleted, False if not found
         """
-        journal = await self.find_by_id(journal_id)
-        if not journal:
-            return False
-        
-        journal.soft_delete()
-        await journal.save()
-        return True
-    
-    async def hard_delete(self, journal_id: PydanticObjectId) -> bool:
-        """
-        Permanently delete a journal from database.
-        
-        Args:
-            journal_id: Journal document ID
-            
-        Returns:
-            True if deleted, False if not found
-        """
-        journal = await self.find_by_id(journal_id, include_deleted=True)
+        journal = await self.find_by_id(journal_id, user_id)
         if not journal:
             return False
         
         await journal.delete()
         return True
-    
-    async def restore(self, journal_id: PydanticObjectId) -> Optional[Journal]:
-        """
-        Restore a soft-deleted journal.
-        
-        Args:
-            journal_id: Journal document ID
-            
-        Returns:
-            Restored journal or None if not found
-        """
-        journal = await self.find_by_id(journal_id, include_deleted=True)
-        if not journal or not journal.is_deleted:
-            return None
-        
-        journal.restore()
-        await journal.save()
-        return journal

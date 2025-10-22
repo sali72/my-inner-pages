@@ -18,14 +18,16 @@ class JournalFacade:
     
     async def create_journal(
         self,
+        user_id: str,
         title: str,
         content: str,
         tags: Optional[list[str]] = None
     ) -> Journal:
         """
-        Create a new journal entry with business validation.
+        Create a new journal entry for a user with business validation.
         
         Args:
+            user_id: User ID who owns this journal
             title: Journal title
             content: Journal content
             tags: Optional list of tags
@@ -44,17 +46,19 @@ class JournalFacade:
         normalized_tags = self._normalize_tags(tags or [])
         
         return await self.repository.create(
+            user_id=user_id,
             title=title.strip(),
             content=content.strip(),
             tags=normalized_tags
         )
     
-    async def get_journal(self, journal_id: str) -> Optional[Journal]:
+    async def get_journal(self, journal_id: str, user_id: str) -> Optional[Journal]:
         """
-        Get a journal by ID.
+        Get a journal by ID for a specific user.
         
         Args:
             journal_id: Journal ID string
+            user_id: User ID who owns the journal
             
         Returns:
             Journal or None if not found
@@ -64,17 +68,19 @@ class JournalFacade:
         except Exception:
             return None
         
-        return await self.repository.find_by_id(obj_id)
+        return await self.repository.find_by_id(obj_id, user_id)
     
     async def list_journals(
         self,
+        user_id: str,
         page: int = 1,
         page_size: int = 20
     ) -> tuple[list[Journal], int]:
         """
-        List journals with pagination.
+        List journals for a specific user with pagination.
         
         Args:
+            user_id: User ID who owns the journals
             page: Page number (1-indexed)
             page_size: Number of items per page
             
@@ -88,23 +94,25 @@ class JournalFacade:
         
         skip = (page - 1) * page_size
         
-        journals = await self.repository.find_all(skip=skip, limit=page_size)
-        total = await self.repository.count()
+        journals = await self.repository.find_all_by_user(user_id, skip=skip, limit=page_size)
+        total = await self.repository.count_by_user(user_id)
         
         return journals, total
     
     async def update_journal(
         self,
         journal_id: str,
+        user_id: str,
         title: Optional[str] = None,
         content: Optional[str] = None,
         tags: Optional[list[str]] = None
     ) -> Optional[Journal]:
         """
-        Update a journal entry with business validation.
+        Update a journal entry for a specific user with business validation.
         
         Args:
             journal_id: Journal ID string
+            user_id: User ID who owns the journal
             title: New title (optional)
             content: New content (optional)
             tags: New tags (optional)
@@ -134,17 +142,19 @@ class JournalFacade:
         
         return await self.repository.update(
             journal_id=obj_id,
+            user_id=user_id,
             title=title,
             content=content,
             tags=tags
         )
     
-    async def delete_journal(self, journal_id: str) -> bool:
+    async def delete_journal(self, journal_id: str, user_id: str) -> bool:
         """
-        Delete a journal (soft delete by default).
+        Delete a journal for a specific user.
         
         Args:
             journal_id: Journal ID string
+            user_id: User ID who owns the journal
             
         Returns:
             True if deleted, False if not found
@@ -154,10 +164,7 @@ class JournalFacade:
         except Exception:
             return False
         
-        if self.config.enable_soft_delete:
-            return await self.repository.soft_delete(obj_id)
-        else:
-            return await self.repository.hard_delete(obj_id)
+        return await self.repository.delete(obj_id, user_id)
     
     def _validate_title(self, title: str) -> None:
         """Validate journal title."""

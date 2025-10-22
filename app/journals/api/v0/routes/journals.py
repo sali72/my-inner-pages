@@ -26,7 +26,7 @@ async def create_journal(
     current_user: User = Depends(get_current_user)
 ) -> JournalResponse:
     """
-    Create a new journal entry (requires authentication).
+    Create a new journal entry for the authenticated user.
     
     - **title**: Journal title (required, max 200 chars)
     - **content**: Journal content (required, max 50000 chars)
@@ -36,6 +36,7 @@ async def create_journal(
     
     try:
         journal = await facade.create_journal(
+            user_id=str(current_user.id),
             title=request.title,
             content=request.content,
             tags=request.tags
@@ -59,14 +60,18 @@ async def list_journals(
     current_user: User = Depends(get_current_user)
 ) -> JournalListResponse:
     """
-    List all journal entries with pagination (requires authentication).
+    List journal entries for the authenticated user with pagination.
     
     - **page**: Page number (default: 1)
     - **page_size**: Items per page (default: 20, max: 100)
     """
     facade = JournalFacade()
     
-    journals, total = await facade.list_journals(page=page, page_size=page_size)
+    journals, total = await facade.list_journals(
+        user_id=str(current_user.id),
+        page=page,
+        page_size=page_size
+    )
     
     return JournalListResponse.create(
         journals=journals,
@@ -86,13 +91,13 @@ async def get_journal(
     current_user: User = Depends(get_current_user)
 ) -> JournalResponse:
     """
-    Get a specific journal entry by ID (requires authentication).
+    Get a specific journal entry by ID for the authenticated user.
     
     - **journal_id**: MongoDB ObjectId of the journal
     """
     facade = JournalFacade()
     
-    journal = await facade.get_journal(journal_id)
+    journal = await facade.get_journal(journal_id, str(current_user.id))
     
     if not journal:
         raise HTTPException(
@@ -114,7 +119,7 @@ async def update_journal(
     current_user: User = Depends(get_current_user)
 ) -> JournalResponse:
     """
-    Update an existing journal entry (requires authentication).
+    Update an existing journal entry for the authenticated user.
     
     - **journal_id**: MongoDB ObjectId of the journal
     - **title**: New title (optional)
@@ -126,6 +131,7 @@ async def update_journal(
     try:
         journal = await facade.update_journal(
             journal_id=journal_id,
+            user_id=str(current_user.id),
             title=request.title,
             content=request.content,
             tags=request.tags
@@ -155,13 +161,13 @@ async def delete_journal(
     current_user: User = Depends(get_current_user)
 ) -> MessageResponse:
     """
-    Delete a journal entry (requires authentication).
+    Delete a journal entry for the authenticated user.
     
     - **journal_id**: MongoDB ObjectId of the journal
     """
     facade = JournalFacade()
     
-    deleted = await facade.delete_journal(journal_id)
+    deleted = await facade.delete_journal(journal_id, str(current_user.id))
     
     if not deleted:
         raise HTTPException(

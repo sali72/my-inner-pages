@@ -17,13 +17,13 @@ app/
 │   ├── api/v0/routes/ # Auth endpoints
 │   ├── db/            # User model & repository
 │   └── facade/        # Business logic
-├── journals/          # Journals module
-│   ├── api/v0/routes/ # Journal endpoints
-│   ├── db/            # Journal model & repository
+├── journals/          # Journals module (user-specific)
+│   ├── api/v0/routes/ # Journal endpoints (JWT required)
+│   ├── db/            # Journal model (with user_id) & repository
 │   └── facade/        # Business logic
 └── core/              # Shared services
     ├── services/      # JWT, password hashing
-    └── deps/          # Auth dependencies
+    └── deps/          # Auth dependencies (get_current_user)
 ```
 
 ## API Endpoints
@@ -35,12 +35,12 @@ app/
 - `GET /verify` - Verify token
 - `POST /reset-password` - Request password reset
 
-### Journals (`/api/v0/journals`)
-- `POST /` - Create journal
-- `GET /` - List journals (paginated)
-- `GET /{id}` - Get journal
-- `PUT /{id}` - Update journal
-- `DELETE /{id}` - Delete journal
+### Journals (`/api/v0/journals`) - All require JWT
+- `POST /` - Create journal (user-specific)
+- `GET /` - List user's journals (paginated)
+- `GET /{id}` - Get user's journal
+- `PUT /{id}` - Update user's journal
+- `DELETE /{id}` - Delete user's journal
 
 ## Configuration (.env)
 

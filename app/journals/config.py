@@ -13,5 +13,4 @@ class JournalModuleConfig(BaseModel):
     max_content_length: int = 50000
     
     # Feature flags
-    enable_soft_delete: bool = False
     enable_tags: bool = True
