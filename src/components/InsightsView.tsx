@@ -97,8 +97,8 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
   const showBlur = loading || !reflection;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 pt-8">
-      <div className="w-full max-w-3xl">
+    <div className="min-h-screen p-4 pt-4">
+      <div className="w-full max-w-3xl mx-auto">
         {/* Header with mode selector */}
         <div className="flex justify-between items-center mb-4">
           <h1 className={`text-2xl font-bold ${themeConfig.accent}`}>
@@ -160,12 +160,17 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
         <div
           onClick={handleMirrorTouch}
           className={`relative rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 ${
-            isDark ? modeConfig.darkBg : modeConfig.lightBg
-          } ${
             !loading && !reflection ? 'cursor-pointer hover:shadow-3xl hover:scale-[1.02]' : ''
           }`}
           style={{ minHeight: '500px' }}
         >
+          {/* Base colored gradient background - always visible */}
+          <div className={`absolute inset-0 ${isDark ? modeConfig.darkBg : modeConfig.lightBg}`}>
+            {/* Add some gradient blobs for more interesting blur effect */}
+            <div className={`absolute top-10 left-10 w-64 h-64 bg-gradient-to-br ${modeConfig.gradient} opacity-30 rounded-full blur-2xl`} />
+            <div className={`absolute bottom-10 right-10 w-72 h-72 bg-gradient-to-tl ${modeConfig.gradient} opacity-30 rounded-full blur-2xl`} />
+          </div>
+
           {/* Blur overlay when not revealed */}
           {showBlur && (
             <div className="absolute inset-0">
@@ -175,7 +180,7 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
                   <div className={`absolute inset-0 bg-gradient-to-r ${modeConfig.gradient} opacity-30 animate-pulse`} />
                   <div className={`absolute top-0 left-0 w-96 h-96 bg-gradient-to-br ${modeConfig.gradient} opacity-40 rounded-full blur-3xl animate-float`} />
                   <div className={`absolute bottom-0 right-0 w-80 h-80 bg-gradient-to-tl ${modeConfig.gradient} opacity-40 rounded-full blur-3xl animate-float-delayed`} />
-                  <div className={`absolute inset-0 backdrop-blur-xl`} />
+                  <div className={`absolute inset-0 backdrop-blur-2xl`} />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <p className={`text-sm ${isDark ? 'text-slate-200' : 'text-slate-700'} font-medium`}>
                       {modeConfig.icon} Reflecting...
@@ -183,9 +188,9 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
                   </div>
                 </div>
               ) : (
-                /* Static blur before touching */
+                /* Static blurred gradient before touching */
                 <div className="absolute inset-0">
-                  <div className={`absolute inset-0 backdrop-blur-xl`} />
+                  <div className={`absolute inset-0 backdrop-blur-2xl`} />
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-8">
                     <p className={`text-xl font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'} mb-2`}>
                       Touch to reflect
