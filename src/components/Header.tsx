@@ -18,7 +18,7 @@ export const Header: React.FC<HeaderProps> = ({ activeView, theme, onMenuClick }
       case 'journal':
         return 'Your Journal';
       case 'insights':
-        return 'AI Insights';
+        return 'Mirror';
       case 'settings':
         return 'Settings';
       default:
