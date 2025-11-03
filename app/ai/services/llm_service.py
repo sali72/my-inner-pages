@@ -37,6 +37,43 @@ class LLMService:
         
         return self.client
     
+    def _clean_response(self, text: str) -> str:
+        """
+        Clean up model-specific tokens and artifacts from the response.
+        
+        Args:
+            text: Raw text from the model
+            
+        Returns:
+            Cleaned text
+        """
+        if not text:
+            return text
+        
+        # List of tokens/patterns to remove
+        cleanup_patterns = [
+            '<|begin_of_sentence|>',
+            '<｜begin▁of▁sentence｜>',
+            '<|end_of_sentence|>',
+            '<｜end▁of▁sentence｜>',
+            '<|im_start|>',
+            '<|im_end|>',
+            '<|endoftext|>',
+            '<<SYS>>',
+            '<</SYS>>',
+        ]
+        
+        cleaned = text
+        for pattern in cleanup_patterns:
+            cleaned = cleaned.replace(pattern, '')
+        
+        # Remove leading/trailing whitespace
+        cleaned = cleaned.strip()
+        
+        logger.debug("response_cleaned", original_length=len(text), cleaned_length=len(cleaned))
+        
+        return cleaned
+    
     async def generate_completion(
         self,
         prompt: str,
@@ -92,6 +129,9 @@ class LLMService:
             )
             
             generated_text = completion.choices[0].message.content
+            
+            # Clean up model-specific tokens that sometimes leak through
+            generated_text = self._clean_response(generated_text)
             
             logger.info("generation_success", text_length=len(generated_text))
             return generated_text

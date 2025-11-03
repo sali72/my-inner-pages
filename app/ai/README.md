@@ -57,6 +57,15 @@ Generate a personalized daily reflection.
 }
 ```
 
+## Response Cleaning
+
+The LLM service automatically cleans up model-specific tokens that sometimes appear in responses:
+- `<|begin_of_sentence|>`, `<｜begin▁of▁sentence｜>`
+- `<|end_of_sentence|>`, `<|im_start|>`, `<|im_end|>`
+- Other common model artifacts
+
+This ensures users only see clean, natural reflections.
+
 ## Future Enhancements
 
 - Add support for Google and OpenAI providers
