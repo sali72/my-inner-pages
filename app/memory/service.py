@@ -2,6 +2,9 @@ from typing import Optional
 from app.journals.db.repository import JournalRepository
 from app.journals.db.models import Journal
 from app.memory.config import MemoryModuleConfig
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class MemoryService:
@@ -35,11 +38,16 @@ class MemoryService:
         # Ensure limit doesn't exceed maximum
         limit = min(limit, self.config.max_context_limit)
         
-        return await self.repository.find_all_by_user(
+        logger.info("fetching_journals", user_id=user_id, limit=limit)
+        
+        journals = await self.repository.find_all_by_user(
             user_id=user_id,
             skip=0,
             limit=limit
         )
+        
+        logger.info("journals_fetched", user_id=user_id, count=len(journals))
+        return journals
     
     async def build_journal_context(
         self,
@@ -56,10 +64,15 @@ class MemoryService:
         Returns:
             Formatted string containing journal context
         """
+        logger.info("building_journal_context", user_id=user_id, limit=limit)
+        
         journals = await self.get_recent_journals(user_id, limit)
         
         if not journals:
+            logger.info("no_journals_found", user_id=user_id)
             return "No journal entries available yet."
+        
+        logger.info("building_context_from_journals", journal_count=len(journals))
         
         context_parts = []
         for i, journal in enumerate(journals, 1):
@@ -70,4 +83,7 @@ class MemoryService:
                 f"Tags: {', '.join(journal.tags) if journal.tags else 'None'}\n"
             )
         
-        return "\n---\n".join(context_parts)
+        context = "\n---\n".join(context_parts)
+        logger.info("context_built", total_length=len(context))
+        
+        return context

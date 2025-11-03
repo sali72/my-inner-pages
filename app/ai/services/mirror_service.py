@@ -2,6 +2,9 @@ from typing import Optional
 from app.ai.services.llm_service import LLMService
 from app.memory.service import MemoryService
 from app.ai.config import AIModuleConfig
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class MirrorService:
@@ -33,34 +36,47 @@ class MirrorService:
         Returns:
             Dictionary with reflection data
         """
+        logger.info("generate_reflection_start", user_id=user_id, mode=mode)
+        
         if not self.config.enable_mirror:
+            logger.error("mirror_feature_disabled")
             raise ValueError("Mirror feature is not enabled")
         
         # Validate and default mode
         if mode and mode not in self.config.mirror_reflection_modes:
+            logger.warning("invalid_mode", requested_mode=mode, valid_modes=self.config.mirror_reflection_modes)
             mode = None
         
         if not mode:
             mode = "emotional"  # Default mode
+            logger.info("using_default_mode", mode=mode)
         
         # Get journal context
+        logger.info("fetching_journal_context", user_id=user_id, limit=self.config.max_journals_for_mirror)
         context = await self.memory_service.build_journal_context(
             user_id=user_id,
             limit=self.config.max_journals_for_mirror
         )
         
+        logger.info("journal_context_retrieved", context_length=len(context), has_journals=("No journal entries" not in context))
+        
         # Build prompts based on mode
         system_prompt = self._get_system_prompt(mode)
         user_prompt = self._build_user_prompt(context, mode)
         
+        logger.info("prompts_built", system_prompt_length=len(system_prompt), user_prompt_length=len(user_prompt))
+        
         # Generate reflection
         try:
+            logger.info("calling_llm_service", mode=mode)
             reflection_text = await self.llm_service.generate_completion(
                 prompt=user_prompt,
                 system_prompt=system_prompt,
                 max_tokens=400,
                 temperature=0.8
             )
+            
+            logger.info("reflection_generated_successfully", reflection_length=len(reflection_text))
             
             return {
                 "reflection": reflection_text,
@@ -69,6 +85,7 @@ class MirrorService:
             }
         except Exception as e:
             # Return a graceful fallback if LLM fails
+            logger.error("reflection_generation_failed", error=str(e), error_type=type(e).__name__)
             return {
                 "reflection": "Take a moment to reflect on your recent thoughts. What patterns do you notice?",
                 "mode": mode,

@@ -14,7 +14,7 @@ class AIModuleConfig(BaseModel):
     ]
     
     # OpenRouter settings
-    openrouter_model: str = "anthropic/claude-3.5-sonnet"
+    openrouter_model: str = "deepseek/deepseek-chat-v3.1:free"
     openrouter_timeout: int = 30
     
     # Feature flags

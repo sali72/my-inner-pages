@@ -1,6 +1,9 @@
 import httpx
 from typing import Optional
 from app.core.config import Settings
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class LLMService:
@@ -37,13 +40,22 @@ class LLMService:
         Raises:
             Exception: If API call fails
         """
+        logger.info("generate_completion_start", model=model, max_tokens=max_tokens, temperature=temperature)
+        
         if not hasattr(self.settings, 'openrouter_api_key'):
+            logger.error("openrouter_api_key_not_configured")
             raise ValueError("OPENROUTER_API_KEY not configured in settings")
         
         api_key = self.settings.openrouter_api_key
         
+        if not api_key or api_key == "":
+            logger.error("openrouter_api_key_empty")
+            raise ValueError("OPENROUTER_API_KEY is empty")
+        
         if not model:
-            model = "anthropic/claude-3.5-sonnet"
+            model = "deepseek/deepseek-chat-v3.1:free"
+        
+        logger.info("llm_request", model=model, has_system_prompt=bool(system_prompt))
         
         messages = []
         if system_prompt:
@@ -64,14 +76,22 @@ class LLMService:
         }
         
         async with httpx.AsyncClient(timeout=30.0) as client:
+            logger.info("sending_request_to_openrouter", url=f"{self.base_url}/chat/completions")
+            
             response = await client.post(
                 f"{self.base_url}/chat/completions",
                 headers=headers,
                 json=payload
             )
             
+            logger.info("received_response", status_code=response.status_code)
+            
             if response.status_code != 200:
+                logger.error("llm_api_error", status_code=response.status_code, response_text=response.text)
                 raise Exception(f"LLM API error: {response.status_code} - {response.text}")
             
             data = response.json()
-            return data["choices"][0]["message"]["content"]
+            generated_text = data["choices"][0]["message"]["content"]
+            
+            logger.info("generation_success", text_length=len(generated_text))
+            return generated_text

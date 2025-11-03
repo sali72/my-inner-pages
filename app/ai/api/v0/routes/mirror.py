@@ -5,7 +5,9 @@ from app.ai.api.v0.schemas.response import MirrorReflectionResponse
 from app.ai.services.mirror_service import MirrorService
 from app.core.deps.auth import get_current_user
 from app.auth.db.models import User
+from app.core.logging import get_logger
 
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/mirror", tags=["mirror"])
 
@@ -35,6 +37,8 @@ async def get_mirror_reflection(
     
     If no mode is specified, defaults to 'emotional'.
     """
+    logger.info("mirror_reflection_request", user_id=str(current_user.id), mode=mode)
+    
     service = MirrorService()
     
     try:
@@ -42,13 +46,16 @@ async def get_mirror_reflection(
             user_id=str(current_user.id),
             mode=mode
         )
+        logger.info("mirror_reflection_success", user_id=str(current_user.id), mode=result.get("mode"))
         return MirrorReflectionResponse(**result)
     except ValueError as e:
+        logger.error("mirror_reflection_value_error", user_id=str(current_user.id), error=str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except Exception as e:
+        logger.error("mirror_reflection_error", user_id=str(current_user.id), error=str(e), error_type=type(e).__name__)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate reflection: {str(e)}"
