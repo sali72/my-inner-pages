@@ -4,6 +4,7 @@ import { MirrorReflection, MirrorMode } from '@/types/mirror';
 import { THEMES } from '@constants/themes';
 import { MIRROR_MODES } from '@constants/mirrorModes';
 import { api } from '@/utils/api';
+import { DropdownMenu, DropdownMenuItem, IconButton } from '@components/common';
 
 interface MirrorViewProps {
   theme: ThemeType;
@@ -63,52 +64,38 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
           
           {/* Mode Dropdown */}
           <div className="relative">
-            <button
+            <IconButton
               onClick={() => setShowDropdown(!showDropdown)}
-              className={`p-2 rounded-lg transition-colors ${
-                isDark 
-                  ? 'hover:bg-slate-700 text-slate-300' 
-                  : 'hover:bg-slate-200 text-slate-700'
-              }`}
-              aria-label="Mirror mode options"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-              </svg>
-            </button>
+              theme={theme}
+              ariaLabel="Mirror mode options"
+              icon={
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+              }
+            />
             
-            {showDropdown && (
-              <>
-                <div 
-                  className="fixed inset-0 z-10" 
-                  onClick={() => setShowDropdown(false)}
-                />
-                <div className={`absolute right-0 mt-2 w-48 rounded-lg shadow-lg z-20 ${
-                  themeConfig.paper
-                } ${themeConfig.border} border`}>
-                  <div className="py-1">
-                    {(Object.keys(MIRROR_MODES) as MirrorMode[]).map((mode) => (
-                      <button
-                        key={mode}
-                        onClick={() => {
-                          setSelectedMode(mode);
-                          setShowDropdown(false);
-                          setReflection(null);
-                        }}
-                        className={`w-full px-4 py-2 text-left flex items-center gap-2 transition-colors ${
-                          selectedMode === mode
-                            ? `${isDark ? 'bg-slate-700' : 'bg-slate-100'} ${themeConfig.accent}`
-                            : `${isDark ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-700 hover:bg-slate-100'}`
-                        }`}
-                      >
-                        <span className="text-lg">{MIRROR_MODES[mode].icon}</span>
-                        <span className="font-medium">{MIRROR_MODES[mode].title}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
+            <DropdownMenu
+              isOpen={showDropdown}
+              onClose={() => setShowDropdown(false)}
+              theme={theme}
+            >
+              {(Object.keys(MIRROR_MODES) as MirrorMode[]).map((mode) => (
+                <DropdownMenuItem
+                  key={mode}
+                  onClick={() => {
+                    setSelectedMode(mode);
+                    setShowDropdown(false);
+                    setReflection(null);
+                  }}
+                  theme={theme}
+                  isActive={selectedMode === mode}
+                  icon={MIRROR_MODES[mode].icon}
+                >
+                  {MIRROR_MODES[mode].title}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenu>
           </div>
         </div>
 

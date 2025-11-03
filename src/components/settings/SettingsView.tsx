@@ -2,7 +2,7 @@ import React from 'react';
 import { Volume2, VolumeX, LogOut } from 'lucide-react';
 import { ThemeType, FontType, FontSizeType } from '@/types';
 import { THEMES } from '@constants/themes';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SettingsViewProps {
   theme: ThemeType;

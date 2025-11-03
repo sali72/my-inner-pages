@@ -5,12 +5,11 @@ import { useAuth } from './contexts/AuthContext';
 import { useJournalEntries } from '@hooks/useJournalEntries';
 import { usePageFlip } from '@hooks/usePageFlip';
 import { useSettings } from '@hooks/useSettings';
-import { AuthContainer } from '@components/AuthContainer';
-import { Header } from '@components/Header';
-import { Sidebar } from '@components/Sidebar';
-import { JournalView } from '@components/JournalView';
-import { MirrorView } from '@components/MirrorView';
-import { SettingsView } from '@components/SettingsView';
+import { AuthContainer } from '@components/auth';
+import { Header, Sidebar } from '@components/layout';
+import { JournalView } from '@components/journal';
+import { MirrorView } from '@components/mirror';
+import { SettingsView } from '@components/settings';
 
 const App: React.FC = () => {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();

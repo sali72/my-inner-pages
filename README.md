@@ -1,6 +1,6 @@
 # My Inner Pages - Frontend
 
-React + TypeScript journaling app with authentication.
+React + TypeScript journaling app with authentication and AI-powered reflections.
 
 ## Quick Start
 
@@ -13,17 +13,18 @@ npm run dev
 
 ```
 src/
-├── components/        # UI components
-│   ├── Auth*.tsx     # Auth pages (Login, Register, etc)
-│   ├── Journal*.tsx  # Journal components
-│   └── Settings*.tsx # Settings components
-├── contexts/         # React contexts
-│   └── AuthContext.tsx # Shared auth state (Provider + hook)
-├── hooks/            # React hooks
-│   ├── useJournalEntries.ts
-│   └── useSettings.ts
-├── constants/        # Theme configs
-└── types/            # TypeScript types
+├── components/
+│   ├── auth/          # Authentication (Login, Register, etc)
+│   ├── journal/       # Journal entries, pages, tags
+│   ├── mirror/        # AI reflection feature
+│   ├── settings/      # User settings
+│   ├── layout/        # Header, Sidebar
+│   └── common/        # Reusable components (DropdownMenu, IconButton)
+├── contexts/          # React contexts (AuthContext)
+├── hooks/             # Custom hooks (useJournalEntries, useSettings, usePageFlip)
+├── constants/         # Theme & mirror mode configs
+├── types/             # TypeScript types
+└── utils/             # Helpers (theme, errorHandler, fonts, textDirection)
 ```
 
 ## Configuration (.env)
@@ -34,25 +35,19 @@ VITE_API_URL=http://localhost:8000/api/v0
 
 ## Features
 
-- Authentication (no email verification)
-- Journal entries with tags
-- Page flip animations
-- 3 themes (vintage, minimal, dark)
-- Settings (font, theme, ambient sound)
+- **Authentication** - Login/Register (no email verification)
+- **Journal** - Entries with tags, page flip animations
+- **Mirror** - AI reflections in 4 modes (emotional, cognitive, behavioral, relational)
+- **Themes** - Vintage, minimal, dark
+- **Settings** - Font, size, theme, ambient sound
 
 ## Tech Stack
 
 - React + TypeScript
-- Vite - Build tool
-- Tailwind CSS - Styling
-- Lucide - Icons
+- Vite
+- Tailwind CSS
+- Lucide Icons
 
-## Auth Flow
+## Architecture
 
-1. User sees login page
-2. Register → Account created immediately
-3. Login → JWT token stored in localStorage
-4. AuthContext updates → App re-renders
-5. Access journal app
-
-No routes - single page app with conditional rendering. Auth state shared via Context API.
+Single-page app with feature-based organization. Auth state via Context API. No routing - conditional rendering based on view state (`journal` | `mirror` | `settings`).
