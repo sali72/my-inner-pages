@@ -13,7 +13,7 @@ interface SidebarProps {
 
 const MENU_ITEMS: { view: ViewType; icon: typeof BookOpen; label: string }[] = [
   { view: 'journal', icon: BookOpen, label: 'Journal' },
-  { view: 'insights', icon: Sparkles, label: 'Mirror' },
+  { view: 'mirror', icon: Sparkles, label: 'Mirror' },
   { view: 'settings', icon: Settings, label: 'Settings' },
 ];
 

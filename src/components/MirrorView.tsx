@@ -1,57 +1,13 @@
 import React, { useState } from 'react';
 import { ThemeType } from '@/types';
+import { MirrorReflection, MirrorMode } from '@/types/mirror';
 import { THEMES } from '@constants/themes';
+import { MIRROR_MODES } from '@constants/mirrorModes';
 import { api } from '@/utils/api';
 
 interface MirrorViewProps {
   theme: ThemeType;
 }
-
-interface MirrorReflection {
-  reflection: string;
-  mode: string;
-  available_modes: string[];
-  error?: string;
-}
-
-type MirrorMode = 'emotional' | 'cognitive' | 'behavioral' | 'relational';
-
-const MODE_CONFIG: Record<MirrorMode, { 
-  title: string; 
-  icon: string;
-  gradient: string;
-  lightBg: string;
-  darkBg: string;
-}> = {
-  emotional: {
-    title: 'Emotional',
-    icon: '💗',
-    gradient: 'from-rose-400 to-pink-500',
-    lightBg: 'bg-gradient-to-br from-rose-100 to-pink-100',
-    darkBg: 'bg-gradient-to-br from-rose-900/40 to-pink-900/40'
-  },
-  cognitive: {
-    title: 'Cognitive',
-    icon: '🧠',
-    gradient: 'from-blue-400 to-indigo-500',
-    lightBg: 'bg-gradient-to-br from-blue-100 to-indigo-100',
-    darkBg: 'bg-gradient-to-br from-blue-900/40 to-indigo-900/40'
-  },
-  behavioral: {
-    title: 'Behavioral',
-    icon: '⚡',
-    gradient: 'from-amber-400 to-orange-500',
-    lightBg: 'bg-gradient-to-br from-amber-100 to-orange-100',
-    darkBg: 'bg-gradient-to-br from-amber-900/40 to-orange-900/40'
-  },
-  relational: {
-    title: 'Relational',
-    icon: '🤝',
-    gradient: 'from-emerald-400 to-teal-500',
-    lightBg: 'bg-gradient-to-br from-emerald-100 to-teal-100',
-    darkBg: 'bg-gradient-to-br from-emerald-900/40 to-teal-900/40'
-  }
-};
 
 export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
   const isDark = theme === 'dark';
@@ -93,7 +49,7 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
     }
   };
 
-  const modeConfig = MODE_CONFIG[selectedMode];
+  const modeConfig = MIRROR_MODES[selectedMode];
   const showBlur = loading || !reflection;
 
   return (
@@ -131,7 +87,7 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
                   themeConfig.paper
                 } ${themeConfig.border} border`}>
                   <div className="py-1">
-                    {(Object.keys(MODE_CONFIG) as MirrorMode[]).map((mode) => (
+                    {(Object.keys(MIRROR_MODES) as MirrorMode[]).map((mode) => (
                       <button
                         key={mode}
                         onClick={() => {
@@ -145,8 +101,8 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
                             : `${isDark ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-700 hover:bg-slate-100'}`
                         }`}
                       >
-                        <span className="text-lg">{MODE_CONFIG[mode].icon}</span>
-                        <span className="font-medium">{MODE_CONFIG[mode].title}</span>
+                        <span className="text-lg">{MIRROR_MODES[mode].icon}</span>
+                        <span className="font-medium">{MIRROR_MODES[mode].title}</span>
                       </button>
                     ))}
                   </div>

@@ -8,7 +8,7 @@ export interface JournalEntry {
   isNew?: boolean;
 }
 
-export type ViewType = 'journal' | 'insights' | 'settings';
+export type ViewType = 'journal' | 'mirror' | 'settings';
 
 export type ThemeType = 'vintage' | 'minimal' | 'dark';
 
