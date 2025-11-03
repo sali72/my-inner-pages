@@ -9,7 +9,7 @@ import { AuthContainer } from '@components/AuthContainer';
 import { Header } from '@components/Header';
 import { Sidebar } from '@components/Sidebar';
 import { JournalView } from '@components/JournalView';
-import { InsightsView } from '@components/InsightsView';
+import { MirrorView } from '@components/InsightsView';
 import { SettingsView } from '@components/SettingsView';
 
 const App: React.FC = () => {
@@ -159,7 +159,7 @@ const App: React.FC = () => {
           />
         ) : null}
 
-        {activeView === 'insights' && <InsightsView theme={theme} />}
+        {activeView === 'insights' && <MirrorView theme={theme} />}
 
         {activeView === 'settings' && (
           <SettingsView

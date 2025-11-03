@@ -19,36 +19,41 @@ type MirrorMode = 'emotional' | 'cognitive' | 'behavioral' | 'relational';
 const MODE_CONFIG: Record<MirrorMode, { 
   title: string; 
   icon: string;
-  color: string;
-  blurColor: string;
+  gradient: string;
+  lightBg: string;
+  darkBg: string;
 }> = {
   emotional: {
     title: 'Emotional',
     icon: '💗',
-    color: 'from-rose-400 to-pink-500',
-    blurColor: 'bg-gradient-to-br from-rose-400/20 to-pink-500/20'
+    gradient: 'from-rose-400 to-pink-500',
+    lightBg: 'bg-gradient-to-br from-rose-100 to-pink-100',
+    darkBg: 'bg-gradient-to-br from-rose-900/40 to-pink-900/40'
   },
   cognitive: {
     title: 'Cognitive',
     icon: '🧠',
-    color: 'from-blue-400 to-indigo-500',
-    blurColor: 'bg-gradient-to-br from-blue-400/20 to-indigo-500/20'
+    gradient: 'from-blue-400 to-indigo-500',
+    lightBg: 'bg-gradient-to-br from-blue-100 to-indigo-100',
+    darkBg: 'bg-gradient-to-br from-blue-900/40 to-indigo-900/40'
   },
   behavioral: {
     title: 'Behavioral',
     icon: '⚡',
-    color: 'from-amber-400 to-orange-500',
-    blurColor: 'bg-gradient-to-br from-amber-400/20 to-orange-500/20'
+    gradient: 'from-amber-400 to-orange-500',
+    lightBg: 'bg-gradient-to-br from-amber-100 to-orange-100',
+    darkBg: 'bg-gradient-to-br from-amber-900/40 to-orange-900/40'
   },
   relational: {
     title: 'Relational',
     icon: '🤝',
-    color: 'from-emerald-400 to-teal-500',
-    blurColor: 'bg-gradient-to-br from-emerald-400/20 to-teal-500/20'
+    gradient: 'from-emerald-400 to-teal-500',
+    lightBg: 'bg-gradient-to-br from-emerald-100 to-teal-100',
+    darkBg: 'bg-gradient-to-br from-emerald-900/40 to-teal-900/40'
   }
 };
 
-export const InsightsView: React.FC<MirrorViewProps> = ({ theme }) => {
+export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
   const isDark = theme === 'dark';
   const themeConfig = THEMES[theme];
   
@@ -92,7 +97,7 @@ export const InsightsView: React.FC<MirrorViewProps> = ({ theme }) => {
   const showBlur = loading || !reflection;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 pt-8">
       <div className="w-full max-w-3xl">
         {/* Header with mode selector */}
         <div className="flex justify-between items-center mb-4">
@@ -154,41 +159,45 @@ export const InsightsView: React.FC<MirrorViewProps> = ({ theme }) => {
         {/* Mirror Surface */}
         <div
           onClick={handleMirrorTouch}
-          className={`relative ${themeConfig.paper} rounded-2xl shadow-2xl border ${themeConfig.border} overflow-hidden transition-all duration-300 ${
+          className={`relative rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 ${
+            isDark ? modeConfig.darkBg : modeConfig.lightBg
+          } ${
             !loading && !reflection ? 'cursor-pointer hover:shadow-3xl hover:scale-[1.02]' : ''
           }`}
           style={{ minHeight: '500px' }}
         >
-          {/* Blur overlay */}
-          <div
-            className={`absolute inset-0 backdrop-blur-2xl ${modeConfig.blurColor} transition-opacity duration-1000 ${
-              showBlur ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-          >
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-8">
+          {/* Blur overlay when not revealed */}
+          {showBlur && (
+            <div className="absolute inset-0">
               {loading ? (
-                <>
-                  <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${modeConfig.color} animate-pulse mb-4`} />
-                  <p className={`text-lg font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                    Reflecting...
-                  </p>
-                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'} mt-2`}>
-                    {modeConfig.icon} {modeConfig.title} perspective
-                  </p>
-                </>
+                /* Floating gradient blur effect while generating */
+                <div className="absolute inset-0">
+                  <div className={`absolute inset-0 bg-gradient-to-r ${modeConfig.gradient} opacity-30 animate-pulse`} />
+                  <div className={`absolute top-0 left-0 w-96 h-96 bg-gradient-to-br ${modeConfig.gradient} opacity-40 rounded-full blur-3xl animate-float`} />
+                  <div className={`absolute bottom-0 right-0 w-80 h-80 bg-gradient-to-tl ${modeConfig.gradient} opacity-40 rounded-full blur-3xl animate-float-delayed`} />
+                  <div className={`absolute inset-0 backdrop-blur-xl`} />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <p className={`text-sm ${isDark ? 'text-slate-200' : 'text-slate-700'} font-medium`}>
+                      {modeConfig.icon} Reflecting...
+                    </p>
+                  </div>
+                </div>
               ) : (
-                <>
-                  <div className={`w-24 h-24 rounded-full bg-gradient-to-r ${modeConfig.color} opacity-50 mb-6`} />
-                  <p className={`text-xl font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'} mb-2`}>
-                    Touch to reflect
-                  </p>
-                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    {modeConfig.icon} {modeConfig.title} mirror
-                  </p>
-                </>
+                /* Static blur before touching */
+                <div className="absolute inset-0">
+                  <div className={`absolute inset-0 backdrop-blur-xl`} />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-8">
+                    <p className={`text-xl font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'} mb-2`}>
+                      Touch to reflect
+                    </p>
+                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                      {modeConfig.icon} {modeConfig.title} mirror
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
-          </div>
+          )}
 
           {/* Reflection content */}
           {reflection && (
@@ -197,14 +206,14 @@ export const InsightsView: React.FC<MirrorViewProps> = ({ theme }) => {
             }`}>
               {/* Mode indicator */}
               <div className="flex items-center gap-3 mb-6">
-                <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${modeConfig.color} flex items-center justify-center text-2xl shadow-lg`}>
+                <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${modeConfig.gradient} flex items-center justify-center text-2xl shadow-lg`}>
                   {modeConfig.icon}
                 </div>
                 <div>
-                  <h2 className={`text-xl font-bold ${themeConfig.accent}`}>
+                  <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     {modeConfig.title} Reflection
                   </h2>
-                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     Based on your recent journals
                   </p>
                 </div>
@@ -212,7 +221,7 @@ export const InsightsView: React.FC<MirrorViewProps> = ({ theme }) => {
 
               {/* Reflection text */}
               <div className={`prose ${isDark ? 'prose-invert' : ''} max-w-none`}>
-                <p className={`text-lg leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'} whitespace-pre-wrap`}>
+                <p className={`text-lg leading-relaxed ${isDark ? 'text-slate-100' : 'text-slate-800'} whitespace-pre-wrap`}>
                   {reflection.reflection}
                 </p>
               </div>
@@ -224,7 +233,7 @@ export const InsightsView: React.FC<MirrorViewProps> = ({ theme }) => {
                 className={`mt-8 px-6 py-3 rounded-lg font-medium transition-all ${
                   loading
                     ? `${isDark ? 'bg-slate-700 text-slate-500' : 'bg-slate-200 text-slate-400'} cursor-not-allowed`
-                    : `bg-gradient-to-r ${modeConfig.color} text-white hover:shadow-lg hover:scale-105`
+                    : `bg-gradient-to-r ${modeConfig.gradient} text-white hover:shadow-lg hover:scale-105`
                 }`}
               >
                 ✨ Reflect again
