@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # JWT Configuration
     jwt_secret_key: str = "dev-secret-key-change-in-production"
     
+    # AI Configuration
+    openrouter_api_key: str = ""
+    
     @property
     def is_production(self) -> bool:
         return self.environment.lower() == "production"

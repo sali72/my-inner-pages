@@ -1,0 +1,55 @@
+from fastapi import APIRouter, HTTPException, status, Query, Depends
+from typing import Annotated, Optional
+
+from app.ai.api.v0.schemas.response import MirrorReflectionResponse
+from app.ai.services.mirror_service import MirrorService
+from app.core.deps.auth import get_current_user
+from app.auth.db.models import User
+
+
+router = APIRouter(prefix="/mirror", tags=["mirror"])
+
+
+@router.get(
+    "/reflection",
+    response_model=MirrorReflectionResponse,
+    summary="Generate a daily mirror reflection"
+)
+async def get_mirror_reflection(
+    mode: Annotated[
+        Optional[str], 
+        Query(
+            description="Reflection mode: emotional, cognitive, behavioral, or relational"
+        )
+    ] = None,
+    current_user: User = Depends(get_current_user)
+) -> MirrorReflectionResponse:
+    """
+    Generate a personalized daily reflection based on recent journal entries.
+    
+    The mirror provides different types of insights based on the selected mode:
+    - **emotional**: Focus on feelings and emotional patterns
+    - **cognitive**: Focus on thinking patterns and beliefs
+    - **behavioral**: Focus on actions and habits
+    - **relational**: Focus on relationships and connections
+    
+    If no mode is specified, defaults to 'emotional'.
+    """
+    service = MirrorService()
+    
+    try:
+        result = await service.generate_reflection(
+            user_id=str(current_user.id),
+            mode=mode
+        )
+        return MirrorReflectionResponse(**result)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate reflection: {str(e)}"
+        )

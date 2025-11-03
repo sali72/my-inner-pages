@@ -9,6 +9,7 @@ from app.journals.db.models import Journal
 from app.auth.db.models import User
 from app.journals.api.v0.routes import journals as journals_router
 from app.auth.api.v0.routes import auth as auth_router
+from app.ai.api.v0.routes import mirror as mirror_router
 
 
 @asynccontextmanager
@@ -60,6 +61,7 @@ def create_app() -> FastAPI:
     # Register routers
     app.include_router(auth_router.router, prefix="/api/v0")
     app.include_router(journals_router.router, prefix="/api/v0")
+    app.include_router(mirror_router.router, prefix="/api/v0")
     
     @app.get("/", tags=["health"])
     async def root():
