@@ -5,10 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import Settings
 from app.core.db import DatabaseManager
 from app.core.deps.database import set_db_manager
+from app.core.logging import configure_logging, get_logger
 from app.journals.db.models import Journal
 from app.auth.db.models import User
 from app.journals.api.v0.routes import journals as journals_router
 from app.auth.api.v0.routes import auth as auth_router
+from app.ai.api.v0.routes import mirror as mirror_router
+
+# Configure logging
+configure_logging()
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
@@ -19,6 +25,8 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     settings = Settings()
+    logger.info("application_startup", environment=settings.environment, database=settings.database_name)
+    
     db_manager = DatabaseManager(settings)
     
     # Initialize Beanie with all document models
@@ -27,6 +35,7 @@ async def lifespan(app: FastAPI):
     # Set global database manager
     set_db_manager(db_manager)
     
+    logger.info("database_connected", database=settings.database_name)
     print(f"✓ Connected to MongoDB: {settings.database_name}")
     print(f"✓ Application started in {settings.environment} mode")
     
@@ -34,6 +43,7 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     await db_manager.disconnect()
+    logger.info("application_shutdown")
     print("✓ Disconnected from MongoDB")
 
 
@@ -60,6 +70,7 @@ def create_app() -> FastAPI:
     # Register routers
     app.include_router(auth_router.router, prefix="/api/v0")
     app.include_router(journals_router.router, prefix="/api/v0")
+    app.include_router(mirror_router.router, prefix="/api/v0")
     
     @app.get("/", tags=["health"])
     async def root():
