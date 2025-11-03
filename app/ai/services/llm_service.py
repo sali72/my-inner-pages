@@ -1,4 +1,4 @@
-import httpx
+from openai import OpenAI
 from typing import Optional
 from app.core.config import Settings
 from app.core.logging import get_logger
@@ -9,12 +9,33 @@ logger = get_logger(__name__)
 class LLMService:
     """
     Service for interacting with LLM providers.
-    Currently supports OpenRouter.
+    Currently supports OpenRouter via OpenAI-compatible API.
     """
     
     def __init__(self):
         self.settings = Settings()
-        self.base_url = "https://openrouter.ai/api/v1"
+        self.client = None
+    
+    def _get_client(self) -> OpenAI:
+        """Get or create OpenAI client configured for OpenRouter."""
+        if self.client is None:
+            if not hasattr(self.settings, 'openrouter_api_key'):
+                logger.error("openrouter_api_key_not_configured")
+                raise ValueError("OPENROUTER_API_KEY not configured in settings")
+            
+            api_key = self.settings.openrouter_api_key
+            
+            if not api_key or api_key == "":
+                logger.error("openrouter_api_key_empty")
+                raise ValueError("OPENROUTER_API_KEY is empty")
+            
+            self.client = OpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=api_key,
+            )
+            logger.info("openai_client_created")
+        
+        return self.client
     
     async def generate_completion(
         self,
@@ -42,56 +63,39 @@ class LLMService:
         """
         logger.info("generate_completion_start", model=model, max_tokens=max_tokens, temperature=temperature)
         
-        if not hasattr(self.settings, 'openrouter_api_key'):
-            logger.error("openrouter_api_key_not_configured")
-            raise ValueError("OPENROUTER_API_KEY not configured in settings")
-        
-        api_key = self.settings.openrouter_api_key
-        
-        if not api_key or api_key == "":
-            logger.error("openrouter_api_key_empty")
-            raise ValueError("OPENROUTER_API_KEY is empty")
-        
         if not model:
             model = "deepseek/deepseek-chat-v3.1:free"
         
         logger.info("llm_request", model=model, has_system_prompt=bool(system_prompt))
         
+        # Build messages
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
         
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": self.settings.app_name,
-        }
-        
-        payload = {
-            "model": model,
-            "messages": messages,
-            "max_tokens": max_tokens,
-            "temperature": temperature
-        }
-        
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            logger.info("sending_request_to_openrouter", url=f"{self.base_url}/chat/completions")
+        try:
+            client = self._get_client()
             
-            response = await client.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload
+            logger.info("sending_request_to_openrouter", model=model)
+            
+            # Make synchronous call (OpenAI client doesn't support async in this version)
+            completion = client.chat.completions.create(
+                extra_headers={
+                    "HTTP-Referer": self.settings.app_name,
+                    "X-Title": self.settings.app_name,
+                },
+                model=model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature
             )
             
-            logger.info("received_response", status_code=response.status_code)
-            
-            if response.status_code != 200:
-                logger.error("llm_api_error", status_code=response.status_code, response_text=response.text)
-                raise Exception(f"LLM API error: {response.status_code} - {response.text}")
-            
-            data = response.json()
-            generated_text = data["choices"][0]["message"]["content"]
+            generated_text = completion.choices[0].message.content
             
             logger.info("generation_success", text_length=len(generated_text))
             return generated_text
+            
+        except Exception as e:
+            logger.error("llm_api_error", error=str(e), error_type=type(e).__name__)
+            raise Exception(f"LLM API error: {str(e)}")
