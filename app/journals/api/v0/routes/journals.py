@@ -10,6 +10,7 @@ from app.journals.api.v0.schemas.response import (
 from app.journals.facade.journal_facade import JournalFacade
 from app.journals.deps import get_journal_facade
 from app.core.deps.auth import get_current_user
+from app.core.deps.database import get_db
 from app.auth.db.models import User
 
 
@@ -20,7 +21,8 @@ router = APIRouter(prefix="/journals", tags=["journals"])
     "",
     response_model=JournalResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a new journal entry"
+    summary="Create a new journal entry",
+    dependencies=[Depends(get_db)]
 )
 async def create_journal(
     request: CreateJournalRequest,
@@ -52,7 +54,8 @@ async def create_journal(
 @router.get(
     "",
     response_model=JournalListResponse,
-    summary="List all journal entries"
+    summary="List all journal entries",
+    dependencies=[Depends(get_db)]
 )
 async def list_journals(
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
@@ -83,7 +86,8 @@ async def list_journals(
 @router.get(
     "/{journal_id}",
     response_model=JournalResponse,
-    summary="Get a specific journal entry"
+    summary="Get a specific journal entry",
+    dependencies=[Depends(get_db)]
 )
 async def get_journal(
     journal_id: str,
@@ -109,7 +113,8 @@ async def get_journal(
 @router.put(
     "/{journal_id}",
     response_model=JournalResponse,
-    summary="Update a journal entry"
+    summary="Update a journal entry",
+    dependencies=[Depends(get_db)]
 )
 async def update_journal(
     journal_id: str,
@@ -151,7 +156,8 @@ async def update_journal(
 @router.delete(
     "/{journal_id}",
     response_model=MessageResponse,
-    summary="Delete a journal entry"
+    summary="Delete a journal entry",
+    dependencies=[Depends(get_db)]
 )
 async def delete_journal(
     journal_id: str,

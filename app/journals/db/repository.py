@@ -7,6 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorClientSession
 
 from app.journals.db.models import Journal
 from app.core.exceptions import RepositoryException, DocumentNotFoundException
+from app.core.deps.database import get_current_session
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -34,7 +35,7 @@ class JournalRepository:
             title: Journal title
             content: Journal content
             tags: Optional list of tags
-            session: Optional MongoDB session for transactions
+            session: Optional MongoDB session (uses context if not provided)
             
         Returns:
             Created journal document
@@ -43,6 +44,10 @@ class JournalRepository:
             RepositoryException: If database operation fails
         """
         try:
+            # Use provided session or get from context
+            if session is None:
+                session = get_current_session()
+            
             journal = Journal(
                 user_id=user_id,
                 title=title,

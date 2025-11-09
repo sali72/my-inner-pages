@@ -9,7 +9,7 @@ from app.auth.api.v0.schemas.response import (
 )
 from app.auth.facade.auth_facade import AuthFacade
 from app.auth.deps import get_auth_facade
-from app.auth.db.models import User
+from app.core.deps.database import get_db
 
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -20,7 +20,8 @@ security = HTTPBearer()
     "/register",
     response_model=MessageResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Register a new user"
+    summary="Register a new user",
+    dependencies=[Depends(get_db)]
 )
 async def register(
     request: RegisterRequest,
@@ -56,7 +57,8 @@ async def register(
 @router.post(
     "/login",
     response_model=LoginResponse,
-    summary="Login user"
+    summary="Login user",
+    dependencies=[Depends(get_db)]
 )
 async def login(
     request: LoginRequest,
@@ -92,7 +94,8 @@ async def login(
 @router.get(
     "/me",
     response_model=UserResponse,
-    summary="Get current user"
+    summary="Get current user",
+    dependencies=[Depends(get_db)]
 )
 async def get_current_user_info(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -142,7 +145,8 @@ async def reset_password(
 @router.get(
     "/verify",
     response_model=UserResponse,
-    summary="Verify JWT token"
+    summary="Verify JWT token",
+    dependencies=[Depends(get_db)]
 )
 async def verify_token(
     credentials: HTTPAuthorizationCredentials = Depends(security),

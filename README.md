@@ -2,12 +2,23 @@
 
 FastAPI backend with MongoDB for journaling app with authentication and AI-powered reflections.
 
-## 🆕 Recent Updates
+## 🆕 Recent Refactoring
 
-**Mirror Section - Daily Reflection**
-The backend now includes AI-powered mirror reflections! Users can receive personalized insights based on their recent journal entries, with four different reflection modes to prevent repetition.
+**Architecture Improvements:**
+- ✅ **Dependency Injection** - FastAPI native DI across all modules
+- ✅ **Session Per Request** - Each request gets its own MongoDB session via context variable
+- ✅ **Transaction Support** - ACID guarantees for critical operations
+- ✅ **Error Handling** - Custom exceptions with comprehensive logging
+- ✅ **Settings Singleton** - Cached settings for better performance
 
-📖 See `MIRROR_IMPLEMENTATION.md` in the root directory for detailed implementation docs.
+**Key Pattern:**
+```python
+# Each route gets a session automatically
+@router.post("/journals", dependencies=[Depends(get_db)])
+async def create_journal(...):
+    # Session available via get_current_session()
+    journal = await repository.create(...)
+```
 
 ## Quick Start
 
@@ -23,19 +34,25 @@ app/
 ├── auth/              # Authentication module
 │   ├── api/v0/routes/ # Auth endpoints
 │   ├── db/            # User model & repository
-│   └── facade/        # Business logic
-├── journals/          # Journals module (user-specific)
+│   ├── facade/        # Business logic
+│   └── deps.py        # Auth dependencies
+├── journals/          # Journals module
 │   ├── api/v0/routes/ # Journal endpoints (JWT required)
-│   ├── db/            # Journal model (with user_id) & repository
-│   └── facade/        # Business logic
-├── ai/                # AI module (NEW!)
+│   ├── db/            # Journal model & repository
+│   ├── facade/        # Business logic
+│   └── deps.py        # Journal dependencies
+├── ai/                # AI module
 │   ├── api/v0/routes/ # Mirror reflection endpoints
-│   └── services/      # LLM integration & mirror logic
-├── memory/            # Memory module (NEW!)
-│   └── service.py     # Context retrieval for AI
-└── core/              # Shared services
+│   ├── services/      # LLM & mirror services
+│   └── deps.py        # AI dependencies
+├── memory/            # Memory module
+│   ├── service.py     # Context retrieval
+│   └── deps.py        # Memory dependencies
+└── core/              # Shared core
     ├── services/      # JWT, password hashing
-    └── deps/          # Auth dependencies (get_current_user)
+    ├── deps/          # Database, settings, auth
+    ├── exceptions.py  # Custom exceptions
+    └── transactions.py # Transaction support
 ```
 
 ## API Endpoints
@@ -61,10 +78,21 @@ app/
 ## Configuration (.env)
 
 ```env
-MONGO_URL=mongodb://localhost:27017
+# MongoDB (replica set required for transactions)
+MONGO_URL=mongodb://localhost:27017/?replicaSet=rs0
 DATABASE_NAME=journaling_app
+
+# Auth
 JWT_SECRET_KEY=change-in-production
-OPENROUTER_API_KEY=your-openrouter-api-key  # Required for AI features
+
+# AI Features
+OPENROUTER_API_KEY=your-openrouter-api-key
+```
+
+**Note:** For transactions to work, MongoDB must be configured as a replica set:
+```bash
+mongod --replSet rs0
+mongo --eval "rs.initiate()"
 ```
 
 See `.env.example` for a complete example.

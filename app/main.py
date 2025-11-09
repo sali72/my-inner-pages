@@ -2,12 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import Settings
-from app.core.db import DatabaseManager
-from app.core.deps.database import set_db_manager
 from app.core.logging import configure_logging, get_logger
-from app.journals.db.models import Journal
-from app.auth.db.models import User
 from app.journals.api.v0.routes import journals as journals_router
 from app.auth.api.v0.routes import auth as auth_router
 from app.ai.api.v0.routes import mirror as mirror_router
@@ -25,16 +20,13 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     from app.core.deps.settings import get_settings
+    from app.core.deps.database import get_client
+    
     settings = get_settings()
     logger.info("application_startup", environment=settings.environment, database=settings.database_name)
     
-    db_manager = DatabaseManager(settings)
-    
-    # Initialize Beanie with all document models
-    await db_manager.connect(document_models=[Journal, User])
-    
-    # Set global database manager
-    set_db_manager(db_manager)
+    # Initialize MongoDB client and Beanie (cached)
+    client = await get_client()
     
     logger.info("database_connected", database=settings.database_name)
     print(f"✓ Connected to MongoDB: {settings.database_name}")
@@ -43,7 +35,7 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    await db_manager.disconnect()
+    client.close()
     logger.info("application_shutdown")
     print("✓ Disconnected from MongoDB")
 
