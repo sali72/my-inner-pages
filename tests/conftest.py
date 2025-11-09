@@ -92,54 +92,21 @@ async def test_db_client(test_settings: Settings) -> AsyncGenerator[AsyncIOMotor
 
 
 @pytest_asyncio.fixture
-async def app(test_settings: Settings, test_db_client: AsyncIOMotorClient, monkeypatch):
+async def app(test_settings: Settings, test_db_client: AsyncIOMotorClient):
     """
     Create a FastAPI application instance for testing.
     
     Args:
         test_settings: Test settings fixture
         test_db_client: MongoDB client fixture (ensures DB is initialized)
-        monkeypatch: Pytest monkeypatch fixture
         
     Returns:
         Configured FastAPI application
     """
-    from app.core.deps.database import get_client, create_motor_client
-    from app.core.deps import settings as settings_module
-    from fastapi import FastAPI
-    from fastapi.middleware.cors import CORSMiddleware
-    from app.core.middleware import RequestLoggingMiddleware
-    from app.ai.api.v0.routes import mirror as mirror_router
-    from app.auth.api.v0.routes import auth as auth_router
-    from app.journals.api.v0.routes import journals as journals_router
+    from app.core.deps.database import get_client
     
-    
-    # Monkeypatch get_settings to return test settings globally
-    monkeypatch.setattr(settings_module, "get_settings", lambda: test_settings)
-    
-    # Create app without lifespan for testing
-    app = FastAPI(
-        title=test_settings.app_name,
-        version=test_settings.app_version,
-        description="AI-boosted Journaling API with focus on self-knowledge (Test Mode)",
-    )
-    
-    # Request logging middleware
-    app.add_middleware(RequestLoggingMiddleware)
-    
-    # CORS middleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    
-    # Register routers
-    app.include_router(auth_router.router, prefix="/api/v0")
-    app.include_router(journals_router.router, prefix="/api/v0")
-    app.include_router(mirror_router.router, prefix="/api/v0")
+    # Create app using the standard create_app function
+    app = create_app()
     
     # Override settings and database client dependencies
     app.dependency_overrides[get_settings] = lambda: test_settings
