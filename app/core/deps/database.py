@@ -1,7 +1,5 @@
-from functools import lru_cache
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
-from app.core.config import Settings
 from app.core.db import DatabaseManager
 
 
@@ -21,12 +19,6 @@ def get_db_manager() -> DatabaseManager:
     return _db_manager
 
 
-@lru_cache
-def get_settings() -> Settings:
-    """Get cached application settings."""
-    return Settings()
-
-
 def get_db_client() -> AsyncIOMotorClient:
     """Dependency to get MongoDB client."""
     return get_db_manager().get_client()
@@ -34,6 +26,7 @@ def get_db_client() -> AsyncIOMotorClient:
 
 def get_database() -> AsyncIOMotorDatabase:
     """Dependency to get MongoDB database."""
+    from app.core.deps.settings import get_settings
     settings = get_settings()
     client = get_db_client()
     return client[settings.database_name]

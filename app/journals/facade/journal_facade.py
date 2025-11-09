@@ -12,9 +12,9 @@ class JournalFacade:
     Coordinates between repository and applies business rules.
     """
     
-    def __init__(self, repository: Optional[JournalRepository] = None):
-        self.repository = repository or JournalRepository()
-        self.config = JournalModuleConfig()
+    def __init__(self, repository: JournalRepository, config: JournalModuleConfig):
+        self.repository = repository
+        self.config = config
     
     async def create_journal(
         self,

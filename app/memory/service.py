@@ -13,9 +13,9 @@ class MemoryService:
     Handles fetching relevant journals and building context for AI operations.
     """
     
-    def __init__(self, repository: Optional[JournalRepository] = None):
-        self.repository = repository or JournalRepository()
-        self.config = MemoryModuleConfig()
+    def __init__(self, repository: JournalRepository, config: MemoryModuleConfig):
+        self.repository = repository
+        self.config = config
     
     async def get_recent_journals(
         self, 

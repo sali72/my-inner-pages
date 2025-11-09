@@ -17,14 +17,15 @@ class AuthFacade:
     
     def __init__(
         self,
-        repository: Optional[UserRepository] = None,
-        jwt_service: Optional[JWTService] = None,
-        password_service: Optional[PasswordService] = None
+        repository: UserRepository,
+        jwt_service: JWTService,
+        password_service: PasswordService,
+        config: AuthModuleConfig
     ):
-        self.repository = repository or UserRepository()
-        self.jwt_service = jwt_service or JWTService()
-        self.password_service = password_service or PasswordService()
-        self.config = AuthModuleConfig()
+        self.repository = repository
+        self.jwt_service = jwt_service
+        self.password_service = password_service
+        self.config = config
     
     async def register(self, email: str, password: str) -> User:
         """

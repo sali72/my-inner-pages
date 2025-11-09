@@ -24,7 +24,8 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events.
     """
     # Startup
-    settings = Settings()
+    from app.core.deps.settings import get_settings
+    settings = get_settings()
     logger.info("application_startup", environment=settings.environment, database=settings.database_name)
     
     db_manager = DatabaseManager(settings)
@@ -49,7 +50,8 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
-    settings = Settings()
+    from app.core.deps.settings import get_settings
+    settings = get_settings()
     
     app = FastAPI(
         title=settings.app_name,

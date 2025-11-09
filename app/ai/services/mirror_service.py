@@ -14,12 +14,13 @@ class MirrorService:
     
     def __init__(
         self,
-        llm_service: Optional[LLMService] = None,
-        memory_service: Optional[MemoryService] = None
+        llm_service: LLMService,
+        memory_service: MemoryService,
+        config: AIModuleConfig
     ):
-        self.llm_service = llm_service or LLMService()
-        self.memory_service = memory_service or MemoryService()
-        self.config = AIModuleConfig()
+        self.llm_service = llm_service
+        self.memory_service = memory_service
+        self.config = config
     
     async def generate_reflection(
         self,

@@ -3,6 +3,7 @@ from typing import Annotated, Optional
 
 from app.ai.api.v0.schemas.response import MirrorReflectionResponse
 from app.ai.services.mirror_service import MirrorService
+from app.ai.deps import get_mirror_service
 from app.core.deps.auth import get_current_user
 from app.auth.db.models import User
 from app.core.logging import get_logger
@@ -24,7 +25,8 @@ async def get_mirror_reflection(
             description="Reflection mode: emotional, cognitive, behavioral, or relational"
         )
     ] = None,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    service: MirrorService = Depends(get_mirror_service)
 ) -> MirrorReflectionResponse:
     """
     Generate a personalized daily reflection based on recent journal entries.
@@ -38,8 +40,6 @@ async def get_mirror_reflection(
     If no mode is specified, defaults to 'emotional'.
     """
     logger.info("mirror_reflection_request", user_id=str(current_user.id), mode=mode)
-    
-    service = MirrorService()
     
     try:
         result = await service.generate_reflection(
