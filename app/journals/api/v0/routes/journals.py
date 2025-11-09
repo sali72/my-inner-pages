@@ -12,7 +12,7 @@ from app.journals.deps import get_journal_facade
 from app.core.deps.auth import get_current_user
 from app.core.deps.database import get_db
 from app.auth.db.models import User
-from app.journals.api.v0.routes.config import JournalRoutes
+from app.journals.api.config import JournalRoutes
 
 
 # Router prefix is set in main.py, routes here are relative to /journals

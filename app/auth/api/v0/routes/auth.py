@@ -12,7 +12,7 @@ from app.auth.db.models import User
 from app.core.deps.auth import get_current_user
 from app.core.deps.database import get_db
 from app.core.rate_limit import check_rate_limit
-from app.auth.api.v0.routes.config import AuthRoutes
+from app.auth.api.config import AuthRoutes
 
 
 # Router prefix is set in main.py, routes here are relative to /auth

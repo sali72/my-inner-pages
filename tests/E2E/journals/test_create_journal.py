@@ -7,7 +7,7 @@ Tests the happy path and various scenarios for the POST /api/v0/journals endpoin
 import pytest
 from httpx import AsyncClient
 
-from app.journals.api.v0.routes.config import JournalRoutes
+from app.journals.api.config import JournalRoutes
 from tests.config import JOURNALS_PREFIX
 
 

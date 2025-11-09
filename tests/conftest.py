@@ -16,7 +16,7 @@ from beanie import init_beanie
 from app.main import create_app
 from app.core.config import Settings
 from app.core.deps.settings import get_settings
-from app.auth.api.v0.routes.config import AuthRoutes
+from app.auth.api.config import AuthRoutes
 from tests.config import AUTH_PREFIX
 from app.auth.db.models import User
 from app.journals.db.models import Journal
