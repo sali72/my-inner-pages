@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.auth.api.v0.schemas.request import RegisterRequest, LoginRequest, ResetPasswordRequest
 from app.auth.api.v0.schemas.response import (
@@ -9,11 +8,12 @@ from app.auth.api.v0.schemas.response import (
 )
 from app.auth.facade.auth_facade import AuthFacade
 from app.auth.deps import get_auth_facade
+from app.auth.db.models import User
+from app.core.deps.auth import get_current_user
 from app.core.deps.database import get_db
 
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
-security = HTTPBearer()
 
 
 @router.post(
@@ -98,25 +98,14 @@ async def login(
     dependencies=[Depends(get_db)]
 )
 async def get_current_user_info(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    facade: AuthFacade = Depends(get_auth_facade)
+    current_user: User = Depends(get_current_user)
 ) -> UserResponse:
     """
     Get current authenticated user information.
     
     Requires valid JWT token in Authorization header.
     """
-    token = credentials.credentials
-    user = await facade.verify_token(token)
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    
-    return UserResponse.from_document(user)
+    return UserResponse.from_document(current_user)
 
 
 @router.post(
@@ -149,22 +138,11 @@ async def reset_password(
     dependencies=[Depends(get_db)]
 )
 async def verify_token(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    facade: AuthFacade = Depends(get_auth_facade)
+    current_user: User = Depends(get_current_user)
 ) -> UserResponse:
     """
     Verify JWT token and return user information.
     
     Requires valid JWT token in Authorization header.
     """
-    token = credentials.credentials
-    user = await facade.verify_token(token)
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    
-    return UserResponse.from_document(user)
+    return UserResponse.from_document(current_user)
