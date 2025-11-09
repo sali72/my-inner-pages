@@ -14,6 +14,7 @@ from app.core.deps.database import get_db
 from app.core.rate_limit import check_rate_limit
 
 
+# Router prefix is set in main.py, routes here are relative to /auth
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 

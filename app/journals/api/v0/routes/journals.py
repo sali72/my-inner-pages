@@ -14,6 +14,7 @@ from app.core.deps.database import get_db
 from app.auth.db.models import User
 
 
+# Router prefix is set in main.py, routes here are relative to /journals
 router = APIRouter(prefix="/journals", tags=["journals"])
 
 

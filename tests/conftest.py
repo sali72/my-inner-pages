@@ -1,0 +1,264 @@
+"""
+Pytest configuration and fixtures for E2E tests.
+
+This module provides fixtures for setting up a test database,
+test client, and authenticated users for end-to-end testing.
+"""
+
+import pytest
+import pytest_asyncio
+import asyncio
+from typing import AsyncGenerator, Generator
+from httpx import AsyncClient, ASGITransport
+from motor.motor_asyncio import AsyncIOMotorClient
+from beanie import init_beanie
+
+from app.main import create_app
+from app.core.config import Settings
+from app.core.deps.settings import get_settings
+from app.core.api_config import APIRoutes
+from app.auth.db.models import User
+from app.journals.db.models import Journal
+
+
+@pytest.fixture(scope="session")
+def monkeypatch_session():
+    """Session-scoped monkeypatch fixture."""
+    from _pytest.monkeypatch import MonkeyPatch
+    m = MonkeyPatch()
+    yield m
+    m.undo()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def test_settings(monkeypatch_session) -> Settings:
+    """
+    Create test settings with a separate test database.
+    
+    Returns:
+        Settings configured for testing
+    """
+    from app.core.deps.settings import get_settings
+    from app.core.deps.database import create_motor_client
+    
+    # Clear the lru_cache on get_settings
+    get_settings.cache_clear()
+    create_motor_client.cache_clear()
+    
+    # Set environment variables for testing
+    monkeypatch_session.setenv("DATABASE_NAME", "journaling_app_test")
+    monkeypatch_session.setenv("ENVIRONMENT", "testing")
+    monkeypatch_session.setenv("JWT_SECRET_KEY", "test-secret-key-for-testing-only")
+    
+    test_settings_obj = Settings(
+        mongo_url="mongodb://localhost:27017",
+        database_name="journaling_app_test",
+        environment="testing",
+        jwt_secret_key="test-secret-key-for-testing-only"
+    )
+    
+    return test_settings_obj
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_db_client(test_settings: Settings) -> AsyncGenerator[AsyncIOMotorClient, None]:
+    """
+    Create a MongoDB client for the test database.
+    
+    This fixture creates a new database for testing and cleans it up after each test.
+    
+    Args:
+        test_settings: Test settings fixture
+        
+    Yields:
+        MongoDB client connected to test database
+    """
+    client = AsyncIOMotorClient(test_settings.mongo_url)
+    
+    # Initialize Beanie with test database
+    await init_beanie(
+        database=client[test_settings.database_name],
+        document_models=[User, Journal]
+    )
+    
+    # Mark that Beanie is initialized to prevent re-initialization
+    client._beanie_initialized = True
+    
+    yield client
+    
+    # Cleanup: Drop the test database after test
+    await client.drop_database(test_settings.database_name)
+    client.close()
+
+
+@pytest_asyncio.fixture
+async def app(test_settings: Settings, test_db_client: AsyncIOMotorClient, monkeypatch):
+    """
+    Create a FastAPI application instance for testing.
+    
+    Args:
+        test_settings: Test settings fixture
+        test_db_client: MongoDB client fixture (ensures DB is initialized)
+        monkeypatch: Pytest monkeypatch fixture
+        
+    Returns:
+        Configured FastAPI application
+    """
+    from app.core.deps.database import get_client, create_motor_client
+    from app.core.deps import settings as settings_module
+    from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+    from app.core.middleware import RequestLoggingMiddleware
+    from app.ai.api.v0.routes import mirror as mirror_router
+    from app.auth.api.v0.routes import auth as auth_router
+    from app.journals.api.v0.routes import journals as journals_router
+    
+    
+    # Monkeypatch get_settings to return test settings globally
+    monkeypatch.setattr(settings_module, "get_settings", lambda: test_settings)
+    
+    # Create app without lifespan for testing
+    app = FastAPI(
+        title=test_settings.app_name,
+        version=test_settings.app_version,
+        description="AI-boosted Journaling API with focus on self-knowledge (Test Mode)",
+    )
+    
+    # Request logging middleware
+    app.add_middleware(RequestLoggingMiddleware)
+    
+    # CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    # Register routers
+    app.include_router(auth_router.router, prefix="/api/v0")
+    app.include_router(journals_router.router, prefix="/api/v0")
+    app.include_router(mirror_router.router, prefix="/api/v0")
+    
+    # Override settings and database client dependencies
+    app.dependency_overrides[get_settings] = lambda: test_settings
+    
+    # Override get_client to return our test client
+    async def get_test_client():
+        return test_db_client
+    
+    app.dependency_overrides[get_client] = get_test_client
+    
+    yield app
+    
+    # Clean up overrides
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def client(app) -> AsyncGenerator[AsyncClient, None]:
+    """
+    Create an async HTTP client for testing API endpoints.
+    
+    Args:
+        app: FastAPI application fixture
+        
+    Yields:
+        Async HTTP client for making requests
+    """
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+
+
+@pytest_asyncio.fixture
+async def test_user(client: AsyncClient) -> dict:
+    """
+    Create a test user and return user data with credentials.
+    
+    Args:
+        client: HTTP client fixture
+        
+    Returns:
+        Dictionary containing user email, password, and ID
+    """
+    user_data = {
+        "email": "testuser@example.com",
+        "password": "testpassword123",
+        "confirm_password": "testpassword123"
+    }
+    
+    # Register the user
+    response = await client.post(APIRoutes.Auth.REGISTER, json=user_data)
+    assert response.status_code == 201
+    
+    # Login to get user ID
+    login_response = await client.post(
+        APIRoutes.Auth.LOGIN,
+        json={"email": user_data["email"], "password": user_data["password"]}
+    )
+    assert login_response.status_code == 200
+    login_data = login_response.json()
+    
+    return {
+        "email": user_data["email"],
+        "password": user_data["password"],
+        "user_id": login_data["user"]["id"],
+        "access_token": login_data["access_token"]
+    }
+
+
+@pytest_asyncio.fixture
+async def authenticated_client(client: AsyncClient, test_user: dict) -> AsyncClient:
+    """
+    Create an authenticated HTTP client with authorization headers.
+    
+    Args:
+        client: HTTP client fixture
+        test_user: Test user fixture with access token
+        
+    Returns:
+        HTTP client with authorization headers set
+    """
+    client.headers.update({
+        "Authorization": f"Bearer {test_user['access_token']}"
+    })
+    return client
+
+
+@pytest_asyncio.fixture
+async def another_test_user(client: AsyncClient) -> dict:
+    """
+    Create another test user for multi-user testing scenarios.
+    
+    Args:
+        client: HTTP client fixture
+        
+    Returns:
+        Dictionary containing user email, password, and ID
+    """
+    user_data = {
+        "email": "anotheruser@example.com",
+        "password": "anotherpassword123",
+        "confirm_password": "anotherpassword123"
+    }
+    
+    # Register the user
+    response = await client.post(APIRoutes.Auth.REGISTER, json=user_data)
+    assert response.status_code == 201
+    
+    # Login to get user ID
+    login_response = await client.post(
+        APIRoutes.Auth.LOGIN,
+        json={"email": user_data["email"], "password": user_data["password"]}
+    )
+    assert login_response.status_code == 200
+    login_data = login_response.json()
+    
+    return {
+        "email": user_data["email"],
+        "password": user_data["password"],
+        "user_id": login_data["user"]["id"],
+        "access_token": login_data["access_token"]
+    }

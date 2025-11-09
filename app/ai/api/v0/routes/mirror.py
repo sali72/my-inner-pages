@@ -11,6 +11,7 @@ from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
+# Router prefix is set in main.py, routes here are relative to /mirror
 router = APIRouter(prefix="/mirror", tags=["mirror"])
 
 
