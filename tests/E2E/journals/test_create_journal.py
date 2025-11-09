@@ -7,7 +7,7 @@ Tests the happy path and various scenarios for the POST /api/v0/journals endpoin
 import pytest
 from httpx import AsyncClient
 
-from app.core.api_config import APIRoutes
+from app.core.api_config import JournalRoutes
 
 
 @pytest.mark.asyncio
@@ -31,7 +31,7 @@ async def test_create_journal_happy_path(authenticated_client: AsyncClient, test
     
     # Act: Create journal entry
     response = await authenticated_client.post(
-        APIRoutes.Journal.CREATE,
+        JournalRoutes.full(JournalRoutes.ROOT),
         json=journal_data
     )
     

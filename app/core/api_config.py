@@ -16,40 +16,52 @@ class APIVersion:
 
 class AuthRoutes:
     """Authentication module routes."""
-    BASE: Final[str] = f"{APIVersion.V0}/auth"
-    REGISTER: Final[str] = f"{BASE}/register"
-    LOGIN: Final[str] = f"{BASE}/login"
-    ME: Final[str] = f"{BASE}/me"
-    VERIFY: Final[str] = f"{BASE}/verify"
-    RESET_PASSWORD: Final[str] = f"{BASE}/reset-password"
+    # Router prefix
+    PREFIX: Final[str] = "/auth"
+    
+    # Route paths (relative to prefix, for use in route decorators)
+    REGISTER: Final[str] = "/register"
+    LOGIN: Final[str] = "/login"
+    ME: Final[str] = "/me"
+    VERIFY: Final[str] = "/verify"
+    RESET_PASSWORD: Final[str] = "/reset-password"
+    
+    # Full paths (for tests/clients)
+    @staticmethod
+    def full(path: str) -> str:
+        """Get full path including API version and prefix."""
+        return f"{APIVersion.V0}{AuthRoutes.PREFIX}{path}"
 
 
 class JournalRoutes:
     """Journal module routes."""
-    BASE: Final[str] = f"{APIVersion.V0}/journals"
-    CREATE: Final[str] = BASE  # POST to base URL
-    LIST: Final[str] = BASE    # GET to base URL
+    # Router prefix
+    PREFIX: Final[str] = "/journals"
     
-    @staticmethod
-    def get(journal_id: str) -> str:
-        """Get route for specific journal by ID."""
-        return f"{JournalRoutes.BASE}/{journal_id}"
+    # Route paths (relative to prefix, for use in route decorators)
+    ROOT: Final[str] = ""  # Base route (list/create)
+    BY_ID: Final[str] = "/{journal_id}"  # Get/Update/Delete by ID
     
+    # Full paths (for tests/clients)
     @staticmethod
-    def update(journal_id: str) -> str:
-        """Update route for specific journal by ID."""
-        return f"{JournalRoutes.BASE}/{journal_id}"
-    
-    @staticmethod
-    def delete(journal_id: str) -> str:
-        """Delete route for specific journal by ID."""
-        return f"{JournalRoutes.BASE}/{journal_id}"
+    def full(path: str = "") -> str:
+        """Get full path including API version and prefix."""
+        return f"{APIVersion.V0}{JournalRoutes.PREFIX}{path}"
 
 
 class MirrorRoutes:
     """AI Mirror module routes."""
-    BASE: Final[str] = f"{APIVersion.V0}/mirror"
-    REFLECTION: Final[str] = f"{BASE}/reflection"
+    # Router prefix
+    PREFIX: Final[str] = "/mirror"
+    
+    # Route paths (relative to prefix, for use in route decorators)
+    REFLECTION: Final[str] = "/reflection"
+    
+    # Full paths (for tests/clients)
+    @staticmethod
+    def full(path: str) -> str:
+        """Get full path including API version and prefix."""
+        return f"{APIVersion.V0}{MirrorRoutes.PREFIX}{path}"
 
 
 class HealthRoutes:
@@ -59,7 +71,15 @@ class HealthRoutes:
 
 
 class APIRoutes:
-    """Centralized API routes configuration."""
+    """
+    Centralized API routes configuration.
+    
+    Usage in route decorators:
+        @router.post(AuthRoutes.REGISTER)
+        
+    Usage in tests/clients:
+        response = await client.post(AuthRoutes.full(AuthRoutes.REGISTER))
+    """
     Auth = AuthRoutes
     Journal = JournalRoutes
     Mirror = MirrorRoutes

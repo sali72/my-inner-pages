@@ -12,6 +12,7 @@ from app.auth.db.models import User
 from app.core.deps.auth import get_current_user
 from app.core.deps.database import get_db
 from app.core.rate_limit import check_rate_limit
+from app.core.api_config import AuthRoutes
 
 
 # Router prefix is set in main.py, routes here are relative to /auth
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
 @router.post(
-    "/register",
+    AuthRoutes.REGISTER,
     response_model=MessageResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
@@ -57,7 +58,7 @@ async def register(
 
 
 @router.post(
-    "/login",
+    AuthRoutes.LOGIN,
     response_model=LoginResponse,
     summary="Login user",
     dependencies=[Depends(get_db), Depends(check_rate_limit)]
@@ -94,7 +95,7 @@ async def login(
 
 
 @router.get(
-    "/me",
+    AuthRoutes.ME,
     response_model=UserResponse,
     summary="Get current user",
     dependencies=[Depends(get_db)]
@@ -111,7 +112,7 @@ async def get_current_user_info(
 
 
 @router.post(
-    "/reset-password",
+    AuthRoutes.RESET_PASSWORD,
     response_model=MessageResponse,
     summary="Request password reset"
 )
@@ -134,7 +135,7 @@ async def reset_password(
 
 
 @router.get(
-    "/verify",
+    AuthRoutes.VERIFY,
     response_model=UserResponse,
     summary="Verify JWT token",
     dependencies=[Depends(get_db)]

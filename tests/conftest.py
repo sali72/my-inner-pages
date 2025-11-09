@@ -16,7 +16,7 @@ from beanie import init_beanie
 from app.main import create_app
 from app.core.config import Settings
 from app.core.deps.settings import get_settings
-from app.core.api_config import APIRoutes
+from app.core.api_config import AuthRoutes
 from app.auth.db.models import User
 from app.journals.db.models import Journal
 
@@ -157,12 +157,12 @@ async def test_user(client: AsyncClient) -> dict:
     }
     
     # Register the user
-    response = await client.post(APIRoutes.Auth.REGISTER, json=user_data)
+    response = await client.post(AuthRoutes.full(AuthRoutes.REGISTER), json=user_data)
     assert response.status_code == 201
     
     # Login to get user ID
     login_response = await client.post(
-        APIRoutes.Auth.LOGIN,
+        AuthRoutes.full(AuthRoutes.LOGIN),
         json={"email": user_data["email"], "password": user_data["password"]}
     )
     assert login_response.status_code == 200
@@ -212,12 +212,12 @@ async def another_test_user(client: AsyncClient) -> dict:
     }
     
     # Register the user
-    response = await client.post(APIRoutes.Auth.REGISTER, json=user_data)
+    response = await client.post(AuthRoutes.full(AuthRoutes.REGISTER), json=user_data)
     assert response.status_code == 201
     
     # Login to get user ID
     login_response = await client.post(
-        APIRoutes.Auth.LOGIN,
+        AuthRoutes.full(AuthRoutes.LOGIN),
         json={"email": user_data["email"], "password": user_data["password"]}
     )
     assert login_response.status_code == 200
