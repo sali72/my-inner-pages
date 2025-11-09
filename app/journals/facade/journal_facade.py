@@ -12,9 +12,9 @@ class JournalFacade:
     Coordinates between repository and applies business rules.
     """
     
-    def __init__(self, repository: Optional[JournalRepository] = None):
-        self.repository = repository or JournalRepository()
-        self.config = JournalModuleConfig()
+    def __init__(self, repository: JournalRepository, config: JournalModuleConfig):
+        self.repository = repository
+        self.config = config
     
     async def create_journal(
         self,
@@ -62,12 +62,13 @@ class JournalFacade:
             
         Returns:
             Journal or None if not found
+            
+        Raises:
+            ValueError: If journal_id is not a valid ObjectId
         """
-        try:
-            obj_id = PydanticObjectId(journal_id)
-        except Exception:
-            return None
+        from app.core.validators import validate_object_id
         
+        obj_id = validate_object_id(journal_id, "journal_id")
         return await self.repository.find_by_id(obj_id, user_id)
     
     async def list_journals(
@@ -121,12 +122,11 @@ class JournalFacade:
             Updated journal or None if not found
             
         Raises:
-            ValueError: If validation fails
+            ValueError: If validation fails or journal_id is invalid
         """
-        try:
-            obj_id = PydanticObjectId(journal_id)
-        except Exception:
-            return None
+        from app.core.validators import validate_object_id
+        
+        obj_id = validate_object_id(journal_id, "journal_id")
         
         # Validate if provided
         if title is not None:
@@ -158,12 +158,13 @@ class JournalFacade:
             
         Returns:
             True if deleted, False if not found
+            
+        Raises:
+            ValueError: If journal_id is not a valid ObjectId
         """
-        try:
-            obj_id = PydanticObjectId(journal_id)
-        except Exception:
-            return False
+        from app.core.validators import validate_object_id
         
+        obj_id = validate_object_id(journal_id, "journal_id")
         return await self.repository.delete(obj_id, user_id)
     
     def _validate_title(self, title: str) -> None:

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.auth.api.v0.schemas.request import RegisterRequest, LoginRequest, ResetPasswordRequest
 from app.auth.api.v0.schemas.response import (
@@ -8,20 +7,27 @@ from app.auth.api.v0.schemas.response import (
     MessageResponse
 )
 from app.auth.facade.auth_facade import AuthFacade
+from app.auth.deps import get_auth_facade
 from app.auth.db.models import User
+from app.core.deps.auth import get_current_user
+from app.core.deps.database import get_db
+from app.core.rate_limit import check_rate_limit
 
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
-security = HTTPBearer()
 
 
 @router.post(
     "/register",
     response_model=MessageResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Register a new user"
+    summary="Register a new user",
+    dependencies=[Depends(get_db)]
 )
-async def register(request: RegisterRequest) -> MessageResponse:
+async def register(
+    request: RegisterRequest,
+    facade: AuthFacade = Depends(get_auth_facade)
+) -> MessageResponse:
     """
     Register a new user account.
     
@@ -29,8 +35,6 @@ async def register(request: RegisterRequest) -> MessageResponse:
     - **password**: Password (min 8 characters, required)
     - **confirm_password**: Password confirmation (must match password)
     """
-    facade = AuthFacade()
-    
     try:
         # Validate passwords match
         request.validate_passwords_match()
@@ -54,9 +58,13 @@ async def register(request: RegisterRequest) -> MessageResponse:
 @router.post(
     "/login",
     response_model=LoginResponse,
-    summary="Login user"
+    summary="Login user",
+    dependencies=[Depends(get_db), Depends(check_rate_limit)]
 )
-async def login(request: LoginRequest) -> LoginResponse:
+async def login(
+    request: LoginRequest,
+    facade: AuthFacade = Depends(get_auth_facade)
+) -> LoginResponse:
     """
     Authenticate user and receive access token.
     
@@ -65,8 +73,6 @@ async def login(request: LoginRequest) -> LoginResponse:
     
     Returns JWT access token for authenticated requests.
     """
-    facade = AuthFacade()
-    
     try:
         access_token, user = await facade.login(
             email=request.email,
@@ -89,29 +95,18 @@ async def login(request: LoginRequest) -> LoginResponse:
 @router.get(
     "/me",
     response_model=UserResponse,
-    summary="Get current user"
+    summary="Get current user",
+    dependencies=[Depends(get_db)]
 )
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+async def get_current_user_info(
+    current_user: User = Depends(get_current_user)
 ) -> UserResponse:
     """
     Get current authenticated user information.
     
     Requires valid JWT token in Authorization header.
     """
-    facade = AuthFacade()
-    
-    token = credentials.credentials
-    user = await facade.verify_token(token)
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    
-    return UserResponse.from_document(user)
+    return UserResponse.from_document(current_user)
 
 
 @router.post(
@@ -119,7 +114,10 @@ async def get_current_user(
     response_model=MessageResponse,
     summary="Request password reset"
 )
-async def reset_password(request: ResetPasswordRequest) -> MessageResponse:
+async def reset_password(
+    request: ResetPasswordRequest,
+    facade: AuthFacade = Depends(get_auth_facade)
+) -> MessageResponse:
     """
     Request password reset email.
     
@@ -127,8 +125,6 @@ async def reset_password(request: ResetPasswordRequest) -> MessageResponse:
     
     Note: Always returns success to prevent email enumeration.
     """
-    facade = AuthFacade()
-    
     await facade.reset_password(request.email)
     
     return MessageResponse(
@@ -139,26 +135,15 @@ async def reset_password(request: ResetPasswordRequest) -> MessageResponse:
 @router.get(
     "/verify",
     response_model=UserResponse,
-    summary="Verify JWT token"
+    summary="Verify JWT token",
+    dependencies=[Depends(get_db)]
 )
 async def verify_token(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    current_user: User = Depends(get_current_user)
 ) -> UserResponse:
     """
     Verify JWT token and return user information.
     
     Requires valid JWT token in Authorization header.
     """
-    facade = AuthFacade()
-    
-    token = credentials.credentials
-    user = await facade.verify_token(token)
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    
-    return UserResponse.from_document(user)
+    return UserResponse.from_document(current_user)

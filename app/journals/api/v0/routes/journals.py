@@ -8,7 +8,9 @@ from app.journals.api.v0.schemas.response import (
     MessageResponse
 )
 from app.journals.facade.journal_facade import JournalFacade
+from app.journals.deps import get_journal_facade
 from app.core.deps.auth import get_current_user
+from app.core.deps.database import get_db
 from app.auth.db.models import User
 
 
@@ -19,11 +21,13 @@ router = APIRouter(prefix="/journals", tags=["journals"])
     "",
     response_model=JournalResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a new journal entry"
+    summary="Create a new journal entry",
+    dependencies=[Depends(get_db)]
 )
 async def create_journal(
     request: CreateJournalRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    facade: JournalFacade = Depends(get_journal_facade)
 ) -> JournalResponse:
     """
     Create a new journal entry for the authenticated user.
@@ -32,8 +36,6 @@ async def create_journal(
     - **content**: Journal content (required, max 50000 chars)
     - **tags**: Optional list of tags for categorization
     """
-    facade = JournalFacade()
-    
     try:
         journal = await facade.create_journal(
             user_id=str(current_user.id),
@@ -52,12 +54,14 @@ async def create_journal(
 @router.get(
     "",
     response_model=JournalListResponse,
-    summary="List all journal entries"
+    summary="List all journal entries",
+    dependencies=[Depends(get_db)]
 )
 async def list_journals(
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     page_size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 20,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    facade: JournalFacade = Depends(get_journal_facade)
 ) -> JournalListResponse:
     """
     List journal entries for the authenticated user with pagination.
@@ -65,8 +69,6 @@ async def list_journals(
     - **page**: Page number (default: 1)
     - **page_size**: Items per page (default: 20, max: 100)
     """
-    facade = JournalFacade()
-    
     journals, total = await facade.list_journals(
         user_id=str(current_user.id),
         page=page,
@@ -84,19 +86,19 @@ async def list_journals(
 @router.get(
     "/{journal_id}",
     response_model=JournalResponse,
-    summary="Get a specific journal entry"
+    summary="Get a specific journal entry",
+    dependencies=[Depends(get_db)]
 )
 async def get_journal(
     journal_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    facade: JournalFacade = Depends(get_journal_facade)
 ) -> JournalResponse:
     """
     Get a specific journal entry by ID for the authenticated user.
     
     - **journal_id**: MongoDB ObjectId of the journal
     """
-    facade = JournalFacade()
-    
     journal = await facade.get_journal(journal_id, str(current_user.id))
     
     if not journal:
@@ -111,12 +113,14 @@ async def get_journal(
 @router.put(
     "/{journal_id}",
     response_model=JournalResponse,
-    summary="Update a journal entry"
+    summary="Update a journal entry",
+    dependencies=[Depends(get_db)]
 )
 async def update_journal(
     journal_id: str,
     request: UpdateJournalRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    facade: JournalFacade = Depends(get_journal_facade)
 ) -> JournalResponse:
     """
     Update an existing journal entry for the authenticated user.
@@ -126,8 +130,6 @@ async def update_journal(
     - **content**: New content (optional)
     - **tags**: New tags (optional)
     """
-    facade = JournalFacade()
-    
     try:
         journal = await facade.update_journal(
             journal_id=journal_id,
@@ -154,19 +156,19 @@ async def update_journal(
 @router.delete(
     "/{journal_id}",
     response_model=MessageResponse,
-    summary="Delete a journal entry"
+    summary="Delete a journal entry",
+    dependencies=[Depends(get_db)]
 )
 async def delete_journal(
     journal_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    facade: JournalFacade = Depends(get_journal_facade)
 ) -> MessageResponse:
     """
     Delete a journal entry for the authenticated user.
     
     - **journal_id**: MongoDB ObjectId of the journal
     """
-    facade = JournalFacade()
-    
     deleted = await facade.delete_journal(journal_id, str(current_user.id))
     
     if not deleted:

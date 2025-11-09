@@ -21,7 +21,9 @@ class Journal(Document):
         indexes = [
             "user_id",
             "created_at",
+            "tags",
             [("user_id", 1), ("created_at", -1)],
+            [("user_id", 1), ("tags", 1)],  # Compound index for filtering by user and tags
         ]
     
     class Config:

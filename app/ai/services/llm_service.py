@@ -12,8 +12,8 @@ class LLMService:
     Currently supports OpenRouter via OpenAI-compatible API.
     """
     
-    def __init__(self):
-        self.settings = Settings()
+    def __init__(self, settings: Settings):
+        self.settings = settings
         self.client = None
     
     def _get_client(self) -> OpenAI:

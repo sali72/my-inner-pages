@@ -8,8 +8,7 @@ from app.core.config import Settings
 class JWTService:
     """Service for encoding and decoding JWT tokens."""
     
-    def __init__(self):
-        settings = Settings()
+    def __init__(self, settings: Settings):
         self.secret_key = settings.jwt_secret_key
         self.algorithm = "HS256"
     
