@@ -7,6 +7,10 @@ from app.auth.db.repository import UserRepository
 from app.auth.config import AuthModuleConfig
 from app.core.services.jwt_service import JWTService
 from app.core.services.password_service import PasswordService
+from app.core.exceptions import DuplicateDocumentException, RepositoryException
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class AuthFacade:
@@ -40,25 +44,35 @@ class AuthFacade:
             
         Raises:
             ValueError: If validation fails or email already exists
+            RepositoryException: If database operation fails
         """
         # Validate email and password
         self._validate_email(email)
         self._validate_password(password)
         
-        # Check if email already exists
-        if await self.repository.email_exists(email):
+        try:
+            # Check if email already exists
+            if await self.repository.email_exists(email):
+                raise ValueError("An account with this email already exists")
+            
+            # Hash password
+            hashed_password = self.password_service.hash_password(password)
+            
+            # Create user
+            user = await self.repository.create(
+                email=email.lower(),
+                hashed_password=hashed_password
+            )
+            
+            logger.info("user_registered", user_id=str(user.id), email=email)
+            return user
+        except DuplicateDocumentException:
+            # Race condition: email was created between check and insert
+            logger.warning("user_registration_race_condition", email=email)
             raise ValueError("An account with this email already exists")
-        
-        # Hash password
-        hashed_password = self.password_service.hash_password(password)
-        
-        # Create user
-        user = await self.repository.create(
-            email=email.lower(),
-            hashed_password=hashed_password
-        )
-        
-        return user
+        except RepositoryException:
+            logger.error("user_registration_failed", email=email)
+            raise
     
     async def login(self, email: str, password: str) -> tuple[str, User]:
         """
