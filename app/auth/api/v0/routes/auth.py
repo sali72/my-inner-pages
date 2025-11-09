@@ -11,6 +11,7 @@ from app.auth.deps import get_auth_facade
 from app.auth.db.models import User
 from app.core.deps.auth import get_current_user
 from app.core.deps.database import get_db
+from app.core.rate_limit import check_rate_limit
 
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -58,7 +59,7 @@ async def register(
     "/login",
     response_model=LoginResponse,
     summary="Login user",
-    dependencies=[Depends(get_db)]
+    dependencies=[Depends(get_db), Depends(check_rate_limit)]
 )
 async def login(
     request: LoginRequest,
