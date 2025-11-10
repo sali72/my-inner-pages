@@ -123,6 +123,7 @@ const App: React.FC = () => {
         activeView={activeView}
         theme={theme}
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+        onNavigationClick={activeView === 'journal' ? () => setNavigationSidebarOpen(!navigationSidebarOpen) : undefined}
       />
 
       <Sidebar

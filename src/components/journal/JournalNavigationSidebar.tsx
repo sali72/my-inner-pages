@@ -91,7 +91,7 @@ export const JournalNavigationSidebar: React.FC<JournalNavigationSidebarProps> =
         <>
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm lg:hidden"
+                    className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
                     onClick={onClose}
                 />
             )}
@@ -102,8 +102,8 @@ export const JournalNavigationSidebar: React.FC<JournalNavigationSidebarProps> =
                     } flex flex-col`}
             >
                 {/* Header */}
-                <div className={`p-4 border-b ${themeConfig.border} flex items-center justify-between`}>
-                    <h2 className={`text-lg font-semibold ${themeConfig.accent}`}>
+                <div className={`h-16 px-4 border-b ${themeConfig.border} flex items-center justify-between`}>
+                    <h2 className={`text-xl font-serif font-bold ${themeConfig.accent}`}>
                         Journal Navigation
                     </h2>
                     <button

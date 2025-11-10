@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, List } from 'lucide-react';
+import { Edit2 } from 'lucide-react';
 import { JournalEntry, ThemeType, FontType, FontSizeType } from '@/types';
 import { JournalPage } from './JournalPage';
 import { NewEntryPage } from './NewEntryPage';
@@ -86,17 +86,6 @@ export const JournalView: React.FC<JournalViewProps> = ({
             </p>
           </div>
         </div>
-
-        {/* Navigation Sidebar Toggle Button */}
-        <button
-          onClick={onToggleNavigationSidebar}
-          className={`fixed top-24 right-8 ${
-            isDark ? 'bg-slate-700' : 'bg-gradient-to-r from-amber-500 to-orange-500'
-          } text-white p-3 rounded-full shadow-2xl hover:scale-110 transition-all z-30`}
-          title="Journal Navigation"
-        >
-          <List className="w-5 h-5" />
-        </button>
 
         {currentPageIndex < pages.length - 1 && (
           <button
