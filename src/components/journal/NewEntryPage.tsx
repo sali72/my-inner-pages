@@ -174,7 +174,9 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
                 setIsWriting(true);
               }}
               placeholder="Add tags (press Enter)..."
-              className="flex-1 text-sm bg-transparent focus:outline-none"
+              className={`flex-1 text-sm bg-transparent focus:outline-none ${
+                isDark ? 'text-slate-300 placeholder-slate-500' : 'text-amber-800 placeholder-amber-600/50'
+              }`}
               onKeyDown={handleAddTag}
             />
           </div>

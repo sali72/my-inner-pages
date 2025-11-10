@@ -37,6 +37,14 @@ VITE_API_URL=http://localhost:8000/api/v0
 
 - **Authentication** - Login/Register (no email verification)
 - **Journal** - Entries with tags, page flip animations
+- **Journal Navigation** - Right sidebar with search, sort, and filter capabilities
+  - Access via list icon in top-right corner (journal section only)
+  - Real-time search across titles and content
+  - Sort by date (newest/oldest) or title (A-Z/Z-A)
+  - Multi-select tag filtering
+  - Click any entry to jump directly to that page
+  - Visual highlighting of current journal
+  - Closes when clicking outside sidebar
 - **Mirror** - AI reflections in 4 modes (emotional, cognitive, behavioral, relational)
 - **Themes** - Vintage, minimal, dark
 - **Settings** - Font, size, theme, ambient sound

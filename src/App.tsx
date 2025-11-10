@@ -15,6 +15,7 @@ const App: React.FC = () => {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [activeView, setActiveView] = useState<ViewType>('journal');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [navigationSidebarOpen, setNavigationSidebarOpen] = useState(false);
 
   console.log('App render - isAuthenticated:', isAuthenticated, 'authLoading:', authLoading, 'user:', user);
 
@@ -122,6 +123,7 @@ const App: React.FC = () => {
         activeView={activeView}
         theme={theme}
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+        onNavigationClick={activeView === 'journal' ? () => setNavigationSidebarOpen(!navigationSidebarOpen) : undefined}
       />
 
       <Sidebar
@@ -148,6 +150,7 @@ const App: React.FC = () => {
             fontSize={journalFontSize}
             dragOffset={dragOffset}
             isFlipping={isFlipping}
+            navigationSidebarOpen={navigationSidebarOpen}
             onDragStart={handleDragStart}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
@@ -155,6 +158,8 @@ const App: React.FC = () => {
             onDeleteEntry={handleDeleteEntry}
             onSaveNewEntry={handleSaveNewEntry}
             onGoToNewEntry={() => goToPage(pages.length - 1)}
+            onToggleNavigationSidebar={() => setNavigationSidebarOpen(!navigationSidebarOpen)}
+            onNavigateToEntry={goToPage}
           />
         ) : null}
 
