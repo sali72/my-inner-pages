@@ -6,6 +6,7 @@ export interface JournalEntry {
   content: string;
   mood?: string;
   isNew?: boolean;
+  created_at?: string; // For sorting purposes
 }
 
 export type ViewType = 'journal' | 'mirror' | 'settings';

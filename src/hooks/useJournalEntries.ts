@@ -34,7 +34,14 @@ export const useJournalEntries = () => {
           month: 'long',
           day: 'numeric',
         }),
+        created_at: item.created_at, // Keep for sorting
       }));
+
+      // Sort by creation date (oldest first, so newest is at the end)
+      mappedEntries.sort((a, b) =>
+        new Date(a.created_at!).getTime() - new Date(b.created_at!).getTime()
+      );
+
       setEntries(mappedEntries);
     } catch (error) {
       console.error('Failed to load journals:', error);
@@ -61,8 +68,10 @@ export const useJournalEntries = () => {
           month: 'long',
           day: 'numeric',
         }),
+        created_at: response.created_at, // Keep for sorting
       };
 
+      // Add to end (newest entries go to the end)
       setEntries([...entries, newEntry]);
       return newEntry;
     } catch (error) {

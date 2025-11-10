@@ -54,6 +54,13 @@ const App: React.FC = () => {
     goToPage,
   } = usePageFlip(pages.length);
 
+  // Navigate to last entry when entries are first loaded
+  useEffect(() => {
+    if (!loading && entries.length > 0 && currentPageIndex === 0) {
+      goToPage(entries.length - 1); // Go to last entry (not the "new" page)
+    }
+  }, [loading, entries.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSaveNewEntry = async (title: string, content: string, tags: string[]) => {
     try {
       await addEntry({
