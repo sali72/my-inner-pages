@@ -61,7 +61,7 @@ export const TagInput: React.FC<TagInputProps> = ({
           onKeyDown={handleAddTag}
           placeholder="Add tag..."
           className={`px-3 py-1 rounded-full text-xs ${
-            isDark ? 'bg-slate-700 text-slate-300' : 'bg-amber-50 text-amber-800'
+            isDark ? 'bg-slate-700 text-slate-300 placeholder-slate-500' : 'bg-amber-50 text-amber-800 placeholder-amber-600/50'
           } border ${themeConfig.border} focus:outline-none`}
         />
       )}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Search, Calendar, Filter } from 'lucide-react';
+import { Search, Calendar, Filter } from 'lucide-react';
 import { JournalEntry, ThemeType } from '@/types';
 import { THEMES } from '@constants/themes';
 
@@ -102,17 +102,10 @@ export const JournalNavigationSidebar: React.FC<JournalNavigationSidebarProps> =
                     } flex flex-col`}
             >
                 {/* Header */}
-                <div className={`h-16 px-4 border-b ${themeConfig.border} flex items-center justify-between`}>
+                <div className={`h-16 px-4 border-b ${themeConfig.border} flex items-center`}>
                     <h2 className={`text-xl font-serif font-bold ${themeConfig.accent}`}>
                         Journal Navigation
                     </h2>
-                    <button
-                        onClick={onClose}
-                        className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-slate-700' : 'hover:bg-amber-100'
-                            }`}
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
                 </div>
 
                 {/* Search */}
