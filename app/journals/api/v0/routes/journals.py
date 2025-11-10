@@ -12,13 +12,15 @@ from app.journals.deps import get_journal_facade
 from app.core.deps.auth import get_current_user
 from app.core.deps.database import get_db
 from app.auth.db.models import User
+from app.journals.api.config import JournalRoutes
 
 
+# Router prefix is set in main.py, routes here are relative to /journals
 router = APIRouter(prefix="/journals", tags=["journals"])
 
 
 @router.post(
-    "",
+    JournalRoutes.ROOT,
     response_model=JournalResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new journal entry",
@@ -52,7 +54,7 @@ async def create_journal(
 
 
 @router.get(
-    "",
+    JournalRoutes.ROOT,
     response_model=JournalListResponse,
     summary="List all journal entries",
     dependencies=[Depends(get_db)]
@@ -84,7 +86,7 @@ async def list_journals(
 
 
 @router.get(
-    "/{journal_id}",
+    JournalRoutes.BY_ID,
     response_model=JournalResponse,
     summary="Get a specific journal entry",
     dependencies=[Depends(get_db)]
@@ -111,7 +113,7 @@ async def get_journal(
 
 
 @router.put(
-    "/{journal_id}",
+    JournalRoutes.BY_ID,
     response_model=JournalResponse,
     summary="Update a journal entry",
     dependencies=[Depends(get_db)]
@@ -154,7 +156,7 @@ async def update_journal(
 
 
 @router.delete(
-    "/{journal_id}",
+    JournalRoutes.BY_ID,
     response_model=MessageResponse,
     summary="Delete a journal entry",
     dependencies=[Depends(get_db)]

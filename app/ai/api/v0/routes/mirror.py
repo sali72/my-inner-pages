@@ -8,14 +8,16 @@ from app.core.deps.auth import get_current_user
 from app.core.deps.database import get_db
 from app.auth.db.models import User
 from app.core.logging import get_logger
+from app.ai.api.config import MirrorRoutes
 
 logger = get_logger(__name__)
 
+# Router prefix is set in main.py, routes here are relative to /mirror
 router = APIRouter(prefix="/mirror", tags=["mirror"])
 
 
 @router.get(
-    "/reflection",
+    MirrorRoutes.REFLECTION,
     response_model=MirrorReflectionResponse,
     summary="Generate a daily mirror reflection",
     dependencies=[Depends(get_db)]
