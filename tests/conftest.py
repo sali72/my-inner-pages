@@ -74,6 +74,14 @@ async def test_db_client(test_settings: Settings) -> AsyncGenerator[AsyncIOMotor
     Yields:
         MongoDB client connected to test database
     """
+    # Clear the cached motor client to avoid event loop issues
+    from app.core.deps.database import create_motor_client
+    create_motor_client.cache_clear()
+    
+    # Clear rate limiter to avoid rate limit issues between tests
+    from app.core.rate_limit import rate_limiter
+    rate_limiter.requests.clear()
+    
     client = AsyncIOMotorClient(test_settings.mongo_url)
     
     # Initialize Beanie with test database
