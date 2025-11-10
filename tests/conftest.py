@@ -55,7 +55,8 @@ def test_settings(monkeypatch_session) -> Settings:
         mongo_url="mongodb://localhost:27017",
         database_name="journaling_app_test",
         environment="testing",
-        jwt_secret_key="test-secret-key-for-testing-only"
+        jwt_secret_key="test-secret-key-for-testing-only",
+        use_mock_llm=True  # Always use mock LLM in tests to avoid API costs
     )
     
     return test_settings_obj

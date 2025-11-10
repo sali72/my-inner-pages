@@ -8,4 +8,5 @@ from typing import Final
 # API prefixes for use in tests
 AUTH_PREFIX: Final[str] = "/api/v0/auth"
 JOURNALS_PREFIX: Final[str] = "/api/v0/journals"
+AI_PREFIX: Final[str] = "/api/v0/ai"
 MIRROR_PREFIX: Final[str] = "/api/v0/mirror"

@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     
     # AI Configuration
     openrouter_api_key: str = ""
+    use_mock_llm: bool = False  # Set to True to use mock LLM (for testing/development)
     
     @property
     def is_production(self) -> bool:

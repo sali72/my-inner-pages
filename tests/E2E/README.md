@@ -4,9 +4,10 @@ This directory contains comprehensive end-to-end tests for all API modules. Thes
 
 ## Overview
 
-**Total Tests**: 26 tests across 2 modules
+**Total Tests**: 35 tests across 3 modules
 - **Auth Module**: 13 tests
 - **Journals Module**: 13 tests
+- **AI Module**: 9 tests
 
 ## Directory Structure
 
@@ -20,22 +21,27 @@ tests/E2E/
 │   ├── test_reset_password.py # Password reset (3 tests)
 │   └── README.md              # Auth tests documentation
 │
-└── journals/                  # Journals module tests
-    ├── test_create_journal.py # Create journal entries (2 tests)
-    ├── test_list_journals.py  # List journals (3 tests)
-    ├── test_get_journal.py    # Get specific journal (2 tests)
-    ├── test_update_journal.py # Update journal entries (3 tests)
-    ├── test_delete_journal.py # Delete journal entries (3 tests)
-    └── README.md              # Journals tests documentation
+├── journals/                  # Journals module tests
+│   ├── test_create_journal.py # Create journal entries (2 tests)
+│   ├── test_list_journals.py  # List journals (3 tests)
+│   ├── test_get_journal.py    # Get specific journal (2 tests)
+│   ├── test_update_journal.py # Update journal entries (3 tests)
+│   ├── test_delete_journal.py # Delete journal entries (3 tests)
+│   └── README.md              # Journals tests documentation
+│
+└── ai/                        # AI module tests
+    ├── test_mirror_reflection.py # Mirror reflections (9 tests)
+    └── README.md              # AI tests documentation
 ```
 
 ## Key Features
 
 ✅ **Real Database Testing**: All tests use a real MongoDB test database (no mocking)
 ✅ **Database Verification**: Tests verify CRUD operations are correctly persisted in the database
+✅ **Mock LLM Service**: AI tests use a mock LLM to avoid API costs while testing full flow
 ✅ **Isolated Tests**: Each test runs in isolation with automatic database cleanup
 ✅ **Happy Path Coverage**: Focus on successful operations to ensure core functionality
-✅ **Comprehensive Coverage**: All API routes are tested for both modules
+✅ **Comprehensive Coverage**: All API routes are tested for all modules
 
 ## Running Tests
 
@@ -138,6 +144,16 @@ async def test_create_journal_happy_path(authenticated_client: AsyncClient, test
 - ✅ User isolation (users can only access their own journals)
 - ✅ Proper error responses (404 for not found)
 
+### AI Module (9 tests)
+- ✅ Mirror reflection generation
+- ✅ Different reflection modes (emotional, cognitive, behavioral, relational)
+- ✅ Welcome reflections for new users
+- ✅ Context-aware reflections based on journals
+- ✅ Mode-specific response validation
+- ✅ Invalid mode handling
+- ✅ Authentication requirements
+- ✅ Mock LLM integration (no API costs)
+
 ## Configuration
 
 ### Test Database
@@ -148,6 +164,12 @@ async def test_create_journal_happy_path(authenticated_client: AsyncClient, test
 ### Rate Limiting
 - Rate limiter is cleared between tests to prevent interference
 - Tests can run sequentially without hitting rate limits
+
+### Mock LLM
+- **Name**: Uses mock LLM service instead of real API calls
+- **Cost**: Zero API costs during testing
+- **Configuration**: Automatically enabled via `use_mock_llm=True` in test settings
+- **Behavior**: Provides deterministic, context-aware responses
 
 ## Notes
 
