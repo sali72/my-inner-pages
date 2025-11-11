@@ -1,0 +1,50 @@
+# Git
+.git
+.gitignore
+.gitmodules
+
+# Documentation
+*.md
+README.md
+docs/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Testing
+tests/
+*.test.*
+*.spec.*
+coverage/
+.pytest_cache/
+
+# Build artifacts
+dist/
+build/
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+
+# Dependencies (will be installed in container)
+node_modules/
+.venv/
+venv/

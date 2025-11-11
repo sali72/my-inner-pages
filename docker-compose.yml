@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: journaling-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URL=${MONGODB_URL:-mongodb://mongodb:27017}
+      - DATABASE_NAME=${DATABASE_NAME:-journaling_db}
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+    volumes:
+      - ./backend/app:/app/app
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+    networks:
+      - app-network
+    mem_limit: 256m
+    cpus: 0.5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: journaling-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - app-network
+    mem_limit: 128m
+    cpus: 0.5
+
+  mongodb:
+    image: mongo:4.4  # Lighter version - uses ~130MB RAM instead of ~200MB
+    container_name: journaling-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+    networks:
+      - app-network
+    command: mongod --wiredTigerCacheSizeGB 0.2 --nojournal
+    mem_limit: 200m
+    cpus: 0.5
+
+volumes:
+  mongodb_data:
+
+networks:
+  app-network:
+    driver: bridge

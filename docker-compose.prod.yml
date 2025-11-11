@@ -1,0 +1,22 @@
+version: "3.8"
+
+# Low-memory production configuration for servers with ~700MB RAM
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  backend:
+    volumes: [] # Remove volume mount for production (no hot-reload needed)
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 0.5
+
+  frontend:
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.5
+
+  mongodb:
+    command: mongod --wiredTigerCacheSizeGB 0.2 --nojournal
+    mem_limit: 200m
+    mem_reservation: 100m
+    cpus: 0.5
