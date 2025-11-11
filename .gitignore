@@ -38,6 +38,3 @@ wheels/
 .pytest_cache/
 .coverage
 htmlcov/
-
-# Poetry
-poetry.lock
