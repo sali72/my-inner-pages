@@ -26,7 +26,7 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
     setReflection(null);
     
     try {
-      const data = await api.get<MirrorReflection>(`/api/v0/mirror/reflection?mode=${selectedMode}`);
+      const data = await api.get<MirrorReflection>(`/mirror/reflection?mode=${selectedMode}`);
       setReflection(data);
       // Fade out blur after receiving response
       setTimeout(() => setIsRevealing(false), 500);

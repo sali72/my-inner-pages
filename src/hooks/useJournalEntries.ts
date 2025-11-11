@@ -23,7 +23,7 @@ export const useJournalEntries = () => {
   const loadEntries = async () => {
     try {
       setLoading(true);
-      const response = await api.get<{ items: BackendJournal[] }>('/api/v0/journals');
+      const response = await api.get<{ items: BackendJournal[] }>('/journals');
       const mappedEntries: JournalEntry[] = response.items.map((item) => ({
         id: item.id,
         title: item.title,
@@ -52,7 +52,7 @@ export const useJournalEntries = () => {
 
   const addEntry = async (entry: Omit<JournalEntry, 'id'>) => {
     try {
-      const response = await api.post<BackendJournal>('/api/v0/journals', {
+      const response = await api.post<BackendJournal>('/journals', {
         title: entry.title,
         content: entry.content,
         tags: entry.tags,
@@ -82,7 +82,7 @@ export const useJournalEntries = () => {
 
   const updateEntry = async (id: number | string, updates: Partial<JournalEntry>) => {
     try {
-      await api.put(`/api/v0/journals/${id}`, {
+      await api.put(`/journals/${id}`, {
         title: updates.title,
         content: updates.content,
         tags: updates.tags,
@@ -97,7 +97,7 @@ export const useJournalEntries = () => {
 
   const deleteEntry = async (id: number | string) => {
     try {
-      await api.delete(`/api/v0/journals/${id}`);
+      await api.delete(`/journals/${id}`);
       setEntries(entries.filter((e) => e.id !== id));
     } catch (error) {
       console.error('Failed to delete journal:', error);
