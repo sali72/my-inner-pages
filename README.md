@@ -22,8 +22,23 @@ async def create_journal(...):
 
 ## Quick Start
 
+### Using uv (Recommended - Fast!)
+
 ```bash
-pip install -r requirements.txt
+# Install uv if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install dependencies
+uv sync
+
+# Run the app
+uv run fastapi dev app/main.py
+```
+
+### Alternative: Using pip
+
+```bash
+pip install -e .
 uvicorn app.main:app --reload
 ```
 
@@ -99,13 +114,36 @@ See `.env.example` for a complete example.
 
 ## Tech Stack
 
-- FastAPI - Web framework
-- MongoDB + Beanie - Database
-- PyJWT - JWT tokens
-- Bcrypt - Password hashing
-- Pydantic - Validation
-- httpx - HTTP client for LLM API calls
-- OpenRouter - LLM provider (supports multiple models)
+- **uv** - Fast Python package manager
+- **FastAPI** - Web framework
+- **MongoDB + Beanie** - Database
+- **PyJWT** - JWT tokens
+- **Bcrypt** - Password hashing
+- **Pydantic** - Validation
+- **httpx** - HTTP client for LLM API calls
+- **OpenRouter** - LLM provider (supports multiple models)
+
+## Development
+
+### Running Tests
+
+```bash
+uv run pytest
+```
+
+### Adding Dependencies
+
+```bash
+# Add a production dependency
+uv add package-name
+
+# Add a dev dependency
+uv add --dev package-name
+
+# Update dependencies
+uv sync
+```
+
 
 ## API Docs
 
