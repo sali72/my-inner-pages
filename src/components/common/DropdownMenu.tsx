@@ -17,7 +17,6 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   children,
   align = 'right'
 }) => {
-  const isDark = theme === 'dark';
   const themeConfig = THEMES[theme];
 
   if (!isOpen) return null;

@@ -30,7 +30,6 @@ export const getButtonClasses = (
   variant: 'primary' | 'secondary' | 'danger' = 'primary'
 ) => {
   const isDark = theme === 'dark';
-  const themeConfig = THEMES[theme];
 
   const variants = {
     primary: isDark
@@ -52,9 +51,9 @@ export const getButtonClasses = (
  */
 export const getInputClasses = (theme: ThemeType) => {
   const isDark = theme === 'dark';
-  const themeConfig = THEMES[theme];
+  const { border } = THEMES[theme];
 
-  return `bg-transparent border ${themeConfig.border} ${
+  return `bg-transparent border ${border} ${
     isDark ? 'text-slate-200' : 'text-slate-800'
   } focus:outline-none focus:ring-2 focus:ring-${isDark ? 'slate-500' : 'amber-500'}`;
 };
