@@ -1,21 +1,33 @@
 version: "3.8"
 
-# Low-memory production configuration for servers with ~700MB RAM
+# Low-memory production configuration
 # Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This file OVERRIDES settings from docker-compose.yml:
+# - Removes volume mounts (no hot-reload)
+# - Changes ports (80 for frontend, standard ports for others)
+# - Adds memory reservations
+# - Optimizes MongoDB settings
 
 services:
   backend:
+    ports:
+      - "8000:8000" # Production: expose on 8000
     volumes: [] # Remove volume mount for production (no hot-reload needed)
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 0.5
 
   frontend:
+    ports:
+      - "80:80" # Production: expose on port 80 (standard HTTP)
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
 
   mongodb:
+    ports:
+      - "27017:27017" # Production: standard MongoDB port
     command: mongod --wiredTigerCacheSizeGB 0.2 --nojournal
     mem_limit: 200m
     mem_reservation: 100m
