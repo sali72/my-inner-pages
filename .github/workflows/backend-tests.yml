@@ -58,10 +58,12 @@ jobs:
       - name: Install dependencies
         run: uv sync
       
-      - name: Install MongoDB client tools
+      - name: Install MongoDB Shell
         run: |
+          wget -qO- https://www.mongodb.org/static/pgp/server-4.4.asc | sudo tee /etc/apt/trusted.gpg.d/mongodb.asc
+          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
           sudo apt-get update
-          sudo apt-get install -y mongodb-clients
+          sudo apt-get install -y mongodb-org-shell
       
       - name: Wait for MongoDB to be ready
         run: |
