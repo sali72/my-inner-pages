@@ -58,21 +58,49 @@ jobs:
       - name: Install dependencies
         run: uv sync
       
-      - name: Install MongoDB Shell
+      - name: Wait for MongoDB and initialize replica set
         run: |
-          wget -qO- https://www.mongodb.org/static/pgp/server-4.4.asc | sudo tee /etc/apt/trusted.gpg.d/mongodb.asc
-          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
-          sudo apt-get update
-          sudo apt-get install -y mongodb-org-shell
-      
-      - name: Wait for MongoDB to be ready
-        run: |
-          timeout 60 bash -c 'until mongo --eval "db.runCommand({ ping: 1 })" > /dev/null 2>&1; do sleep 2; done'
-      
-      - name: Initialize MongoDB replica set
-        run: |
-          mongo --eval "rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]})" || true
-          sleep 5
+          uv run python -c "
+          import pymongo
+          import time
+          import sys
+          
+          # Wait for MongoDB to be ready
+          print('Waiting for MongoDB to be ready...')
+          for i in range(30):
+              try:
+                  client = pymongo.MongoClient('mongodb://localhost:27017/', serverSelectionTimeoutMS=2000)
+                  client.admin.command('ping')
+                  print('MongoDB is ready!')
+                  break
+              except Exception as e:
+                  print(f'Attempt {i+1}/30: MongoDB not ready yet, waiting...')
+                  time.sleep(2)
+          else:
+              print('ERROR: MongoDB failed to start')
+              sys.exit(1)
+          
+          # Initialize replica set
+          print('Initializing replica set...')
+          try:
+              config = {
+                  '_id': 'rs0',
+                  'members': [{'_id': 0, 'host': 'localhost:27017'}]
+              }
+              client.admin.command('replSetInitiate', config)
+              print('Replica set initiated successfully')
+          except pymongo.errors.OperationFailure as e:
+              if 'already initialized' in str(e):
+                  print('Replica set already initialized')
+              else:
+                  raise
+          
+          # Wait for replica set to be ready
+          print('Waiting for replica set to be ready...')
+          time.sleep(5)
+          print('Setup complete!')
+          "
+        working-directory: .
       
       - name: Run tests for ${{ matrix.test-module }}
         env:
