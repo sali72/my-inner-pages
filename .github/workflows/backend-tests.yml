@@ -58,6 +58,11 @@ jobs:
       - name: Install dependencies
         run: uv sync
       
+      - name: Install MongoDB client tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mongodb-clients
+      
       - name: Wait for MongoDB to be ready
         run: |
           timeout 60 bash -c 'until mongo --eval "db.runCommand({ ping: 1 })" > /dev/null 2>&1; do sleep 2; done'
