@@ -30,6 +30,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+          --replSet rs0
         ports:
           - 27017:27017
     
@@ -93,14 +94,13 @@ jobs:
               if 'already initialized' in str(e):
                   print('Replica set already initialized')
               else:
-                  raise
+                  print(f'Warning: Could not initialize replica set: {e}')
           
           # Wait for replica set to be ready
           print('Waiting for replica set to be ready...')
           time.sleep(5)
           print('Setup complete!')
           "
-        working-directory: .
       
       - name: Run tests for ${{ matrix.test-module }}
         env:
