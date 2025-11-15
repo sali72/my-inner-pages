@@ -30,7 +30,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-          mongod --replSet rs0
         ports:
           - 27017:27017
     
@@ -59,14 +58,13 @@ jobs:
       - name: Install dependencies
         run: uv sync
       
-      - name: Wait for MongoDB and initialize replica set
+      - name: Wait for MongoDB to be ready
         run: |
           uv run python -c "
           import pymongo
           import time
           import sys
           
-          # Wait for MongoDB to be ready
           print('Waiting for MongoDB to be ready...')
           for i in range(30):
               try:
@@ -81,30 +79,12 @@ jobs:
               print('ERROR: MongoDB failed to start')
               sys.exit(1)
           
-          # Initialize replica set
-          print('Initializing replica set...')
-          try:
-              config = {
-                  '_id': 'rs0',
-                  'members': [{'_id': 0, 'host': 'localhost:27017'}]
-              }
-              client.admin.command('replSetInitiate', config)
-              print('Replica set initiated successfully')
-          except pymongo.errors.OperationFailure as e:
-              if 'already initialized' in str(e):
-                  print('Replica set already initialized')
-              else:
-                  print(f'Warning: Could not initialize replica set: {e}')
-          
-          # Wait for replica set to be ready
-          print('Waiting for replica set to be ready...')
-          time.sleep(5)
           print('Setup complete!')
           "
       
       - name: Run tests for ${{ matrix.test-module }}
         env:
-          MONGO_URL: mongodb://localhost:27017/?replicaSet=rs0
+          MONGO_URL: mongodb://localhost:27017/
           DATABASE_NAME: journaling_app_test
           JWT_SECRET_KEY: test-secret-key-for-ci
           USE_MOCK_LLM: true
