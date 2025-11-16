@@ -1,0 +1,88 @@
+name: Deploy to VPS
+
+on:
+  # Manual trigger only (recommended for safety)
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+  
+  # Optional: Auto-deploy on push to main
+  # Uncomment if you want automatic deployment
+  # push:
+  #   branches:
+  #     - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive  # Include submodules
+      
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Deploy to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh -i ~/.ssh/deploy_key $VPS_USER@$VPS_HOST << 'ENDSSH'
+            set -e
+            
+            echo "📦 Navigating to deployment directory..."
+            cd $DEPLOY_PATH
+            
+            echo "🔄 Pulling latest changes..."
+            git pull origin main
+            git submodule update --init --recursive
+            
+            echo "🛑 Stopping containers..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+            
+            echo "🏗️  Building containers..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
+            
+            echo "🚀 Starting containers..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+            
+            echo "🧹 Cleaning up old images..."
+            docker image prune -af --filter "until=24h"
+            
+            echo "✅ Deployment complete!"
+            
+            echo "📊 Container status:"
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+          ENDSSH
+      
+      - name: Health check
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          echo "⏳ Waiting for services to start..."
+          sleep 10
+          
+          echo "🏥 Checking health..."
+          curl -f http://$VPS_HOST:8000/health || exit 1
+          
+          echo "✅ Health check passed!"
+      
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
