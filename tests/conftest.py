@@ -50,8 +50,6 @@ def test_settings(monkeypatch_session) -> Settings:
     monkeypatch_session.setenv("DATABASE_NAME", "journaling_app_test")
     monkeypatch_session.setenv("ENVIRONMENT", "testing")
     monkeypatch_session.setenv("JWT_SECRET_KEY", "test-secret-key-for-testing-only")
-    monkeypatch_session.setenv("MONGO_URL", "mongodb://127.0.0.1:27017/")
-    
     
     test_settings_obj = Settings(
         mongo_url="mongodb://localhost:27017",
