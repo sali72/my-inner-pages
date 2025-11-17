@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { JournalEntry } from '@/types';
 import { api } from '@utils/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BackendJournal {
   id: string;
@@ -14,11 +15,14 @@ interface BackendJournal {
 export const useJournalEntries = () => {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
-  // Load entries from backend on mount
+  // Load entries from backend when authenticated
   useEffect(() => {
-    loadEntries();
-  }, []);
+    if (isAuthenticated && !authLoading) {
+      loadEntries();
+    }
+  }, [isAuthenticated, authLoading]);
 
   const loadEntries = async () => {
     try {
