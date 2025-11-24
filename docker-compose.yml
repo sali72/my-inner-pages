@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: journaling-backend
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     env_file:
       - ./backend/.env
     volumes:
@@ -28,7 +28,7 @@ services:
         - VITE_API_URL=${VITE_API_URL:-http://localhost:8000/api/v0}
     container_name: journaling-frontend
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
     depends_on:
       - backend
     restart: unless-stopped
@@ -41,7 +41,7 @@ services:
     image: mongo:4.4
     container_name: journaling-mongodb
     ports:
-      - "27018:27017"
+      - "127.0.0.1:27018:27017"
     volumes:
       - mongodb_data:/data/db
     restart: unless-stopped
