@@ -12,7 +12,7 @@ version: "3.8"
 services:
   backend:
     ports:
-      - "8000:8000" # Production: expose on 8000
+      - "127.0.0.1:8000:8000" # Only accessible from localhost (nginx)
     volumes: [] # Remove volume mount for production (no hot-reload needed)
     mem_limit: 256m
     mem_reservation: 128m
@@ -20,14 +20,14 @@ services:
 
   frontend:
     ports:
-      - "80:80" # Production: expose on port 80 (standard HTTP)
+      - "127.0.0.1:8080:80" # Only accessible from localhost (nginx), avoid port 80 conflict
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
 
   mongodb:
     ports:
-      - "27017:27017" # Production: standard MongoDB port
+      - "127.0.0.1:27017:27017" # Only accessible from localhost
     command: mongod --wiredTigerCacheSizeGB 0.2 --nojournal
     mem_limit: 200m
     mem_reservation: 100m
