@@ -62,12 +62,9 @@ jobs:
             docker network disconnect my-inner-pages_app-network journaling-mongodb 2>/dev/null || true
             docker network rm my-inner-pages_app-network 2>/dev/null || true
             
-            echo "📝 Creating frontend .env file with production settings..."
-            echo "# API Configuration - Full URL including /api/v0 path" > frontend/.env
-            echo "VITE_API_URL=https://innerpages.ir/api/v0" >> frontend/.env
-            echo "" >> frontend/.env
-            echo "# Environment" >> frontend/.env
-            echo "VITE_ENV=production" >> frontend/.env
+            echo "📝 Creating root .env file for docker-compose..."
+            echo "VITE_API_URL=https://innerpages.ir/api/v0" > .env
+            echo "VITE_ENV=production" >> .env
             
             echo "🏗️  Building containers..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
