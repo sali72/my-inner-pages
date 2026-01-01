@@ -53,13 +53,6 @@ jobs:
             git pull origin main
             git submodule update --init --recursive
             
-            echo "📝 Creating frontend .env file with production settings..."
-            echo "# API Configuration - Full URL including /api/v0 path" > frontend/.env
-            echo "VITE_API_URL=https://innerpages.ir/api/v0" >> frontend/.env
-            echo "" >> frontend/.env
-            echo "# Environment" >> frontend/.env
-            echo "VITE_ENV=production" >> frontend/.env
-            
             echo "🛑 Stopping containers..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml down || true
             
@@ -68,6 +61,13 @@ jobs:
             docker network disconnect my-inner-pages_app-network journaling-frontend 2>/dev/null || true
             docker network disconnect my-inner-pages_app-network journaling-mongodb 2>/dev/null || true
             docker network rm my-inner-pages_app-network 2>/dev/null || true
+            
+            echo "📝 Creating frontend .env file with production settings..."
+            echo "# API Configuration - Full URL including /api/v0 path" > frontend/.env
+            echo "VITE_API_URL=https://innerpages.ir/api/v0" >> frontend/.env
+            echo "" >> frontend/.env
+            echo "# Environment" >> frontend/.env
+            echo "VITE_ENV=production" >> frontend/.env
             
             echo "🏗️  Building containers..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
@@ -85,14 +85,24 @@ jobs:
           ENDSSH
       
       - name: Health check
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
           echo "⏳ Waiting for services to start..."
-          sleep 15
+          sleep 20
           
-          echo "🏥 Checking health via domain..."
-          curl -f https://innerpages.ir/health || exit 1
-          
-          echo "✅ Health check passed!"
+          echo "🏥 Checking health directly on server..."
+          ssh -i ~/.ssh/deploy_key $VPS_USER@$VPS_HOST << ENDSSH
+            set -e
+            cd $DEPLOY_PATH
+            
+            # Check via localhost (bypasses Cloudflare)
+            curl -f http://localhost/health || exit 1
+            
+            echo "✅ Health check passed!"
+          ENDSSH
       
       - name: Cleanup SSH key
         if: always()
