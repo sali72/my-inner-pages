@@ -53,6 +53,13 @@ jobs:
             git pull origin main
             git submodule update --init --recursive
             
+            echo "📝 Creating frontend .env file with production settings..."
+            echo "# API Configuration - Full URL including /api/v0 path" > frontend/.env
+            echo "VITE_API_URL=https://innerpages.ir/api/v0" >> frontend/.env
+            echo "" >> frontend/.env
+            echo "# Environment" >> frontend/.env
+            echo "VITE_ENV=production" >> frontend/.env
+            
             echo "🛑 Stopping containers..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml down || true
             
@@ -83,7 +90,7 @@ jobs:
           sleep 15
           
           echo "🏥 Checking health via domain..."
-          curl -f http://innerpages.ir/health || exit 1
+          curl -f https://innerpages.ir/health || exit 1
           
           echo "✅ Health check passed!"
       
