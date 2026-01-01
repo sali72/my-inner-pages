@@ -78,14 +78,12 @@ jobs:
           ENDSSH
       
       - name: Health check
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           echo "⏳ Waiting for services to start..."
-          sleep 10
+          sleep 15
           
-          echo "🏥 Checking health..."
-          curl -f http://$VPS_HOST:8000/health || exit 1
+          echo "🏥 Checking health via domain..."
+          curl -f http://innerpages.ir/health || exit 1
           
           echo "✅ Health check passed!"
       
