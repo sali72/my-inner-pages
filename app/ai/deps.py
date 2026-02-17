@@ -1,6 +1,6 @@
 from fastapi import Depends
 from app.ai.services.mirror_service import MirrorService
-from app.ai.integrations.llm_client import LLMClient, LangChainLLMClient
+from app.ai.integrations.openrouter_client import LLMClient, OpenRouterClient
 from app.ai.integrations.mock_llm_client import MockLLMClient
 from app.ai.config import AIModuleConfig
 from app.memory.service import MemoryService
@@ -22,14 +22,15 @@ def get_llm_client(
     Get LLM client configured via AIModuleConfig.
     
     Returns MockLLMClient if use_mock_llm is True,
-    otherwise returns LangChainLLMClient.
+    otherwise returns OpenRouterClient with fallback chain.
     """
     if config.use_mock_llm:
         return MockLLMClient()
     
-    return LangChainLLMClient(
+    return OpenRouterClient(
         api_key=config.openrouter_api_key,
         model=config.llm_model,
+        fallback_models=config.llm_fallback_models,
         base_url=config.llm_base_url,
         max_tokens=config.llm_max_tokens,
         temperature=config.llm_temperature,

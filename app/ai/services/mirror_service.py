@@ -1,7 +1,7 @@
 from typing import Optional
 
 from app.ai.config import AIModuleConfig
-from app.ai.integrations.llm_client import LLMClient
+from app.ai.integrations.openrouter_client import LLMClient
 from app.ai.prompts.mirror import create_reflection_prompt, get_output_parser
 from app.core.logging import get_logger
 from app.memory.service import MemoryService

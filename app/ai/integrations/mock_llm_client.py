@@ -1,5 +1,5 @@
 from typing import Optional
-from app.ai.integrations.llm_client import LLMClient
+from app.ai.integrations.openrouter_client import LLMClient
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)

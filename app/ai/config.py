@@ -16,7 +16,11 @@ class AIModuleConfig(BaseSettings):
     use_mock_llm: bool = False
     
     # LLM Configuration
-    llm_model: str = "SUPER-SOTA!"
+    llm_model: str = "deepseek/deepseek-chat-v3.1:free"
+    llm_fallback_models: list[str] = [
+        "meta-llama/llama-3.1-8b-instruct:free",
+        "google/gemini-flash-1.5:free"
+    ]
     llm_base_url: str = "https://openrouter.ai/api/v1"
     llm_max_tokens: int = 500
     llm_temperature: float = 0.7
