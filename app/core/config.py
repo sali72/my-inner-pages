@@ -18,15 +18,11 @@ class Settings(BaseSettings):
     
     # Application Configuration
     environment: str = "development"
-    app_name: str = "Note Taking API"
+    app_name: str = "My Inner Pages"
     app_version: str = "0.1.0"
     
     # JWT Configuration
     jwt_secret_key: str = "dev-secret-key-change-in-production"
-    
-    # AI Configuration
-    openrouter_api_key: str = ""
-    use_mock_llm: bool = False  # Set to True to use mock LLM (for testing/development)
     
     @property
     def is_production(self) -> bool:

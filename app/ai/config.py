@@ -1,10 +1,28 @@
-from pydantic import BaseModel
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class AIModuleConfig(BaseModel):
-    """AI module specific configuration."""
+class AIModuleConfig(BaseSettings):
+    """AI module configuration loaded from environment variables."""
     
-    # Mirror reflection settings
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore"
+    )
+    
+    # LLM Provider Settings
+    openrouter_api_key: str = ""
+    use_mock_llm: bool = False
+    
+    # LLM Configuration
+    llm_model: str = "SUPER-SOTA!"
+    llm_base_url: str = "https://openrouter.ai/api/v1"
+    llm_max_tokens: int = 500
+    llm_temperature: float = 0.7
+    llm_timeout: int = 30
+    
+    # Mirror Reflection Settings
     max_journals_for_mirror: int = 10
     mirror_reflection_modes: list[str] = [
         "emotional",
@@ -13,9 +31,5 @@ class AIModuleConfig(BaseModel):
         "relational"
     ]
     
-    # OpenRouter settings
-    openrouter_model: str = "deepseek/deepseek-chat-v3.1:free"
-    openrouter_timeout: int = 30
-    
-    # Feature flags
+    # Feature Flags
     enable_mirror: bool = True

@@ -1,47 +1,50 @@
-"""
-Mock LLM Service for testing and development.
-
-This service provides deterministic responses without making actual API calls,
-which is useful for testing and development when LLM costs should be avoided.
-"""
-
 from typing import Optional
-from app.core.config import Settings
+from app.ai.integrations.llm_client import LLMClient
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
 
-class MockLLMService:
-    """
-    Mock implementation of LLM service that returns predefined responses.
+class MockLLMClient(LLMClient):
+    """Mock LLM client for testing without API calls."""
     
-    This service can be used in tests or development mode to avoid actual
-    LLM API calls and associated costs.
-    """
+    def __init__(self):
+        logger.info("mock_llm_client_initialized")
     
-    def __init__(self, settings: Settings):
-        self.settings = settings
-        logger.info("mock_llm_service_initialized")
-    
-    def _generate_mock_reflection(self, prompt: str, mode: str = "emotional") -> str:
-        """
-        Generate a mock reflection based on the mode.
+    async def generate(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        max_tokens: int = 500,
+        temperature: float = 0.7
+    ) -> str:
+        """Generate mock completion."""
+        logger.info("mock_generate", has_system_prompt=bool(system_prompt))
         
-        Args:
-            prompt: The user prompt (used to detect if user has journals)
-            mode: The reflection mode
-            
-        Returns:
-            Mock reflection text appropriate for the mode
-        """
-        # Check if user has no journals yet
+        # Determine mode from system prompt
+        mode = self._detect_mode(system_prompt or "")
+        
+        # Check if user has no journals
         has_no_journals = "hasn't written any journal entries yet" in prompt or "No journal entries available" in prompt
         
         if has_no_journals:
-            return self._get_welcome_reflection(mode)
+            response = self._get_welcome_reflection(mode)
+        else:
+            response = self._get_mode_reflection(mode)
         
-        return self._get_mode_reflection(mode)
+        logger.info("mock_completion_generated", response_length=len(response), mode=mode)
+        return response
+    
+    def _detect_mode(self, system_prompt: str) -> str:
+        """Detect reflection mode from system prompt."""
+        prompt_lower = system_prompt.lower()
+        if "cognitive" in prompt_lower:
+            return "cognitive"
+        elif "behavioral" in prompt_lower:
+            return "behavioral"
+        elif "relational" in prompt_lower:
+            return "relational"
+        return "emotional"
     
     def _get_welcome_reflection(self, mode: str) -> str:
         """Get welcome reflection for users without journals."""
@@ -98,48 +101,3 @@ class MockLLMService:
             )
         }
         return reflections.get(mode, reflections["emotional"])
-    
-    async def generate_completion(
-        self,
-        prompt: str,
-        system_prompt: Optional[str] = None,
-        model: Optional[str] = None,
-        max_tokens: int = 500,
-        temperature: float = 0.7
-    ) -> str:
-        """
-        Generate a mock completion that simulates LLM behavior.
-        
-        Args:
-            prompt: User prompt
-            system_prompt: Optional system prompt (used to determine mode)
-            model: Model to use (ignored in mock)
-            max_tokens: Maximum tokens (ignored in mock)
-            temperature: Temperature (ignored in mock)
-            
-        Returns:
-            Mock generated text response
-        """
-        logger.info(
-            "mock_llm_generate_completion",
-            model=model or "mock",
-            has_system_prompt=bool(system_prompt),
-            prompt_length=len(prompt)
-        )
-        
-        # Determine mode from system prompt
-        mode = "emotional"  # default
-        if system_prompt:
-            if "cognitive" in system_prompt.lower():
-                mode = "cognitive"
-            elif "behavioral" in system_prompt.lower():
-                mode = "behavioral"
-            elif "relational" in system_prompt.lower():
-                mode = "relational"
-        
-        # Generate appropriate mock response
-        response = self._generate_mock_reflection(prompt, mode)
-        
-        logger.info("mock_llm_completion_generated", response_length=len(response), mode=mode)
-        
-        return response
