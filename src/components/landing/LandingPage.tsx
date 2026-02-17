@@ -138,7 +138,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
           </h2>
           <p className="text-xl text-amber-800/80 leading-relaxed mb-8">
             Your journal is private. Secure authentication keeps your entries safe. 
-            No public sharing. No data selling. Just you and your inner pages.
+            No public sharing. Just you and your inner pages.
           </p>
         </div>
       </section>

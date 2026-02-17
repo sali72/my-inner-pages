@@ -14,6 +14,7 @@ npm run dev
 ```
 src/
 ├── components/
+│   ├── landing/       # Landing page (pre-auth)
 │   ├── auth/          # Authentication (Login, Register, etc)
 │   ├── journal/       # Journal entries, pages, tags
 │   ├── mirror/        # AI reflection feature
@@ -35,6 +36,7 @@ VITE_API_URL=http://localhost:8000/api/v0
 
 ## Features
 
+- **Landing Page** - Calm, reflective pre-auth page with app overview
 - **Authentication** - Login/Register (no email verification)
 - **Journal** - Entries with tags, page flip animations
 - **Journal Navigation** - Right sidebar with search, sort, and filter capabilities
@@ -58,4 +60,10 @@ VITE_API_URL=http://localhost:8000/api/v0
 
 ## Architecture
 
-Single-page app with feature-based organization. Auth state via Context API. No routing - conditional rendering based on view state (`journal` | `mirror` | `settings`).
+Single-page app with feature-based organization. Auth state via Context API. No routing - conditional rendering based on authentication state and view state (`journal` | `mirror` | `settings`).
+
+**User Flow:**
+1. Unauthenticated users see landing page
+2. Click "Start Writing" → Login/Register
+3. After auth → Main app with journal view
+4. Can return to landing via "Back to landing" link on auth pages
