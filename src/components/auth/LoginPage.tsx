@@ -8,6 +8,7 @@ export interface LoginPageProps {
   onLogin: (email: string, password: string) => Promise<void>;
   onNavigateToRegister: () => void;
   onForgotPassword: () => void;
+  onBack?: () => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({
@@ -15,6 +16,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   onLogin,
   onNavigateToRegister,
   onForgotPassword,
+  onBack,
 }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,6 +54,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   return (
     <div className={`min-h-screen bg-gradient-to-br ${themeConfig.bg} flex items-center justify-center p-4`}>
       <div className="w-full max-w-md">
+        {/* Back Button */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className={`mb-4 text-sm ${
+              isDark ? 'text-slate-400 hover:text-slate-300' : 'text-amber-600 hover:text-amber-700'
+            } transition-colors flex items-center gap-1`}
+          >
+            ← Back to landing
+          </button>
+        )}
+        
         {/* Logo/Title */}
         <div className="text-center mb-8">
           <h1 className={`text-4xl font-serif font-bold ${themeConfig.accent} mb-2`}>

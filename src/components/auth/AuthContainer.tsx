@@ -11,6 +11,7 @@ export type AuthView = 'login' | 'register' | 'forgot-password' | 'verify-email'
 export interface AuthContainerProps {
   theme: ThemeType;
   onAuthSuccess: () => void;
+  onBack?: () => void;
   initialView?: AuthView;
   verificationToken?: string;
 }
@@ -22,6 +23,7 @@ export interface AuthContainerProps {
 export const AuthContainer: React.FC<AuthContainerProps> = ({
   theme,
   onAuthSuccess,
+  onBack,
   initialView = 'login',
   verificationToken,
 }) => {
@@ -61,6 +63,7 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
             onLogin={handleLogin}
             onNavigateToRegister={() => setCurrentView('register')}
             onForgotPassword={() => setCurrentView('forgot-password')}
+            onBack={onBack}
           />
         );
 
@@ -70,6 +73,7 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
             theme={theme}
             onRegister={handleRegister}
             onNavigateToLogin={() => setCurrentView('login')}
+            onBack={onBack}
           />
         );
 

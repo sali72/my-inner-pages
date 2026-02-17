@@ -5,6 +5,7 @@ import { useAuth } from './contexts/AuthContext';
 import { useJournalEntries } from '@hooks/useJournalEntries';
 import { usePageFlip } from '@hooks/usePageFlip';
 import { useSettings } from '@hooks/useSettings';
+import { LandingPage } from '@components/landing';
 import { AuthContainer } from '@components/auth';
 import { Header, Sidebar } from '@components/layout';
 import { JournalView } from '@components/journal';
@@ -16,6 +17,7 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>('journal');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [navigationSidebarOpen, setNavigationSidebarOpen] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
 
   console.log('App render - isAuthenticated:', isAuthenticated, 'authLoading:', authLoading, 'user:', user);
 
@@ -110,8 +112,12 @@ const App: React.FC = () => {
     );
   }
 
-  // Show authentication pages if not authenticated
+  // Show landing page or auth pages if not authenticated
   if (!isAuthenticated) {
+    if (!showAuth) {
+      return <LandingPage onGetStarted={() => setShowAuth(true)} />;
+    }
+    
     return (
       <AuthContainer
         theme={theme}
@@ -119,6 +125,7 @@ const App: React.FC = () => {
           // Auth state will update automatically via useAuth hook
           console.log('User authenticated:', user);
         }}
+        onBack={() => setShowAuth(false)}
       />
     );
   }
