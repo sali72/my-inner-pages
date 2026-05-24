@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Sparkles, Settings } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, Settings } from 'lucide-react';
 import { ViewType, ThemeType } from '@/types';
 import { THEMES } from '@constants/themes';
 
@@ -14,6 +14,7 @@ interface SidebarProps {
 const MENU_ITEMS: { view: ViewType; icon: typeof BookOpen; label: string }[] = [
   { view: 'journal', icon: BookOpen, label: 'Journal' },
   { view: 'mirror', icon: Sparkles, label: 'Mirror' },
+  { view: 'chat', icon: MessageCircle, label: 'Chat' },
   { view: 'settings', icon: Settings, label: 'Settings' },
 ];
 

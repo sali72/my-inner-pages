@@ -25,6 +25,8 @@ export const Header: React.FC<HeaderProps> = ({
         return 'Your Journal';
       case 'mirror':
         return 'Mirror';
+      case 'chat':
+        return 'Chat';
       case 'settings':
         return 'Settings';
       default:

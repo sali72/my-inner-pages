@@ -61,3 +61,46 @@ body {
 .animate-float-delayed {
   animation: float-delayed 10s ease-in-out infinite;
 }
+
+/* Global scrollbar - thin, subtle, works on any background */
+html {
+  scrollbar-width: thin;
+}
+
+html::-webkit-scrollbar {
+  width: 6px;
+}
+
+html::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgba(128, 128, 128, 0.25);
+}
+
+/* Theme-aware scrollbar for scrollable containers */
+.scrollbar-theme {
+  scrollbar-width: thin;
+}
+
+.scrollbar-theme::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-theme::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-theme::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+}
+
+.scrollbar-theme-dark::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+}
+
+.scrollbar-theme-light::-webkit-scrollbar-thumb {
+  background: rgba(180, 83, 9, 0.2);
+}

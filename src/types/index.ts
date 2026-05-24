@@ -9,7 +9,7 @@ export interface JournalEntry {
   created_at?: string; // For sorting purposes
 }
 
-export type ViewType = 'journal' | 'mirror' | 'settings';
+export type ViewType = 'journal' | 'mirror' | 'chat' | 'settings';
 
 export type ThemeType = 'vintage' | 'minimal' | 'dark';
 
