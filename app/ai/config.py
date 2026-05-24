@@ -35,5 +35,10 @@ class AIModuleConfig(BaseSettings):
         "relational"
     ]
     
+    # Chat Settings
+    chat_max_tokens: int = 1000
+    chat_temperature: float = 0.7
+    max_journals_for_chat_context: int = 10
+
     # Feature Flags
     enable_mirror: bool = True

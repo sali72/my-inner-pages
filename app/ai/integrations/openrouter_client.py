@@ -1,7 +1,10 @@
 from abc import ABC, abstractmethod
+from collections.abc import AsyncGenerator
 from typing import Optional
+
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -9,17 +12,29 @@ logger = get_logger(__name__)
 
 class LLMClient(ABC):
     """Abstract base class for LLM clients."""
-    
+
     @abstractmethod
     async def generate(
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
         max_tokens: int = 500,
-        temperature: float = 0.7
+        temperature: float = 0.7,
     ) -> str:
         """Generate completion from LLM."""
         pass
+
+    @abstractmethod
+    async def generate_stream(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        max_tokens: int = 500,
+        temperature: float = 0.7,
+    ) -> AsyncGenerator[str, None]:
+        """Generate streaming completion from LLM, yielding tokens."""
+        if False:
+            yield
 
 
 class OpenRouterClient(LLMClient):
@@ -143,3 +158,41 @@ class OpenRouterClient(LLMClient):
         except Exception as e:
             logger.error("openrouter_api_error", error=str(e), error_type=type(e).__name__)
             raise Exception(f"OpenRouter API error: {str(e)}")
+
+    async def generate_stream(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        max_tokens: int = 500,
+        temperature: float = 0.7,
+    ) -> AsyncGenerator[str, None]:
+        logger.info(
+            "generate_stream_start", max_tokens=max_tokens, temperature=temperature
+        )
+
+        try:
+            if (
+                max_tokens != self.default_max_tokens
+                or temperature != self.default_temperature
+            ):
+                llm = self._create_llm_chain(max_tokens, temperature)
+            else:
+                llm = self._llm
+
+            messages: list = []
+            if system_prompt:
+                messages.append(SystemMessage(content=system_prompt))
+            messages.append(HumanMessage(content=prompt))
+
+            async for chunk in llm.astream(messages):
+                if chunk.content:
+                    yield chunk.content
+
+            logger.info("generate_stream_success")
+        except Exception as e:
+            logger.error(
+                "generate_stream_error",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            raise Exception(f"OpenRouter streaming error: {str(e)}")

@@ -1,12 +1,17 @@
+from functools import lru_cache
+
 from fastapi import Depends
-from app.ai.services.mirror_service import MirrorService
-from app.ai.integrations.openrouter_client import LLMClient, OpenRouterClient
-from app.ai.integrations.mock_llm_client import MockLLMClient
+
 from app.ai.config import AIModuleConfig
-from app.memory.service import MemoryService
-from app.memory.deps import get_memory_service
+from app.ai.integrations.mock_llm_client import MockLLMClient
+from app.ai.integrations.openrouter_client import LLMClient, OpenRouterClient
+from app.ai.services.chat_service import ChatService
+from app.ai.services.mirror_service import MirrorService
+from app.ai.ws.manager import ConnectionManager
 from app.core.config import Settings
 from app.core.deps.settings import get_settings
+from app.memory.deps import get_memory_service
+from app.memory.service import MemoryService
 
 
 def get_ai_config() -> AIModuleConfig:
@@ -48,4 +53,21 @@ def get_mirror_service(
         llm_client=llm_client,
         memory_service=memory_service,
         config=config
+    )
+
+
+@lru_cache
+def get_connection_manager() -> ConnectionManager:
+    return ConnectionManager()
+
+
+def get_chat_service(
+    llm_client: LLMClient = Depends(get_llm_client),
+    memory_service: MemoryService = Depends(get_memory_service),
+    config: AIModuleConfig = Depends(get_ai_config),
+) -> ChatService:
+    return ChatService(
+        llm_client=llm_client,
+        memory_service=memory_service,
+        config=config,
     )

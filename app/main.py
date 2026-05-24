@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.ai.api.v0.routes import mirror as mirror_router
 from app.auth.api.v0.routes import auth as auth_router
+from app.ai.api.v0.routes import chat as chat_router
 from app.core.deps.database import get_client
 from app.core.deps.settings import get_settings
 from app.core.logging import configure_logging, get_logger
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router.router, prefix="/api/v0")
     app.include_router(journals_router.router, prefix="/api/v0")
     app.include_router(mirror_router.router, prefix="/api/v0")
+    app.include_router(chat_router.router, prefix="/api/v0")
 
     @app.get("/", tags=["health"])
     async def root():

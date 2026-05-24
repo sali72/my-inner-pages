@@ -1,4 +1,6 @@
+from collections.abc import AsyncGenerator
 from typing import Optional
+
 from app.ai.integrations.openrouter_client import LLMClient
 from app.core.logging import get_logger
 
@@ -72,6 +74,16 @@ class MockLLMClient(LLMClient):
         }
         return reflections.get(mode, reflections["emotional"])
     
+    async def generate_stream(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        max_tokens: int = 500,
+        temperature: float = 0.7,
+    ) -> AsyncGenerator[str, None]:
+        response = await self.generate(prompt, system_prompt, max_tokens, temperature)
+        yield response
+
     def _get_mode_reflection(self, mode: str) -> str:
         """Get reflection based on mode for users with journals."""
         reflections = {
