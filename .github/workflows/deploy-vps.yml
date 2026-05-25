@@ -22,6 +22,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: ${{ github.event.inputs.environment || 'production' }}
     
     steps:
@@ -43,7 +44,7 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
-          ssh -i ~/.ssh/deploy_key $VPS_USER@$VPS_HOST << ENDSSH
+          ssh -i ~/.ssh/deploy_key -o ServerAliveInterval=60 -o ServerAliveCountMax=5 $VPS_USER@$VPS_HOST << ENDSSH
             set -e
             
             echo "📦 Navigating to deployment directory..."
@@ -66,8 +67,8 @@ jobs:
             echo "VITE_API_URL=https://innerpages.ir/api/v0" > .env
             echo "VITE_ENV=production" >> .env
             
-            echo "🏗️  Building containers..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
+            echo "🏗️  Building containers (15 min timeout)..."
+            timeout 900 docker compose -f docker-compose.yml -f docker-compose.prod.yml build
             
             echo "🚀 Starting containers..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
@@ -91,7 +92,7 @@ jobs:
           sleep 20
           
           echo "🏥 Checking health directly on server..."
-          ssh -i ~/.ssh/deploy_key $VPS_USER@$VPS_HOST << ENDSSH
+          ssh -i ~/.ssh/deploy_key -o ServerAliveInterval=60 -o ServerAliveCountMax=5 $VPS_USER@$VPS_HOST << ENDSSH
             set -e
             cd $DEPLOY_PATH
             
