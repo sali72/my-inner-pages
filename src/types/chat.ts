@@ -3,6 +3,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  aborted?: boolean;
 }
 
 export type WSClientMessage =

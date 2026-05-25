@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { MessageSquare, Send, Loader2, AlertCircle, MessageCircle, Copy, Check } from 'lucide-react';
+import { MessageSquare, Send, Square, Loader2, AlertCircle, MessageCircle, Copy, Check } from 'lucide-react';
 import { ThemeType } from '@/types';
 import { useChatWebSocket } from '@hooks/useChatWebSocket';
 import { THEMES } from '@constants/themes';
@@ -22,6 +22,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ theme }) => {
     isContextLoaded,
     error,
     sendMessage,
+    stopStreaming,
     reconnect,
     startNewChat,
   } = useChatWebSocket();
@@ -202,23 +203,28 @@ export const ChatView: React.FC<ChatViewProps> = ({ theme }) => {
                 className={`flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none disabled:opacity-50 scrollbar-theme ${isDark ? 'text-slate-200 placeholder:text-slate-400' : 'text-slate-800 placeholder:text-slate-500'}`}
                 style={{ lineHeight: `${LINE_HEIGHT}px`, maxHeight: `${MAX_TEXTAREA_ROWS * LINE_HEIGHT}px` }}
               />
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || !isConnected || isStreaming}
-                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 ${
-                  input.trim() && isConnected && !isStreaming
-                    ? 'bg-gradient-to-br from-purple-400 to-indigo-500 text-white shadow-md hover:shadow-lg hover:scale-105'
-                    : isDark
-                    ? 'bg-slate-700 text-slate-500'
-                    : 'bg-slate-100 text-slate-400'
-                } disabled:cursor-not-allowed`}
-              >
-                {isStreaming ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
+              {isStreaming ? (
+                <button
+                  onClick={stopStreaming}
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-red-500 text-white hover:bg-red-600 transition-colors`}
+                >
+                  <Square className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleSend}
+                  disabled={!input.trim() || !isConnected}
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 ${
+                    input.trim() && isConnected
+                      ? 'bg-gradient-to-br from-purple-400 to-indigo-500 text-white shadow-md hover:shadow-lg hover:scale-105'
+                      : isDark
+                      ? 'bg-slate-700 text-slate-500'
+                      : 'bg-slate-100 text-slate-400'
+                  } disabled:cursor-not-allowed`}
+                >
                   <Send className="w-4 h-4" />
-                )}
-              </button>
+                </button>
+              )}
             </div>
           </div>
         </div>

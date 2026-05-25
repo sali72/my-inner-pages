@@ -6,6 +6,7 @@ const STORAGE_KEY = 'chat_messages';
 
 interface UseChatWebSocketReturn extends ChatState {
   sendMessage: (content: string) => void;
+  stopStreaming: () => void;
   disconnect: () => void;
   reconnect: () => void;
   startNewChat: () => void;
@@ -179,6 +180,23 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     wsRef.current.send(JSON.stringify(msg));
   }, []);
 
+  const stopStreaming = useCallback(() => {
+    const partialContent = currentAssistantMsg.current;
+    currentAssistantMsg.current = '';
+    setState(prev => {
+      const msgs = prev.messages.map(m =>
+        m.id === 'streaming'
+          ? partialContent
+            ? { ...m, id: crypto.randomUUID(), content: partialContent, aborted: true }
+            : null
+          : m
+      ).filter(Boolean) as ChatMessage[];
+      return { ...prev, messages: msgs, isStreaming: false };
+    });
+    cleanup();
+    connect();
+  }, [cleanup, connect]);
+
   useEffect(() => {
     connect();
     return cleanup;
@@ -187,6 +205,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
   return {
     ...state,
     sendMessage,
+    stopStreaming,
     disconnect,
     reconnect: connect,
     startNewChat,
