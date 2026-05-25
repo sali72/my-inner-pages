@@ -62,7 +62,7 @@ body {
   animation: float-delayed 10s ease-in-out infinite;
 }
 
-/* Global scrollbar - thin, subtle, works on any background */
+/* Global scrollbar */
 html {
   scrollbar-width: thin;
 }
@@ -77,7 +77,14 @@ html::-webkit-scrollbar-track {
 
 html::-webkit-scrollbar-thumb {
   border-radius: 3px;
-  background: rgba(128, 128, 128, 0.25);
+}
+
+html.theme-dark::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+}
+
+html:not(.theme-dark)::-webkit-scrollbar-thumb {
+  background: rgba(180, 83, 9, 0.2);
 }
 
 /* Theme-aware scrollbar for scrollable containers */
@@ -97,10 +104,10 @@ html::-webkit-scrollbar-thumb {
   border-radius: 3px;
 }
 
-.scrollbar-theme-dark::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.3);
+html.theme-dark .scrollbar-theme::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
 }
 
-.scrollbar-theme-light::-webkit-scrollbar-thumb {
-  background: rgba(180, 83, 9, 0.2);
+html:not(.theme-dark) .scrollbar-theme::-webkit-scrollbar-thumb {
+  background: rgba(180, 83, 9, 0.18);
 }

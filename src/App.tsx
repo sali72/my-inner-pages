@@ -46,6 +46,13 @@ const App: React.FC = () => {
     setAmbientSound,
   } = useSettings();
 
+  // Sync theme to <html> for global scrollbar styling
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('theme-dark', 'theme-vintage', 'theme-minimal');
+    root.classList.add(`theme-${theme}`);
+  }, [theme]);
+
   const pages = [...entries, { id: 'new', date: 'Today', title: '', tags: [], content: '', isNew: true }];
   const {
     currentPageIndex,
@@ -149,7 +156,7 @@ const App: React.FC = () => {
         onViewChange={setActiveView}
       />
 
-      <main className="pt-20 min-h-screen pb-8">
+      <main className="pt-20 min-h-screen pb-8 scrollbar-theme">
         {activeView === 'journal' && loading ? (
           <div className="flex items-center justify-center min-h-[600px]">
             <p className={`text-lg ${theme === 'dark' ? 'text-slate-400' : 'text-amber-600'}`}>
