@@ -64,12 +64,15 @@ async def chat_websocket(
                 if event["type"] == "token":
                     full_response += event["content"]
 
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, RuntimeError):
         logger.info("ws_client_disconnected", user_id=str(user.id))
     except Exception:
         logger.exception("ws_unexpected_error", user_id=str(user.id))
-        await connection_manager.send_json(
-            websocket, {"type": "error", "content": "An unexpected error occurred"}
-        )
+        try:
+            await connection_manager.send_json(
+                websocket, {"type": "error", "content": "An unexpected error occurred"}
+            )
+        except RuntimeError:
+            pass
     finally:
         await connection_manager.disconnect(websocket, str(user.id))
