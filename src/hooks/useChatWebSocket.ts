@@ -36,6 +36,8 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     error: null,
   }));
   const currentAssistantMsg = useRef('');
+  const messagesRef = useRef(state.messages);
+  messagesRef.current = state.messages;
 
   const cleanup = useCallback(() => {
     if (wsRef.current) {
@@ -168,7 +170,12 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
 
     currentAssistantMsg.current = '';
 
-    const msg: WSClientMessage = { type: 'message', content };
+    const history = messagesRef.current
+      .filter(m => m.id !== 'streaming' && m.content)
+      .map(m => ({ role: m.role, content: m.content }));
+
+    const msg: WSClientMessage = { type: 'message', content, history };
+
     wsRef.current.send(JSON.stringify(msg));
   }, []);
 

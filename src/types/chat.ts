@@ -6,7 +6,7 @@ export interface ChatMessage {
 }
 
 export type WSClientMessage =
-  | { type: 'message'; content: string };
+  | { type: 'message'; content: string; history?: { role: 'user' | 'assistant'; content: string }[] };
 
 export type WSServerMessage =
   | { type: 'context_loaded' }
