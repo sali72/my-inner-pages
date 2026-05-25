@@ -137,6 +137,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
 
   const startNewChat = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
+    currentAssistantMsg.current = '';
     disconnect();
     connect();
   }, [disconnect, connect]);

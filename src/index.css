@@ -62,6 +62,15 @@ body {
   animation: float-delayed 10s ease-in-out infinite;
 }
 
+/* Scrollbar colors (CSS custom properties avoid browser issues with descendant combinators on ::-webkit-scrollbar) */
+:root {
+  --scrollbar-thumb: rgba(180, 83, 9, 0.2);
+}
+
+:root.theme-dark {
+  --scrollbar-thumb: rgba(148, 163, 184, 0.25);
+}
+
 /* Global scrollbar */
 html {
   scrollbar-width: thin;
@@ -77,14 +86,7 @@ html::-webkit-scrollbar-track {
 
 html::-webkit-scrollbar-thumb {
   border-radius: 3px;
-}
-
-html.theme-dark::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
-}
-
-html:not(.theme-dark)::-webkit-scrollbar-thumb {
-  background: rgba(180, 83, 9, 0.2);
+  background: var(--scrollbar-thumb);
 }
 
 /* Theme-aware scrollbar for scrollable containers */
@@ -102,12 +104,5 @@ html:not(.theme-dark)::-webkit-scrollbar-thumb {
 
 .scrollbar-theme::-webkit-scrollbar-thumb {
   border-radius: 3px;
-}
-
-html.theme-dark .scrollbar-theme::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
-}
-
-html:not(.theme-dark) .scrollbar-theme::-webkit-scrollbar-thumb {
-  background: rgba(180, 83, 9, 0.18);
+  background: var(--scrollbar-thumb);
 }

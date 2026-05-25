@@ -21,6 +21,11 @@ export interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function clearSessionData() {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('chat_messages');
+}
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -50,7 +55,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           });
           setIsAuthenticated(true);
         } else {
-          localStorage.removeItem('authToken');
+          clearSessionData();
           setUser(null);
           setIsAuthenticated(false);
         }
@@ -60,7 +65,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch (error) {
       console.error('Auth check failed:', error);
-      localStorage.removeItem('authToken');
+      clearSessionData();
       setUser(null);
       setIsAuthenticated(false);
     } finally {
@@ -128,7 +133,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async (): Promise<void> => {
-    localStorage.removeItem('authToken');
+    clearSessionData();
     setUser(null);
     setIsAuthenticated(false);
   };

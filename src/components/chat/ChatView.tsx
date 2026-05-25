@@ -21,7 +21,6 @@ export const ChatView: React.FC<ChatViewProps> = ({ theme }) => {
     isContextLoaded,
     error,
     sendMessage,
-    disconnect,
     reconnect,
     startNewChat,
   } = useChatWebSocket();
@@ -52,6 +51,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ theme }) => {
     if (!trimmed || !isConnected || isStreaming) return;
     sendMessage(trimmed);
     setInput('');
+    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -60,6 +60,13 @@ export const ChatView: React.FC<ChatViewProps> = ({ theme }) => {
       handleSend();
     }
   };
+
+  // Keep input focused after sending (it stays enabled during streaming)
+  useEffect(() => {
+    if (isConnected && !isStreaming) {
+      inputRef.current?.focus();
+    }
+  }, [isConnected, isStreaming]);
 
   const handleCopy = async (id: string, content: string) => {
     await navigator.clipboard.writeText(content);
@@ -188,7 +195,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ theme }) => {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={isConnected ? 'Type a message...' : 'Connecting...'}
-                disabled={!isConnected || isStreaming}
+                disabled={!isConnected}
                 className={`flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none disabled:opacity-50 scrollbar-theme ${isDark ? 'text-slate-200 placeholder:text-slate-400' : 'text-slate-800 placeholder:text-slate-500'}`}
                 style={{ lineHeight: `${LINE_HEIGHT}px`, maxHeight: `${MAX_TEXTAREA_ROWS * LINE_HEIGHT}px` }}
               />
