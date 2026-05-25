@@ -7,6 +7,8 @@ const STORAGE_KEY = 'chat_messages';
 interface UseChatWebSocketReturn extends ChatState {
   sendMessage: (content: string) => void;
   stopStreaming: () => void;
+  regenerate: () => void;
+  editMessage: (content: string) => void;
   disconnect: () => void;
   reconnect: () => void;
   startNewChat: () => void;
@@ -197,6 +199,66 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     connect();
   }, [cleanup, connect]);
 
+  const sendWithBase = useCallback((content: string) => {
+    const msgs = messagesRef.current;
+    let lastUserIdx = -1;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === 'user') {
+        lastUserIdx = i;
+        break;
+      }
+    }
+    if (lastUserIdx === -1) return;
+
+    const baseMessages = msgs.slice(0, lastUserIdx);
+
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content,
+      timestamp: Date.now(),
+    };
+
+    const placeholder: ChatMessage = {
+      id: 'streaming',
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+    };
+
+    const history = baseMessages
+      .filter(m => m.content)
+      .map(m => ({ role: m.role, content: m.content }));
+
+    setState(prev => ({
+      ...prev,
+      messages: [...baseMessages, userMsg, placeholder],
+      isStreaming: true,
+      error: null,
+    }));
+
+    currentAssistantMsg.current = '';
+
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      const msg: WSClientMessage = { type: 'message', content, history };
+      wsRef.current.send(JSON.stringify(msg));
+    }
+  }, []);
+
+  const regenerate = useCallback(() => {
+    const msgs = messagesRef.current;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === 'user') {
+        sendWithBase(msgs[i].content);
+        return;
+      }
+    }
+  }, [sendWithBase]);
+
+  const editMessage = useCallback((content: string) => {
+    sendWithBase(content);
+  }, [sendWithBase]);
+
   useEffect(() => {
     connect();
     return cleanup;
@@ -206,6 +268,8 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     ...state,
     sendMessage,
     stopStreaming,
+    regenerate,
+    editMessage,
     disconnect,
     reconnect: connect,
     startNewChat,
