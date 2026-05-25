@@ -184,6 +184,12 @@ class OpenRouterClient(LLMClient):
                 messages.append(SystemMessage(content=system_prompt))
             messages.append(HumanMessage(content=prompt))
 
+            # logger.info(
+            #     "llm_request",
+            #     system_prompt=system_prompt,
+            #     user_prompt=prompt,
+            # )
+
             async for chunk in llm.astream(messages):
                 if chunk.content:
                     yield chunk.content

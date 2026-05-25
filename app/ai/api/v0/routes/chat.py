@@ -49,14 +49,13 @@ async def chat_websocket(
         system_prompt = await chat_service.build_system_prompt(str(user.id))
         await connection_manager.send_json(websocket, {"type": "context_loaded"})
 
-        history: list[dict] = []
-
         async for data in websocket.iter_json():
             if data.get("type") != "message":
                 continue
 
             user_msg = data["content"]
             full_response = ""
+            history = data.get("history", [])
 
             async for event in chat_service.chat_stream(
                 system_prompt, user_msg, history
@@ -64,9 +63,6 @@ async def chat_websocket(
                 await connection_manager.send_json(websocket, event)
                 if event["type"] == "token":
                     full_response += event["content"]
-
-            history.append({"role": "user", "content": user_msg})
-            history.append({"role": "assistant", "content": full_response})
 
     except WebSocketDisconnect:
         logger.info("ws_client_disconnected", user_id=str(user.id))
