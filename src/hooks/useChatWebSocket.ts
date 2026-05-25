@@ -2,22 +2,39 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import type { ChatMessage, ChatState, WSClientMessage, WSServerMessage } from '@/types/chat';
 
 const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/api/v0';
+const STORAGE_KEY = 'chat_messages';
 
 interface UseChatWebSocketReturn extends ChatState {
   sendMessage: (content: string) => void;
   disconnect: () => void;
   reconnect: () => void;
+  startNewChat: () => void;
+}
+
+function loadMessages(): ChatMessage[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveMessages(messages: ChatMessage[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  } catch { /* quota exceeded etc */ }
 }
 
 export function useChatWebSocket(): UseChatWebSocketReturn {
   const wsRef = useRef<WebSocket | null>(null);
-  const [state, setState] = useState<ChatState>({
-    messages: [],
+  const [state, setState] = useState<ChatState>(() => ({
+    messages: loadMessages(),
     isConnected: false,
     isStreaming: false,
     isContextLoaded: false,
     error: null,
-  });
+  }));
   const currentAssistantMsg = useRef('');
 
   const cleanup = useCallback(() => {
@@ -102,6 +119,11 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     };
   }, [cleanup]);
 
+  // Persist messages on every change
+  useEffect(() => {
+    saveMessages(state.messages);
+  }, [state.messages]);
+
   const disconnect = useCallback(() => {
     cleanup();
     setState({
@@ -112,6 +134,12 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       error: null,
     });
   }, [cleanup]);
+
+  const startNewChat = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    disconnect();
+    connect();
+  }, [disconnect, connect]);
 
   const sendMessage = useCallback((content: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
@@ -153,5 +181,6 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     sendMessage,
     disconnect,
     reconnect: connect,
+    startNewChat,
   };
 }

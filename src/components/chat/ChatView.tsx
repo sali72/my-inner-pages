@@ -23,6 +23,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ theme }) => {
     sendMessage,
     disconnect,
     reconnect,
+    startNewChat,
   } = useChatWebSocket();
   const [input, setInput] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -89,7 +90,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ theme }) => {
           </div>
           {isConnected && (
             <button
-              onClick={disconnect}
+              onClick={startNewChat}
               className={`ml-auto text-xs px-3 py-1.5 rounded-lg ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
             >
               New chat
