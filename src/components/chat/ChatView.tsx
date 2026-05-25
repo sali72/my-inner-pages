@@ -3,6 +3,7 @@ import { MessageSquare, Send, Loader2, AlertCircle, MessageCircle, Copy, Check }
 import { ThemeType } from '@/types';
 import { useChatWebSocket } from '@hooks/useChatWebSocket';
 import { THEMES } from '@constants/themes';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 const MAX_TEXTAREA_ROWS = 10;
 const LINE_HEIGHT = 20;
@@ -155,9 +156,11 @@ export const ChatView: React.FC<ChatViewProps> = ({ theme }) => {
                   ) : (
                     <div className="flex flex-col items-start gap-1 max-w-[80%]">
                       <div className={`min-w-0 ${textClass}`}>
-                        <p className={`text-sm leading-relaxed whitespace-pre-wrap ${msg.content === '' ? 'animate-pulse' : ''}`}>
-                          {msg.content || '▊'}
-                        </p>
+                        {msg.content ? (
+                          <MarkdownRenderer content={msg.content} isDark={isDark} />
+                        ) : (
+                          <p className="text-sm leading-relaxed animate-pulse">▊</p>
+                        )}
                       </div>
                       <button
                         onClick={() => handleCopy(msg.id, msg.content)}
