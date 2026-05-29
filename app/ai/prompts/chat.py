@@ -4,18 +4,17 @@ SYSTEM_PROMPT_TEMPLATE = (
     "based on their journal entries."
 )
 
-
 USER_PROMPT_WITH_CONTEXT = (
-    "Here are the user's recent journal entries for context:\n"
+    "Here is context about the user:\n"
     "{context}\n\n"
-    "Use these entries to provide personalized insights, ask thoughtful questions, "
+    "Use this context to provide personalized insights, ask thoughtful questions, "
     "and help the user reflect deeply. Be warm, curious, and non-judgmental. "
     "Keep responses concise and meaningful."
 )
 
 
 def build_system_prompt(context: str) -> str:
-    if "No journal entries available yet." in context:
+    if not context or "no entries" in context.lower():
         return SYSTEM_PROMPT_TEMPLATE
     return f"{SYSTEM_PROMPT_TEMPLATE}\n\n{USER_PROMPT_WITH_CONTEXT.format(context=context)}"
 

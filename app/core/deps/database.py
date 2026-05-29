@@ -47,10 +47,12 @@ async def get_client() -> AsyncIOMotorClient:
     if not hasattr(client, "_beanie_initialized"):
         from app.journals.db.models import Journal
         from app.auth.db.models import User
+        from app.memory.db.models import UserModel
 
         logger.info("initializing_beanie", database=settings.database_name)
         await init_beanie(
-            database=client[settings.database_name], document_models=[Journal, User]
+            database=client[settings.database_name],
+            document_models=[Journal, User, UserModel]
         )
         client._beanie_initialized = True
         logger.info("beanie_initialized")

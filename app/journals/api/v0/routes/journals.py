@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Query, Depends
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status, Query, Depends
 from typing import Annotated
 
 from app.journals.api.v0.schemas.request import CreateJournalRequest, UpdateJournalRequest
@@ -9,6 +9,8 @@ from app.journals.api.v0.schemas.response import (
 )
 from app.journals.facade.journal_facade import JournalFacade
 from app.journals.deps import get_journal_facade
+from app.memory.deps import get_user_model_updater
+from app.memory.services.user_model_updater import UserModelUpdater, trigger_update_if_needed
 from app.core.deps.auth import get_current_user
 from app.core.deps.database import get_db
 from app.auth.db.models import User
@@ -28,8 +30,10 @@ router = APIRouter(prefix="/journals", tags=["journals"])
 )
 async def create_journal(
     request: CreateJournalRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
-    facade: JournalFacade = Depends(get_journal_facade)
+    facade: JournalFacade = Depends(get_journal_facade),
+    updater: UserModelUpdater = Depends(get_user_model_updater),
 ) -> JournalResponse:
     """
     Create a new journal entry for the authenticated user.
@@ -45,6 +49,7 @@ async def create_journal(
             content=request.content,
             tags=request.tags
         )
+        background_tasks.add_task(trigger_update_if_needed, updater, str(current_user.id))
         return JournalResponse.from_document(journal)
     except ValueError as e:
         raise HTTPException(

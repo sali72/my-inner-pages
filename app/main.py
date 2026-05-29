@@ -76,6 +76,12 @@ def create_app() -> FastAPI:
     app.include_router(mirror_router.router, prefix="/api/v0")
     app.include_router(chat_router.router, prefix="/api/v0")
 
+    # Dev-only memory management routes
+    if not settings.is_production:
+        from app.memory.api.v0.routes import user_model as user_model_router
+        app.include_router(user_model_router.router, prefix="/api/v0")
+        logger.info("memory_dev_routes_enabled")
+
     @app.get("/", tags=["health"])
     async def root():
         """Root endpoint - health check."""

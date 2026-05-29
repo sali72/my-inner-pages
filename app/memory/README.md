@@ -1,51 +1,62 @@
 # Memory Module
 
-This module handles context retrieval and user memory for AI operations.
+This module handles context retrieval, user memory, and persistent user models for AI journaling conversations.
 
 ## Purpose
 
-The memory module provides a clean interface for retrieving and formatting user context (journals, emotions, etc.) for AI processing. As the app grows, this module will handle more sophisticated memory management.
+Provides a minimal, stable system that gives the AI continuity across conversations and journal entries. Consists of three components: **User Model**, **User Model Updater**, and **Context Injector**.
 
 ## Structure
 
 ```
 memory/
-├── config.py        # Memory module configuration
-└── service.py       # Memory retrieval and context building
+├── config.py           # Memory module configuration
+├── deps.py             # FastAPI dependency wiring
+├── service.py          # Memory retrieval and context injection
+├── db/
+│   ├── models.py       # UserModel Beanie document
+│   └── repository.py   # UserModelRepository CRUD
+├── prompts/
+│   ├── update_prompt.py        # LLM prompt for user model updates
+│   └── context_injection.py    # XML context injection formatting
+└── services/
+    └── user_model_updater.py   # Periodic user model update service
 ```
 
-## Current Features
+## Components
 
-### Context Retrieval
-- Fetches recent journal entries for a user
-- Builds formatted context strings for LLM consumption
-- Configurable limits on context size
+### 1. User Model
+
+A compact JSON summary per user stored in MongoDB (`user_models` collection):
+
+- **baseline**: Emotional tone, thinking style, self-focus, confidence
+- **patterns**: Recurring patterns with evidence
+- **activeThemes**: Current life themes
+- **conversationGuidelines**: Instructions for AI companion
+
+### 2. User Model Updater
+
+Triggers every X entries or Y words. Sends recent journals + current model to LLM, which returns a conservatively updated model.
+
+### 3. Context Injector
+
+Builds structured XML context for LLM prompts:
+
+```xml
+<user_model>...</user_model>
+<recent_entries>...</recent_entries>
+<chat_history>...</chat_history>
+```
 
 ## Configuration
 
 Settings in `config.py`:
-- `default_context_limit`: Default number of journals to retrieve (default: 10)
-- `max_context_limit`: Maximum allowed context size (default: 50)
 
-## Usage
-
-```python
-from app.memory.service import MemoryService
-
-memory = MemoryService()
-
-# Get recent journals
-journals = await memory.get_recent_journals(user_id="123", limit=10)
-
-# Build formatted context for AI
-context = await memory.build_journal_context(user_id="123", limit=10)
-```
-
-## Future Enhancements
-
-- Add vector embeddings for semantic search
-- Implement sliding window context
-- Add mood/emotion tracking
-- Support for conversation history
-- Integration with LangChain memory components
-- Implement summarization for long-term memory
+- `default_context_limit`: Default number of journals (default: 10)
+- `max_context_limit`: Maximum context size (default: 50)
+- `max_journals_for_context`: Journals in injected context (default: 5)
+- `max_journals_for_updater`: Journals sent for model updates (default: 50)
+- `update_after_entries`: Trigger update every N entries (default: 5)
+- `update_after_words`: Trigger update every N words (default: 2000)
+- `updater_max_tokens`: Max tokens for LLM update call (default: 1000)
+- `updater_temperature`: LLM temperature for updates (default: 0.3)

@@ -21,9 +21,9 @@ class ChatService:
         self.memory_service = memory_service
         self.config = config
 
-    async def build_system_prompt(self, user_id: str) -> str:
-        context = await self.memory_service.build_journal_context(
-            user_id=user_id, limit=self.config.max_journals_for_chat_context
+    async def build_system_prompt(self, user_id: str, history: list[dict] | None = None) -> str:
+        context = await self.memory_service.build_injected_context(
+            user_id=user_id, chat_history=history
         )
         return format_system_prompt(context)
 
