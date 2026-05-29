@@ -20,6 +20,7 @@ from app.auth.api.config import AuthRoutes
 from tests.config import AUTH_PREFIX
 from app.auth.db.models import User
 from app.journals.db.models import Journal
+from app.memory.db.models import UserModel
 
 
 @pytest.fixture(scope="session")
@@ -50,6 +51,7 @@ def test_settings(monkeypatch_session) -> Settings:
     monkeypatch_session.setenv("DATABASE_NAME", "journaling_app_test")
     monkeypatch_session.setenv("ENVIRONMENT", "testing")
     monkeypatch_session.setenv("JWT_SECRET_KEY", "test-secret-key-for-testing-only")
+    monkeypatch_session.setenv("USE_MOCK_LLM", "true")
     
     test_settings_obj = Settings(
         mongo_url="mongodb://localhost:27017",
@@ -88,7 +90,7 @@ async def test_db_client(test_settings: Settings) -> AsyncGenerator[AsyncIOMotor
     # Initialize Beanie with test database
     await init_beanie(
         database=client[test_settings.database_name],
-        document_models=[User, Journal]
+        document_models=[User, Journal, UserModel]
     )
     
     # Mark that Beanie is initialized to prevent re-initialization

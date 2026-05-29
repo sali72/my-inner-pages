@@ -1,3 +1,4 @@
+import json
 from collections.abc import AsyncGenerator
 from typing import Optional
 
@@ -7,12 +8,32 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 
+MOCK_USER_MODEL_JSON = json.dumps({
+    "version": 1,
+    "baseline": {
+        "emotionalTone": "generally positive with moments of reflection",
+        "thinkingStyle": "analytical and self-aware",
+        "selfFocus": "moderate — balances internal and external attention",
+        "confidence": 0.3
+    },
+    "patterns": [
+        {"description": "tends to reflect on personal growth", "evidence": "multiple entries mention learning and progress"},
+        {"description": "often writes about goals and habits", "evidence": "frequent references to daily routines and improvement"}
+    ],
+    "activeThemes": ["personal growth", "self-discovery"],
+    "conversationGuidelines": [
+        "respond with warmth and encouragement",
+        "offer reflective questions about patterns"
+    ]
+})
+
+
 class MockLLMClient(LLMClient):
     """Mock LLM client for testing without API calls."""
-    
+
     def __init__(self):
         logger.info("mock_llm_client_initialized")
-    
+
     async def generate(
         self,
         prompt: str,
@@ -22,20 +43,25 @@ class MockLLMClient(LLMClient):
     ) -> str:
         """Generate mock completion."""
         logger.info("mock_generate", has_system_prompt=bool(system_prompt))
-        
-        # Determine mode from system prompt
+
+        if self._is_user_model_update(prompt):
+            return MOCK_USER_MODEL_JSON
+
         mode = self._detect_mode(system_prompt or "")
-        
-        # Check if user has no journals
+
         has_no_journals = "hasn't written any journal entries yet" in prompt or "No journal entries available" in prompt
-        
+
         if has_no_journals:
             response = self._get_welcome_reflection(mode)
         else:
             response = self._get_mode_reflection(mode)
-        
+
         logger.info("mock_completion_generated", response_length=len(response), mode=mode)
         return response
+
+    def _is_user_model_update(self, prompt: str) -> bool:
+        keywords = ["USER MODEL UPDATE", "update a compact user model", "recurring patterns"]
+        return any(k in prompt for k in keywords)
     
     def _detect_mode(self, system_prompt: str) -> str:
         """Detect reflection mode from system prompt."""
