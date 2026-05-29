@@ -18,7 +18,7 @@ memory/
 │   └── repository.py   # UserModelRepository CRUD
 ├── prompts/
 │   ├── update_prompt.py        # LLM prompt for user model updates
-│   └── context_injection.py    # XML context injection formatting
+│   └── context_injection.py    # JSON context injection formatting
 └── services/
     └── user_model_updater.py   # Periodic user model update service
 ```
@@ -40,12 +40,17 @@ Triggers every X entries or Y words. Sends recent journals + current model to LL
 
 ### 3. Context Injector
 
-Builds structured XML context for LLM prompts:
+Builds structured JSON context for LLM prompts:
 
-```xml
-<user_model>...</user_model>
-<recent_entries>...</recent_entries>
-<chat_history>...</chat_history>
+```
+--- user_model ---
+{...}
+
+--- recent_entries ---
+[{...}]
+
+--- chat_history ---
+[{...}]
 ```
 
 ## Configuration

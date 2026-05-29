@@ -27,7 +27,10 @@ app/
 │   ├── services/      # Mirror + Chat business logic
 │   ├── ws/            # WebSocket infrastructure (ConnectionManager)
 │   └── api/v0/routes/ # REST + WebSocket endpoints
-├── memory/            # Journal context retrieval for AI
+├── memory/            # User model + context injection for AI
+│   ├── db/            # UserModel document + repository
+│   ├── prompts/       # Update + context injection prompts
+│   └── services/      # UserModelUpdater (background)
 └── core/              # Shared (DB, settings, JWT, rate-limit)
 ```
 
@@ -45,6 +48,10 @@ JWT_SECRET_KEY=change-in-production
 USE_MOCK_LLM=true              # fake responses, no deps needed
 # LLM_BASE_URL=http://localhost:11434/v1 LLM_MODEL=llama3.2  # Ollama
 # OPENROUTER_API_KEY=your-key LLM_BASE_URL=https://openrouter.ai/api/v1  # OpenRouter
+
+# Memory (user model)
+# MEMORY_UPDATE_AFTER_ENTRIES=5    # trigger update every N entries
+# MEMORY_UPDATE_AFTER_WORDS=5000   # or every N words
 ```
 
 See `.env.example` for all options.
@@ -56,14 +63,17 @@ See `.env.example` for all options.
 - **Journals** (`/api/v0/journals`) — CRUD (JWT required)
 - **Mirror** (`/api/v0/mirror`) — AI reflections (JWT required)
   - `GET /reflection?mode=emotional|cognitive|behavioral|relational`
+- **Memory** (`/api/v0/memory`) — user model (dev only)
+  - `POST /update-user-model` — manual LLM re-build
+  - `GET /user-model` — inspect current model
 
 ### WebSocket
-- **Chat** (`/api/v0/chat/ws?token=<jwt>`) — real-time AI chat with journal memory
+- **Chat** (`/api/v0/chat/ws?token=<jwt>`) — real-time AI chat with user model + journal memory
 
   **Protocol:**
   1. Client connects with JWT in query param
-  2. Server sends `{"type": "context_loaded"}` after fetching journal context
-  3. Client sends `{"type": "message", "content": "..."}`
+  2. Server sends `{"type": "context_loaded"}` after fetching user model + recent entries
+  3. Client sends `{"type": "message", "content": "..."}
   4. Server streams response tokens: `{"type": "token", "content": "..."}`
   5. Server signals completion: `{"type": "done"}`
 

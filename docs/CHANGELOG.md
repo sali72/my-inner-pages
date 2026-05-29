@@ -5,6 +5,10 @@ All notable changes to the backend will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **User Model**: Persistent structured memory per user — compact JSON summary of patterns, tone, thinking style, and conversation guidelines
+- **User Model Updater**: Background LLM-driven updates triggered every N entries or M words (env-configurable)
+- **Context Injection**: XML-structured context (`<user_model>`, `<recent_entries>`, `<chat_history>`) injected into chat system prompts
+- **Dev Endpoints**: `POST /memory/update-user-model` and `GET /memory/user-model` (disabled in production)
 - **Rate Limiting**: Added rate limiting to authentication endpoints (5 requests per 60 seconds)
 - **Request Logging Middleware**: Automatic logging of all requests/responses with request IDs
 - **Database Health Check**: `/health` endpoint now actually checks MongoDB connectivity
