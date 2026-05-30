@@ -7,10 +7,6 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -64,24 +60,50 @@ body {
 
 /* Scrollbar colors (CSS custom properties avoid browser issues with descendant combinators on ::-webkit-scrollbar) */
 :root {
-  --scrollbar-thumb: rgba(180, 83, 9, 0.2);
+  --scrollbar-thumb: rgba(180, 83, 9, 0.5);
+  --scrollbar-track: rgba(180, 83, 9, 0.1);
+  color-scheme: light;
+  background-color: #fffbeb;
+  color: #92400e;
+}
+
+:root.theme-vintage {
+  --scrollbar-thumb: rgba(180, 83, 9, 0.5);
+  --scrollbar-track: rgba(180, 83, 9, 0.1);
+  color-scheme: light;
+  background-color: #fffbeb;
+  color: #92400e;
+}
+
+:root.theme-minimal {
+  --scrollbar-thumb: rgba(100, 116, 139, 0.5);
+  --scrollbar-track: rgba(100, 116, 139, 0.1);
+  color-scheme: light;
+  background-color: #f8fafc;
+  color: #334155;
 }
 
 :root.theme-dark {
-  --scrollbar-thumb: rgba(148, 163, 184, 0.25);
+  --scrollbar-thumb: rgba(148, 163, 184, 0.5);
+  --scrollbar-track: rgba(148, 163, 184, 0.1);
+  color-scheme: dark;
+  background-color: #0f172a;
+  color: #e2e8f0;
 }
 
 /* Global scrollbar */
 html {
   scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 html::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 html::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--scrollbar-track);
 }
 
 html::-webkit-scrollbar-thumb {
@@ -92,14 +114,16 @@ html::-webkit-scrollbar-thumb {
 /* Theme-aware scrollbar for scrollable containers */
 .scrollbar-theme {
   scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .scrollbar-theme::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 .scrollbar-theme::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--scrollbar-track);
 }
 
 .scrollbar-theme::-webkit-scrollbar-thumb {
