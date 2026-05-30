@@ -59,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 activeView === view
                   ? 'bg-accent-muted text-accent'
-                  : 'text-muted hover:bg-surface-hover'
+                  : 'text-muted hover:bg-accent-tint'
               }`}
             >
               <Icon className="w-5 h-5" />

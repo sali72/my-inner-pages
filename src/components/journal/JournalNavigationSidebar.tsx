@@ -178,7 +178,7 @@ export const JournalNavigationSidebar: React.FC<JournalNavigationSidebarProps> =
                                     className={`w-full text-left p-3 rounded-lg transition-all ${
                                         isActive
                                             ? 'bg-accent-muted ring-2 ring-accent'
-                                            : 'bg-surface-hover/50 hover:bg-surface-hover'
+                                            : 'bg-surface-hover/50 hover:bg-accent-tint'
                                     }`}
                                 >
                                     <div className="flex items-start justify-between gap-2 mb-1">

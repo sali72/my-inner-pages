@@ -148,10 +148,8 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark }) => {
                 </div>
               </div>
 
-              <div className="prose max-w-none">
-                <p className="text-lg leading-relaxed text-body whitespace-pre-wrap">
-                  {reflection.reflection}
-                </p>
+              <div className="content-typography whitespace-pre-wrap">
+                {reflection.reflection}
               </div>
 
               <button

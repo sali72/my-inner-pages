@@ -30,7 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center">
         <button
           onClick={onMenuClick}
-          className="p-2 rounded-lg hover:bg-surface-hover"
+          className="p-2 rounded-lg hover:bg-accent-tint"
         >
           <Menu className="w-6 h-6 text-body" />
         </button>
@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
       {activeView === 'journal' && onNavigationClick && (
         <button
           onClick={onNavigationClick}
-          className="p-2 rounded-lg hover:bg-surface-hover"
+          className="p-2 rounded-lg hover:bg-accent-tint"
           title="Journal Navigation"
         >
           <List className="w-6 h-6 text-body" />

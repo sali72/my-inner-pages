@@ -22,7 +22,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
   return (
     <button
       onClick={onClick}
-      className={`${sizeClasses[size]} rounded-lg transition-colors hover:bg-surface-hover text-body`}
+      className={`${sizeClasses[size]} rounded-lg transition-colors hover:bg-accent-tint text-body`}
       aria-label={ariaLabel}
     >
       {icon}

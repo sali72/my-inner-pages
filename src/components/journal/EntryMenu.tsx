@@ -35,21 +35,21 @@ export const EntryMenu: React.FC<EntryMenuProps> = ({
       <DropdownMenu isOpen={isOpen} onClose={onToggle}>
         <button
           onClick={handleEdit}
-          className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-surface-hover transition-all"
+          className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-accent-tint transition-all"
         >
           <Edit2 className="w-4 h-4" />
           Edit
         </button>
         <button
           onClick={handleCopy}
-          className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-surface-hover transition-all"
+          className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-accent-tint transition-all"
         >
           <Copy className="w-4 h-4" />
           Copy
         </button>
         <button
           onClick={handleShare}
-          className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-surface-hover transition-all"
+          className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-accent-tint transition-all"
         >
           <Share2 className="w-4 h-4" />
           Share

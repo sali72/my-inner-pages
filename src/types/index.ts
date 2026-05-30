@@ -36,5 +36,4 @@ export interface WritingSettings {
 export interface ThemeSettings {
   appearance: AppearanceSettings;
   writing: WritingSettings;
-  ambientSound: boolean;
 }

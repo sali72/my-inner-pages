@@ -31,10 +31,25 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const editInputRef = useRef<HTMLTextAreaElement>(null);
+  const initialRender = useRef(true);
+  const userScrolledUp = useRef(false);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (initialRender.current) {
+      initialRender.current = false;
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+      return;
+    }
+    if (!userScrolledUp.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    userScrolledUp.current = !isAtBottom;
+  }, []);
 
   const autoResize = useCallback(() => {
     const el = inputRef.current;
@@ -84,8 +99,8 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark }) => {
   }, [messages]);
 
   return (
-    <div className="h-[calc(100vh-7rem)] p-4 pt-0 flex flex-col">
-      <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col min-h-0">
+    <div className="h-[calc(100vh-5rem)] px-4 pt-2 pb-0 flex flex-col">
+      <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col min-h-0">
         <div className="flex items-center gap-3 mb-3 shrink-0">
           <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
             <MessageCircle className="w-5 h-5 text-white" />
@@ -132,7 +147,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark }) => {
               )}
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-theme">
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-theme" onScroll={handleScroll}>
               {messages.map((msg, idx) => {
                 const isLastUserMsg = idx === lastUserIdx;
                 const isLastAssistant = idx === messages.length - 1 && msg.role === 'assistant' && lastUserIdx !== -1;
@@ -195,7 +210,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark }) => {
                           {editingId !== msg.id && (
                             <button
                               onClick={() => handleCopy(msg.id, msg.content)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-surface-hover text-muted"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
                             >
                               {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                             </button>
@@ -203,7 +218,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark }) => {
                           {isLastUserMsg && !editingId && !isStreaming && (
                             <button
                               onClick={() => { setEditingId(msg.id); setEditContent(msg.content); }}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-surface-hover text-muted"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
                               title="Edit"
                             >
                               <Pencil className="w-3.5 h-3.5" />
@@ -213,7 +228,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark }) => {
                       </div>
                     ) : (
                       <div className="flex flex-col items-start gap-1 max-w-[80%]">
-                        <div className="min-w-0 text-body">
+                        <div className="min-w-0">
                           {msg.content ? (
                             <MarkdownRenderer content={msg.content} isDark={isDark} />
                           ) : (
@@ -223,14 +238,14 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark }) => {
                         <div className="flex items-center gap-0.5">
                           <button
                             onClick={() => handleCopy(msg.id, msg.content)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-surface-hover text-muted"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
                           >
                             {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                           </button>
                           {isLastAssistant && !isStreaming && (
                             <button
                               onClick={regenerate}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-surface-hover text-muted"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
                               title="Regenerate"
                             >
                               <RotateCw className="w-3.5 h-3.5" />
@@ -246,7 +261,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark }) => {
             </div>
           )}
 
-          <div className="border-t border-default p-4 shrink-0">
+          <div className="p-3 shrink-0">
             {error && (
               <div className="mb-3 flex items-center gap-2 text-red-500 text-xs">
                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />

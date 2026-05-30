@@ -7,14 +7,12 @@ interface ThemeContextValue {
   accent: Accent;
   fontStyle: FontStyle;
   fontSize: ContentFontSize;
-  ambientSound: boolean;
   resolvedMode: 'light' | 'dark';
 
   setMode: (m: Mode) => void;
   setAccent: (a: Accent) => void;
   setFontStyle: (f: FontStyle) => void;
   setFontSize: (s: ContentFontSize) => void;
-  setAmbientSound: (on: boolean) => void;
 }
 
 const STORAGE_KEY = 'my-inner-pages-theme';
@@ -24,7 +22,6 @@ interface PersistedSettings {
   accent: Accent;
   fontStyle: FontStyle;
   fontSize: ContentFontSize;
-  ambientSound: boolean;
 }
 
 const VALID_ACCENTS: Accent[] = ['sage', 'dusk', 'amber', 'slate', 'blush', 'ink', 'sand', 'moss'];
@@ -37,7 +34,6 @@ const DEFAULTS: PersistedSettings = {
   accent: 'amber',
   fontStyle: 'serif',
   fontSize: 'medium',
-  ambientSound: false,
 };
 
 function validate(raw: Partial<PersistedSettings>): PersistedSettings {
@@ -46,7 +42,6 @@ function validate(raw: Partial<PersistedSettings>): PersistedSettings {
     accent: VALID_ACCENTS.includes(raw.accent!) ? raw.accent! : DEFAULTS.accent,
     fontStyle: VALID_FONTS.includes(raw.fontStyle!) ? raw.fontStyle! : DEFAULTS.fontStyle,
     fontSize: VALID_SIZES.includes(raw.fontSize!) ? raw.fontSize! : DEFAULTS.fontSize,
-    ambientSound: typeof raw.ambientSound === 'boolean' ? raw.ambientSound : DEFAULTS.ambientSound,
   };
 }
 
@@ -118,13 +113,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     accent: settings.accent,
     fontStyle: settings.fontStyle,
     fontSize: settings.fontSize,
-    ambientSound: settings.ambientSound,
     resolvedMode,
     setMode: (m) => setter('mode', m),
     setAccent: (a) => setter('accent', a),
     setFontStyle: (f) => setter('fontStyle', f),
     setFontSize: (s) => setter('fontSize', s),
-    setAmbientSound: (on) => setter('ambientSound', on),
   }), [settings, resolvedMode, setter]);
 
   return (

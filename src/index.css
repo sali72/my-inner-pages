@@ -75,6 +75,7 @@ body {
 
 /* Hover/focus variants */
 .hover\:bg-accent-hover:hover { background: var(--accent-primary-hover); }
+.hover\:bg-accent-tint:hover { background: var(--accent-tint); }
 .hover\:bg-surface-hover:hover { background: var(--bg-surface-hover); }
 .hover\:border-hover:hover { border-color: var(--border-default); }
 .hover\:text-accent:hover { color: var(--accent-primary); }
@@ -148,12 +149,23 @@ body {
 /* ============================================================
    Content typography — scoped, never affects UI
    ============================================================ */
-.content-typography {
+.content-typography,
+.content-typography p,
+.content-typography h1,
+.content-typography h2,
+.content-typography h3,
+.content-typography h4,
+.content-typography h5,
+.content-typography h6,
+.content-typography li,
+.content-typography blockquote {
   font-family: var(--content-font);
   font-size: var(--content-font-size);
   line-height: var(--content-leading);
-  max-width: var(--content-measure, 65ch);
   letter-spacing: var(--content-tracking, 0);
+}
+.content-typography {
+  max-width: var(--content-measure, 65ch);
   color: var(--text-primary);
 }
 

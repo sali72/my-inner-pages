@@ -47,7 +47,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
   return (
     <>
-      <div className="flex flex-col items-center justify-center px-4 py-8 relative">
+      <div className="flex flex-col items-center justify-center px-4 pt-2 pb-6 relative">
         <div className="max-w-4xl w-full mx-auto" style={{ perspective: '1500px' }}>
           {currentPage.isNew ? (
             <NewEntryPage

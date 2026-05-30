@@ -156,7 +156,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
               </button>
               <button
                 onClick={cancelEdit}
-                className={`p-2 rounded-lg hover:bg-surface-hover`}
+                className={`p-2 rounded-lg hover:bg-accent-tint`}
               >
                 <X className="w-5 h-5 text-body" />
               </button>

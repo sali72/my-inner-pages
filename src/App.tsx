@@ -14,8 +14,8 @@ import { SettingsView } from '@components/settings';
 
 const AppInner: React.FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { mode, accent, fontStyle, fontSize, ambientSound, resolvedMode,
-    setMode, setAccent, setFontStyle, setFontSize, setAmbientSound } = useTheme();
+  const { mode, accent, fontStyle, fontSize, resolvedMode,
+    setMode, setAccent, setFontStyle, setFontSize } = useTheme();
   const [activeView, setActiveView] = useState<ViewType>('journal');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [navigationSidebarOpen, setNavigationSidebarOpen] = useState(false);
@@ -118,7 +118,7 @@ const AppInner: React.FC = () => {
         onViewChange={setActiveView}
       />
 
-      <main className="pt-20 min-h-screen pb-8 scrollbar-theme">
+      <main className="pt-16 min-h-screen pb-4 scrollbar-theme">
         {activeView === 'journal' && loading ? (
           <div className="flex items-center justify-center min-h-[600px]">
             <p className="text-secondary text-lg">Loading journals...</p>
@@ -154,12 +154,10 @@ const AppInner: React.FC = () => {
             accent={accent}
             fontStyle={fontStyle}
             fontSize={fontSize}
-            ambientSound={ambientSound}
             onModeChange={setMode}
             onAccentChange={setAccent}
             onFontStyleChange={setFontStyle}
             onFontSizeChange={setFontSize}
-            onAmbientSoundToggle={() => setAmbientSound(!ambientSound)}
           />
         )}
       </main>

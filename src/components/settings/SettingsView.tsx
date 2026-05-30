@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, Monitor, Volume2, VolumeX, LogOut } from 'lucide-react';
+import { Sun, Moon, Monitor, LogOut } from 'lucide-react';
 import { Mode, Accent, FontStyle, ContentFontSize } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -8,12 +8,10 @@ interface SettingsViewProps {
   accent: Accent;
   fontStyle: FontStyle;
   fontSize: ContentFontSize;
-  ambientSound: boolean;
   onModeChange: (m: Mode) => void;
   onAccentChange: (a: Accent) => void;
   onFontStyleChange: (f: FontStyle) => void;
   onFontSizeChange: (s: ContentFontSize) => void;
-  onAmbientSoundToggle: () => void;
 }
 
 const ACCENTS: { value: Accent; label: string; light: string; dark: string }[] = [
@@ -58,12 +56,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   accent,
   fontStyle,
   fontSize,
-  ambientSound,
   onModeChange,
   onAccentChange,
   onFontStyleChange,
   onFontSizeChange,
-  onAmbientSoundToggle,
 }) => {
   const { logout, user } = useAuth();
 
@@ -188,37 +184,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </button>
           ))}
         </div>
-      </section>
-
-      {/* Ambient Sound */}
-      <section>
-        <h2 className="text-lg font-semibold text-primary mb-1">Ambient Sound</h2>
-        <p className="text-sm text-secondary mb-3">
-          Ambient sounds are placeholders. You'll need to integrate audio files or a sound library to make them functional.
-        </p>
-        <button
-          onClick={onAmbientSoundToggle}
-          className="w-full p-4 rounded-lg border border-default flex justify-between items-center hover:bg-surface-hover transition-all"
-        >
-          <span className="text-primary">Enable Ambient Sound</span>
-          {ambientSound ? (
-            <Volume2 className="w-5 h-5 text-secondary" />
-          ) : (
-            <VolumeX className="w-5 h-5 text-secondary" />
-          )}
-        </button>
-        {ambientSound && (
-          <div className="mt-2 space-y-2">
-            {['Rain', 'Café', 'Nature'].map((sound) => (
-              <button
-                key={sound}
-                className="w-full text-left px-3 py-2 rounded text-secondary hover:bg-surface-hover transition-all"
-              >
-                {sound}
-              </button>
-            ))}
-          </div>
-        )}
       </section>
 
       {/* Account */}

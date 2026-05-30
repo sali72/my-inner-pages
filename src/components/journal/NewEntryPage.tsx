@@ -108,7 +108,7 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
               </button>
               <button
                 onClick={handleCancel}
-                className="p-2 rounded-lg hover:bg-surface-hover"
+                className="p-2 rounded-lg hover:bg-accent-tint"
                 title="Cancel"
               >
                 <X className="w-5 h-5 text-body" />
