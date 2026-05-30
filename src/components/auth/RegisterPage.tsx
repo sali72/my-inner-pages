@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, UserPlus, CheckCircle } from 'lucide-react';
-import { ThemeType } from '@/types';
-import { THEMES } from '@constants/themes';
-
 export interface RegisterPageProps {
-  theme: ThemeType;
+  isDark: boolean;
   onRegister: (email: string, password: string, confirmPassword: string) => Promise<void>;
   onNavigateToLogin: () => void;
   onBack?: () => void;
 }
 
 export const RegisterPage: React.FC<RegisterPageProps> = ({
-  theme,
+  isDark,
   onRegister,
   onNavigateToLogin,
   onBack,
@@ -24,9 +21,6 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
-
-  const isDark = theme === 'dark';
-  const themeConfig = THEMES[theme];
 
   // Password strength indicator
   const getPasswordStrength = (pwd: string): { strength: number; label: string; color: string } => {
@@ -97,16 +91,16 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   // Success state - no email verification needed
   if (registrationSuccess) {
     return (
-      <div className={`min-h-screen bg-gradient-to-br ${themeConfig.bg} flex items-center justify-center p-4`}>
+      <div className={`min-h-screen bg-gradient-to-br bg-page-gradient flex items-center justify-center p-4`}>
         <div className="w-full max-w-md">
-          <div className={`${themeConfig.paper} rounded-xl shadow-2xl border ${themeConfig.border} p-8 text-center`}>
+          <div className={`bg-surface rounded-xl shadow-2xl border border-default p-8 text-center`}>
             <div className={`w-16 h-16 mx-auto mb-4 rounded-full ${
               isDark ? 'bg-green-900/30' : 'bg-green-100'
             } flex items-center justify-center`}>
               <CheckCircle className={`w-10 h-10 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
             </div>
             
-            <h2 className={`text-2xl font-serif font-bold ${themeConfig.accent} mb-3`}>
+            <h2 className={`text-2xl font-serif font-bold text-accent mb-3`}>
               Account Created!
             </h2>
             
@@ -114,7 +108,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
               Your account has been successfully created:
             </p>
             
-            <p className={`text-base font-medium ${themeConfig.accent} mb-6`}>
+            <p className={`text-base font-medium text-accent mb-6`}>
               {email}
             </p>
             
@@ -143,7 +137,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${themeConfig.bg} flex items-center justify-center p-4`}>
+    <div className={`min-h-screen bg-gradient-to-br bg-page-gradient flex items-center justify-center p-4`}>
       <div className="w-full max-w-md">
         {/* Back Button */}
         {onBack && (
@@ -159,7 +153,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
         
         {/* Logo/Title */}
         <div className="text-center mb-8">
-          <h1 className={`text-4xl font-serif font-bold ${themeConfig.accent} mb-2`}>
+          <h1 className={`text-4xl font-serif font-bold text-accent mb-2`}>
             My Inner Pages
           </h1>
           <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-amber-600'}`}>
@@ -168,8 +162,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
         </div>
 
         {/* Register Card */}
-        <div className={`${themeConfig.paper} rounded-xl shadow-2xl border ${themeConfig.border} p-8`}>
-          <h2 className={`text-2xl font-serif font-bold ${themeConfig.accent} mb-6`}>
+        <div className={`bg-surface rounded-xl shadow-2xl border border-default p-8`}>
+          <h2 className={`text-2xl font-serif font-bold text-accent mb-6`}>
             Create Account
           </h2>
 

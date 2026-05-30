@@ -1,12 +1,10 @@
 import React from 'react';
 import { BookOpen, Sparkles, MessageCircle, Settings } from 'lucide-react';
-import { ViewType, ThemeType } from '@/types';
-import { THEMES } from '@constants/themes';
+import { ViewType } from '@/types';
 
 interface SidebarProps {
   isOpen: boolean;
   activeView: ViewType;
-  theme: ThemeType;
   onClose: () => void;
   onViewChange: (view: ViewType) => void;
 }
@@ -21,13 +19,9 @@ const MENU_ITEMS: { view: ViewType; icon: typeof BookOpen; label: string }[] = [
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   activeView,
-  theme,
   onClose,
   onViewChange,
 }) => {
-  const isDark = theme === 'dark';
-  const themeConfig = THEMES[theme];
-
   const handleViewClick = (view: ViewType) => {
     onViewChange(view);
     onClose();
@@ -43,20 +37,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside
-        className={`fixed left-0 top-0 h-full w-64 ${
-          isDark ? 'bg-slate-800' : 'bg-white'
-        } border-r ${themeConfig.border} p-6 z-50 transition-transform duration-300 ${
+        className={`fixed left-0 top-0 h-full w-64 bg-surface border-r border-default p-6 z-50 transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="mb-8 mt-4">
-          <h1
-            className={`text-2xl font-serif font-bold ${themeConfig.accent} flex items-center gap-2`}
-          >
+          <h1 className="text-2xl font-serif font-bold text-body flex items-center gap-2">
             <BookOpen className="w-7 h-7" />
             My Inner Pages
           </h1>
-          <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-amber-600/70'}`}>
+          <p className="text-sm mt-1 text-muted">
             Your story, page by page
           </p>
         </div>
@@ -68,12 +58,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleViewClick(view)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 activeView === view
-                  ? isDark
-                    ? 'bg-slate-700 text-slate-100'
-                    : 'bg-amber-100 text-amber-900'
-                  : isDark
-                  ? 'text-slate-400 hover:bg-slate-700/50'
-                  : 'text-amber-700 hover:bg-amber-50'
+                  ? 'bg-accent-muted text-accent'
+                  : 'text-muted hover:bg-surface-hover'
               }`}
             >
               <Icon className="w-5 h-5" />

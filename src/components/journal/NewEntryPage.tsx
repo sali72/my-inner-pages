@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { Save, X, Tag } from 'lucide-react';
-import { ThemeType, FontType, FontSizeType } from '@/types';
-import { THEMES } from '@constants/themes';
+import { FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { detectRTL } from '@utils/textDirection';
 
 interface NewEntryPageProps {
-  theme: ThemeType;
-  font: FontType;
-  fontSize: FontSizeType;
+  font: FontStyle;
+  fontSize: ContentFontSize;
   dragOffset: number;
   isFlipping: boolean;
   onDragStart: (e: React.MouseEvent | React.TouchEvent) => void;
@@ -18,7 +16,6 @@ interface NewEntryPageProps {
 }
 
 export const NewEntryPage: React.FC<NewEntryPageProps> = ({
-  theme,
   font,
   fontSize,
   dragOffset,
@@ -33,9 +30,6 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isWriting, setIsWriting] = useState(false);
-
-  const isDark = theme === 'dark';
-  const themeConfig = THEMES[theme];
 
   const handleSave = () => {
     if (content.trim()) {
@@ -72,14 +66,9 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
 
   return (
     <div
-      className={`${themeConfig.paper} rounded-xl shadow-2xl border ${themeConfig.border} overflow-hidden ${
-        !hasContent ? 'cursor-grab active:cursor-grabbing' : ''
-      }`}
+      className={`card overflow-hidden ${!hasContent ? 'cursor-grab active:cursor-grabbing' : ''}`}
       style={{
         minHeight: '600px',
-        backgroundImage: isDark
-          ? 'none'
-          : 'linear-gradient(to bottom, rgba(255,250,240,0.9), rgba(254,243,199,0.5))',
         touchAction: 'none',
         transform: `translateX(${
           isFlipping ? (dragOffset > 0 ? '100%' : '-100%') : dragOffset * 0.5
@@ -101,14 +90,10 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
       <div className="p-8 md:p-12 overflow-y-auto" style={{ minHeight: '600px' }}>
         <div className="mb-6 flex justify-between items-start">
           <div className="flex-1">
-            <p className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-amber-600'}`}>
+            <p className="text-sm font-medium text-muted">
               Today
             </p>
-            <h2
-              className={`text-2xl ${getFontClass(font)} font-bold ${
-                themeConfig.accent
-              } mt-2`}
-            >
+            <h2 className={`text-2xl ${getFontClass(font)} font-bold text-body mt-2`}>
               New Entry
             </h2>
           </div>
@@ -116,19 +101,17 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
             <div className="flex gap-2 ml-4">
               <button
                 onClick={handleSave}
-                className={`p-2 rounded-lg ${isDark ? 'bg-slate-700' : 'bg-amber-100'}`}
+                className="p-2 rounded-lg bg-accent-muted"
                 title="Save Entry"
               >
-                <Save className={`w-5 h-5 ${themeConfig.accent}`} />
+                <Save className="w-5 h-5 text-accent" />
               </button>
               <button
                 onClick={handleCancel}
-                className={`p-2 rounded-lg ${
-                  isDark ? 'hover:bg-slate-700' : 'hover:bg-amber-100'
-                }`}
+                className="p-2 rounded-lg hover:bg-surface-hover"
                 title="Cancel"
               >
-                <X className={`w-5 h-5 ${themeConfig.accent}`} />
+                <X className="w-5 h-5 text-body" />
               </button>
             </div>
           )}
@@ -143,22 +126,16 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
               setIsWriting(true);
             }}
             placeholder="Title..."
-            className={`w-full text-xl ${getFontClass(font)} font-bold ${
-              themeConfig.accent
-            } bg-transparent border-b ${themeConfig.border} focus:outline-none pb-2`}
+            className={`w-full text-xl ${getFontClass(font)} font-bold text-body bg-transparent border-b border-default focus:outline-none pb-2`}
             style={{ direction: detectRTL(title) ? 'rtl' : 'ltr' }}
           />
 
-          <div className={`flex flex-wrap gap-2 pb-2 border-b ${themeConfig.border}`}>
-            <Tag
-              className={`w-4 h-4 ${isDark ? 'text-slate-500' : 'text-amber-500'} mt-1`}
-            />
+          <div className="flex flex-wrap gap-2 pb-2 border-b border-default">
+            <Tag className="w-4 h-4 text-muted mt-1" />
             {tags.map((tag, i) => (
               <span
                 key={i}
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs ${
-                  isDark ? 'bg-slate-700 text-slate-300' : 'bg-amber-100 text-amber-800'
-                }`}
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-accent-tint text-accent-tint`}
               >
                 {tag}
                 <button onClick={() => handleRemoveTag(i)} className="hover:text-red-500">
@@ -174,9 +151,7 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
                 setIsWriting(true);
               }}
               placeholder="Add tags (press Enter)..."
-              className={`flex-1 text-sm bg-transparent focus:outline-none ${
-                isDark ? 'text-slate-300 placeholder-slate-500' : 'text-amber-800 placeholder-amber-600/50'
-              }`}
+              className={`flex-1 text-sm bg-transparent focus:outline-none text-body placeholder:text-muted`}
               onKeyDown={handleAddTag}
             />
           </div>
@@ -188,11 +163,7 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
               setIsWriting(true);
             }}
             placeholder="Begin writing your story..."
-            className={`w-full ${getFontClass(font)} ${getFontSizeClass(
-              fontSize
-            )} leading-relaxed resize-none focus:outline-none ${
-              isDark ? 'text-slate-300 placeholder-slate-500' : 'text-slate-800 placeholder-amber-400/50'
-            }`}
+            className={`w-full ${getFontClass(font)} ${getFontSizeClass(fontSize)} leading-relaxed resize-none focus:outline-none text-body placeholder:text-muted`}
             style={{
               background: 'transparent',
               minHeight: '250px',

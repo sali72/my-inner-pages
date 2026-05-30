@@ -1,11 +1,8 @@
 import React from 'react';
-import { ThemeType } from '@/types';
-import { THEMES } from '@constants/themes';
 
 interface DropdownMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  theme: ThemeType;
   children: React.ReactNode;
   align?: 'left' | 'right';
 }
@@ -13,27 +10,16 @@ interface DropdownMenuProps {
 export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   isOpen,
   onClose,
-  theme,
   children,
   align = 'right'
 }) => {
-  const themeConfig = THEMES[theme];
-
   if (!isOpen) return null;
 
   return (
     <>
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 z-10" 
-        onClick={onClose}
-      />
-      
-      {/* Menu */}
-      <div 
-        className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} mt-2 min-w-[12rem] rounded-lg shadow-lg z-20 ${
-          themeConfig.paper
-        } ${themeConfig.border} border`}
+      <div className="fixed inset-0 z-10" onClick={onClose} />
+      <div
+        className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} mt-2 min-w-[12rem] rounded-lg shadow-card-lg z-20 card`}
       >
         <div className="py-1">
           {children}

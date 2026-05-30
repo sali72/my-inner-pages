@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ViewType } from '@/types';
-import { THEMES } from '@constants/themes';
 import { useAuth } from './contexts/AuthContext';
 import { useJournalEntries } from '@hooks/useJournalEntries';
 import { usePageFlip } from '@hooks/usePageFlip';
-import { useSettings } from '@hooks/useSettings';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { LandingPage } from '@components/landing';
 import { AuthContainer } from '@components/auth';
 import { Header, Sidebar } from '@components/layout';
@@ -13,45 +12,23 @@ import { MirrorView } from '@components/mirror';
 import { ChatView } from '@components/chat';
 import { SettingsView } from '@components/settings';
 
-const App: React.FC = () => {
-  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+const AppInner: React.FC = () => {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { mode, accent, fontStyle, fontSize, ambientSound, resolvedMode,
+    setMode, setAccent, setFontStyle, setFontSize, setAmbientSound } = useTheme();
   const [activeView, setActiveView] = useState<ViewType>('journal');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [navigationSidebarOpen, setNavigationSidebarOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const isDark = resolvedMode === 'dark';
 
-  console.log('App render - isAuthenticated:', isAuthenticated, 'authLoading:', authLoading, 'user:', user);
-
-  // Clean up URL - remove any paths since this is a single-page app
   useEffect(() => {
     if (window.location.pathname !== '/') {
       window.history.replaceState({}, '', '/');
     }
   }, []);
 
-  // Debug: Log when isAuthenticated changes
-  useEffect(() => {
-    console.log('isAuthenticated changed to:', isAuthenticated);
-  }, [isAuthenticated]);
-
   const { entries, loading, addEntry, updateEntry, deleteEntry } = useJournalEntries();
-  const {
-    theme,
-    setTheme,
-    journalFont,
-    setJournalFont,
-    journalFontSize,
-    setJournalFontSize,
-    ambientSound,
-    setAmbientSound,
-  } = useSettings();
-
-  // Sync theme to <html> for global scrollbar styling
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove('theme-dark', 'theme-vintage', 'theme-minimal');
-    root.classList.add(`theme-${theme}`);
-  }, [theme]);
 
   const pages = [...entries, { id: 'new', date: 'Today', title: '', tags: [], content: '', isNew: true }];
   const {
@@ -64,12 +41,11 @@ const App: React.FC = () => {
     goToPage,
   } = usePageFlip(pages.length);
 
-  // Navigate to last entry when entries are first loaded
   useEffect(() => {
     if (!loading && entries.length > 0 && currentPageIndex === 0) {
-      goToPage(entries.length - 1); // Go to last entry (not the "new" page)
+      goToPage(entries.length - 1);
     }
-  }, [loading, entries.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loading, entries.length]);
 
   const handleSaveNewEntry = async (title: string, content: string, tags: string[]) => {
     try {
@@ -103,47 +79,34 @@ const App: React.FC = () => {
     }
   };
 
-  const themeConfig = THEMES[theme];
-
-  // Show loading state while checking authentication
   if (authLoading) {
     return (
-      <div className={`min-h-screen bg-gradient-to-br ${themeConfig.bg} flex items-center justify-center`}>
+      <div className="min-h-screen bg-base flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 border-4 border-current border-t-transparent rounded-full animate-spin" 
-               style={{ color: theme === 'dark' ? '#94a3b8' : '#d97706' }} />
-          <p className={`text-lg ${theme === 'dark' ? 'text-slate-400' : 'text-amber-600'}`}>
-            Loading...
-          </p>
+          <div className="w-16 h-16 mx-auto mb-4 border-4 border-current border-t-transparent rounded-full animate-spin text-accent" />
+          <p className="text-secondary text-lg">Loading...</p>
         </div>
       </div>
     );
   }
 
-  // Show landing page or auth pages if not authenticated
   if (!isAuthenticated) {
     if (!showAuth) {
       return <LandingPage onGetStarted={() => setShowAuth(true)} />;
     }
-    
     return (
       <AuthContainer
-        theme={theme}
-        onAuthSuccess={() => {
-          // Auth state will update automatically via useAuth hook
-          console.log('User authenticated:', user);
-        }}
+        isDark={isDark}
+        onAuthSuccess={() => {}}
         onBack={() => setShowAuth(false)}
       />
     );
   }
 
-  // Show main app if authenticated
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${themeConfig.bg} transition-all duration-700`}>
+    <div className="min-h-screen bg-base transition-colors duration-200">
       <Header
         activeView={activeView}
-        theme={theme}
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
         onNavigationClick={activeView === 'journal' ? () => setNavigationSidebarOpen(!navigationSidebarOpen) : undefined}
       />
@@ -151,7 +114,6 @@ const App: React.FC = () => {
       <Sidebar
         isOpen={sidebarOpen}
         activeView={activeView}
-        theme={theme}
         onClose={() => setSidebarOpen(false)}
         onViewChange={setActiveView}
       />
@@ -159,17 +121,14 @@ const App: React.FC = () => {
       <main className="pt-20 min-h-screen pb-8 scrollbar-theme">
         {activeView === 'journal' && loading ? (
           <div className="flex items-center justify-center min-h-[600px]">
-            <p className={`text-lg ${theme === 'dark' ? 'text-slate-400' : 'text-amber-600'}`}>
-              Loading journals...
-            </p>
+            <p className="text-secondary text-lg">Loading journals...</p>
           </div>
         ) : activeView === 'journal' ? (
           <JournalView
             entries={entries}
             currentPageIndex={currentPageIndex}
-            theme={theme}
-            font={journalFont}
-            fontSize={journalFontSize}
+            font={fontStyle}
+            fontSize={fontSize}
             dragOffset={dragOffset}
             isFlipping={isFlipping}
             navigationSidebarOpen={navigationSidebarOpen}
@@ -185,24 +144,34 @@ const App: React.FC = () => {
           />
         ) : null}
 
-        {activeView === 'mirror' && <MirrorView theme={theme} />}
+        {activeView === 'mirror' && <MirrorView isDark={isDark} />}
 
-        {activeView === 'chat' && <ChatView theme={theme} />}
+        {activeView === 'chat' && <ChatView isDark={isDark} />}
 
         {activeView === 'settings' && (
           <SettingsView
-            theme={theme}
-            font={journalFont}
-            fontSize={journalFontSize}
+            mode={mode}
+            accent={accent}
+            fontStyle={fontStyle}
+            fontSize={fontSize}
             ambientSound={ambientSound}
-            onThemeChange={setTheme}
-            onFontChange={setJournalFont}
-            onFontSizeChange={setJournalFontSize}
+            onModeChange={setMode}
+            onAccentChange={setAccent}
+            onFontStyleChange={setFontStyle}
+            onFontSizeChange={setFontSize}
             onAmbientSoundToggle={() => setAmbientSound(!ambientSound)}
           />
         )}
       </main>
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
   );
 };
 

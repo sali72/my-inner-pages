@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Save, X } from 'lucide-react';
-import { JournalEntry, ThemeType, FontType, FontSizeType } from '@/types';
-import { THEMES } from '@constants/themes';
+import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { detectRTL, renderTextWithLineDirection } from '@utils/textDirection';
 import { EntryMenu } from './EntryMenu';
@@ -9,9 +8,8 @@ import { TagInput } from './TagInput';
 
 interface JournalPageProps {
   entry: JournalEntry;
-  theme: ThemeType;
-  font: FontType;
-  fontSize: FontSizeType;
+  font: FontStyle;
+  fontSize: ContentFontSize;
   dragOffset: number;
   isFlipping: boolean;
   onDragStart: (e: React.MouseEvent | React.TouchEvent) => void;
@@ -23,7 +21,6 @@ interface JournalPageProps {
 
 export const JournalPage: React.FC<JournalPageProps> = ({
   entry,
-  theme,
   font,
   fontSize,
   dragOffset,
@@ -39,9 +36,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const [editingTitle, setEditingTitle] = useState('');
   const [editingTags, setEditingTags] = useState<string[]>([]);
   const [showMenu, setShowMenu] = useState(false);
-
-  const isDark = theme === 'dark';
-  const themeConfig = THEMES[theme];
 
   const startEditing = () => {
     setEditingContent(entry.content);
@@ -91,14 +85,9 @@ export const JournalPage: React.FC<JournalPageProps> = ({
 
   return (
     <div
-      className={`${themeConfig.paper} rounded-xl shadow-2xl border ${
-        themeConfig.border
-      } overflow-hidden ${!editMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      className={`card overflow-hidden ${!editMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
       style={{
         minHeight: '600px',
-        backgroundImage: isDark
-          ? 'none'
-          : 'linear-gradient(to bottom, rgba(255,250,240,0.9), rgba(254,243,199,0.5))',
         touchAction: 'none',
         transform: `translateX(${
           isFlipping ? (dragOffset > 0 ? '100%' : '-100%') : dragOffset * 0.5
@@ -120,7 +109,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       <div className="p-8 md:p-12 overflow-y-auto" style={{ minHeight: '600px' }}>
         <div className="mb-6 flex justify-between items-start">
           <div className="flex-1">
-            <p className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-amber-600'}`}>
+            <p className="text-sm font-medium text-muted">
               {entry.date}
             </p>
             {editMode ? (
@@ -128,18 +117,12 @@ export const JournalPage: React.FC<JournalPageProps> = ({
                 type="text"
                 value={editingTitle}
                 onChange={(e) => setEditingTitle(e.target.value)}
-                className={`text-2xl ${getFontClass(font)} font-bold ${
-                  themeConfig.accent
-                } mt-2 w-full bg-transparent border-b ${
-                  themeConfig.border
-                } focus:outline-none`}
+                className={`text-2xl ${getFontClass(font)} font-bold text-body mt-2 w-full bg-transparent border-b border-default focus:outline-none`}
                 style={{ direction: detectRTL(editingTitle) ? 'rtl' : 'ltr' }}
               />
             ) : (
               <h2
-                className={`text-2xl ${getFontClass(font)} font-bold ${
-                  themeConfig.accent
-                } mt-2`}
+                className={`text-2xl ${getFontClass(font)} font-bold text-body mt-2`}
                 style={{ direction: detectRTL(entry.title) ? 'rtl' : 'ltr' }}
               >
                 {entry.title || 'Untitled'}
@@ -148,7 +131,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
             <div className="mt-3">
               <TagInput
                 tags={editMode ? editingTags : entry.tags}
-                theme={theme}
                 editable={editMode}
                 onTagsChange={editMode ? setEditingTags : undefined}
               />
@@ -156,7 +138,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
           </div>
           {!editMode && (
             <EntryMenu
-              theme={theme}
               isOpen={showMenu}
               onToggle={() => setShowMenu(!showMenu)}
               onEdit={startEditing}
@@ -169,17 +150,15 @@ export const JournalPage: React.FC<JournalPageProps> = ({
             <div className="flex gap-2 ml-4">
               <button
                 onClick={saveEdit}
-                className={`p-2 rounded-lg ${isDark ? 'bg-slate-700' : 'bg-amber-100'}`}
+                className="btn-primary p-2 rounded-lg"
               >
-                <Save className={`w-5 h-5 ${themeConfig.accent}`} />
+                <Save className="w-5 h-5" />
               </button>
               <button
                 onClick={cancelEdit}
-                className={`p-2 rounded-lg ${
-                  isDark ? 'hover:bg-slate-700' : 'hover:bg-amber-100'
-                }`}
+                className={`p-2 rounded-lg hover:bg-surface-hover`}
               >
-                <X className={`w-5 h-5 ${themeConfig.accent}`} />
+                <X className="w-5 h-5 text-body" />
               </button>
             </div>
           )}
@@ -190,11 +169,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
             <textarea
               value={editingContent}
               onChange={(e) => setEditingContent(e.target.value)}
-              className={`w-full h-full ${getFontClass(font)} ${getFontSizeClass(
-                fontSize
-              )} leading-relaxed resize-none focus:outline-none ${
-                isDark ? 'text-slate-300' : 'text-slate-800'
-              }`}
+              className={`w-full h-full ${getFontClass(font)} ${getFontSizeClass(fontSize)} leading-relaxed resize-none focus:outline-none text-body`}
               style={{
                 background: 'transparent',
                 minHeight: '400px',
@@ -203,11 +178,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
             />
           ) : (
             <div
-              className={`${getFontClass(font)} ${getFontSizeClass(
-                fontSize
-              )} leading-relaxed whitespace-pre-line ${
-                isDark ? 'text-slate-300' : 'text-slate-800'
-              }`}
+              className={`${getFontClass(font)} ${getFontSizeClass(fontSize)} leading-relaxed whitespace-pre-line text-body`}
             >
               {renderTextWithLineDirection(entry.content)}
             </div>

@@ -1,19 +1,14 @@
 import React, { useState } from 'react';
-import { ThemeType } from '@/types';
 import { MirrorReflection, MirrorMode } from '@/types/mirror';
-import { THEMES } from '@constants/themes';
 import { MIRROR_MODES } from '@constants/mirrorModes';
 import { api } from '@/utils/api';
 import { DropdownMenu, DropdownMenuItem, IconButton } from '@components/common';
 
 interface MirrorViewProps {
-  theme: ThemeType;
+  isDark: boolean;
 }
 
-export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
-  const isDark = theme === 'dark';
-  const themeConfig = THEMES[theme];
-  
+export const MirrorView: React.FC<MirrorViewProps> = ({ isDark }) => {
   const [reflection, setReflection] = useState<MirrorReflection | null>(null);
   const [selectedMode, setSelectedMode] = useState<MirrorMode>('emotional');
   const [loading, setLoading] = useState(false);
@@ -24,11 +19,10 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
     setLoading(true);
     setIsRevealing(true);
     setReflection(null);
-    
+
     try {
       const data = await api.get<MirrorReflection>(`/mirror/reflection?mode=${selectedMode}`);
       setReflection(data);
-      // Fade out blur after receiving response
       setTimeout(() => setIsRevealing(false), 500);
     } catch (err) {
       console.error('Error generating reflection:', err);
@@ -56,17 +50,14 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
   return (
     <div className="min-h-screen p-4 pt-4">
       <div className="w-full max-w-3xl mx-auto">
-        {/* Header with mode selector */}
         <div className="flex justify-between items-center mb-4">
-          <h1 className={`text-2xl font-bold ${themeConfig.accent}`}>
+          <h1 className="text-2xl font-bold text-body">
             🪞 Mirror
           </h1>
-          
-          {/* Mode Dropdown */}
+
           <div className="relative">
             <IconButton
               onClick={() => setShowDropdown(!showDropdown)}
-              theme={theme}
               ariaLabel="Mirror mode options"
               icon={
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -74,11 +65,10 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
                 </svg>
               }
             />
-            
+
             <DropdownMenu
               isOpen={showDropdown}
               onClose={() => setShowDropdown(false)}
-              theme={theme}
             >
               {(Object.keys(MIRROR_MODES) as MirrorMode[]).map((mode) => (
                 <DropdownMenuItem
@@ -88,7 +78,6 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
                     setShowDropdown(false);
                     setReflection(null);
                   }}
-                  theme={theme}
                   isActive={selectedMode === mode}
                   icon={MIRROR_MODES[mode].icon}
                 >
@@ -99,7 +88,6 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
           </div>
         </div>
 
-        {/* Mirror Surface */}
         <div
           onClick={handleMirrorTouch}
           className={`relative rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 ${
@@ -107,38 +95,33 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
           }`}
           style={{ minHeight: '500px' }}
         >
-          {/* Base colored gradient background - always visible */}
           <div className={`absolute inset-0 ${isDark ? modeConfig.darkBg : modeConfig.lightBg}`}>
-            {/* Add some gradient blobs for more interesting blur effect */}
             <div className={`absolute top-10 left-10 w-64 h-64 bg-gradient-to-br ${modeConfig.gradient} opacity-30 rounded-full blur-2xl`} />
             <div className={`absolute bottom-10 right-10 w-72 h-72 bg-gradient-to-tl ${modeConfig.gradient} opacity-30 rounded-full blur-2xl`} />
           </div>
 
-          {/* Blur overlay when not revealed */}
           {showBlur && (
             <div className="absolute inset-0">
               {loading ? (
-                /* Floating gradient blur effect while generating */
                 <div className="absolute inset-0">
                   <div className={`absolute inset-0 bg-gradient-to-r ${modeConfig.gradient} opacity-30 animate-pulse`} />
                   <div className={`absolute top-0 left-0 w-96 h-96 bg-gradient-to-br ${modeConfig.gradient} opacity-40 rounded-full blur-3xl animate-float`} />
                   <div className={`absolute bottom-0 right-0 w-80 h-80 bg-gradient-to-tl ${modeConfig.gradient} opacity-40 rounded-full blur-3xl animate-float-delayed`} />
-                  <div className={`absolute inset-0 backdrop-blur-2xl`} />
+                  <div className="absolute inset-0 backdrop-blur-2xl" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <p className={`text-sm ${isDark ? 'text-slate-200' : 'text-slate-700'} font-medium`}>
+                    <p className="text-sm text-body font-medium">
                       {modeConfig.icon} Reflecting...
                     </p>
                   </div>
                 </div>
               ) : (
-                /* Static blurred gradient before touching */
                 <div className="absolute inset-0">
-                  <div className={`absolute inset-0 backdrop-blur-2xl`} />
+                  <div className="absolute inset-0 backdrop-blur-2xl" />
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-8">
-                    <p className={`text-xl font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'} mb-2`}>
+                    <p className="text-xl font-medium text-body mb-2">
                       Touch to reflect
                     </p>
-                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                    <p className="text-sm text-muted">
                       {modeConfig.icon} {modeConfig.title} mirror
                     </p>
                   </div>
@@ -147,40 +130,36 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
             </div>
           )}
 
-          {/* Reflection content */}
           {reflection && (
             <div className={`relative p-8 transition-opacity duration-1000 ${
               isRevealing ? 'opacity-0' : 'opacity-100'
             }`}>
-              {/* Mode indicator */}
               <div className="flex items-center gap-3 mb-6">
                 <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${modeConfig.gradient} flex items-center justify-center text-2xl shadow-lg`}>
                   {modeConfig.icon}
                 </div>
                 <div>
-                  <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  <h2 className="text-xl font-bold text-body">
                     {modeConfig.title} Reflection
                   </h2>
-                  <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <p className="text-sm text-muted">
                     Based on your recent journals
                   </p>
                 </div>
               </div>
 
-              {/* Reflection text */}
-              <div className={`prose ${isDark ? 'prose-invert' : ''} max-w-none`}>
-                <p className={`text-lg leading-relaxed ${isDark ? 'text-slate-100' : 'text-slate-800'} whitespace-pre-wrap`}>
+              <div className="prose max-w-none">
+                <p className="text-lg leading-relaxed text-body whitespace-pre-wrap">
                   {reflection.reflection}
                 </p>
               </div>
 
-              {/* Generate new reflection button */}
               <button
                 onClick={generateReflection}
                 disabled={loading}
                 className={`mt-8 px-6 py-3 rounded-lg font-medium transition-all ${
                   loading
-                    ? `${isDark ? 'bg-slate-700 text-slate-500' : 'bg-slate-200 text-slate-400'} cursor-not-allowed`
+                    ? 'bg-surface-hover text-muted cursor-not-allowed'
                     : `bg-gradient-to-r ${modeConfig.gradient} text-white hover:shadow-lg hover:scale-105`
                 }`}
               >
@@ -188,7 +167,7 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ theme }) => {
               </button>
 
               {reflection.error && (
-                <p className={`text-xs mt-4 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                <p className="text-xs mt-4 text-accent">
                   Note: Using fallback reflection due to service issue
                 </p>
               )}

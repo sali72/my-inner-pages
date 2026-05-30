@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
-import { ThemeType } from '@/types';
-import { THEMES } from '@constants/themes';
-
 export interface LoginPageProps {
-  theme: ThemeType;
+  isDark: boolean;
   onLogin: (email: string, password: string) => Promise<void>;
   onNavigateToRegister: () => void;
   onForgotPassword: () => void;
@@ -12,7 +9,7 @@ export interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({
-  theme,
+  isDark,
   onLogin,
   onNavigateToRegister,
   onForgotPassword,
@@ -23,9 +20,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const isDark = theme === 'dark';
-  const themeConfig = THEMES[theme];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +46,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${themeConfig.bg} flex items-center justify-center p-4`}>
+    <div className={`min-h-screen bg-gradient-to-br bg-page-gradient flex items-center justify-center p-4`}>
       <div className="w-full max-w-md">
         {/* Back Button */}
         {onBack && (
@@ -68,7 +62,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         
         {/* Logo/Title */}
         <div className="text-center mb-8">
-          <h1 className={`text-4xl font-serif font-bold ${themeConfig.accent} mb-2`}>
+          <h1 className={`text-4xl font-serif font-bold text-accent mb-2`}>
             My Inner Pages
           </h1>
           <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-amber-600'}`}>
@@ -77,8 +71,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         </div>
 
         {/* Login Card */}
-        <div className={`${themeConfig.paper} rounded-xl shadow-2xl border ${themeConfig.border} p-8`}>
-          <h2 className={`text-2xl font-serif font-bold ${themeConfig.accent} mb-6`}>
+        <div className={`bg-surface rounded-xl shadow-2xl border border-default p-8`}>
+          <h2 className={`text-2xl font-serif font-bold text-accent mb-6`}>
             Welcome Back
           </h2>
 

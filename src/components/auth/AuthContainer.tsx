@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ThemeType } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from './LoginPage';
 import { RegisterPage } from './RegisterPage';
@@ -9,19 +8,15 @@ import { EmailVerificationPage } from './EmailVerificationPage';
 export type AuthView = 'login' | 'register' | 'forgot-password' | 'verify-email';
 
 export interface AuthContainerProps {
-  theme: ThemeType;
+  isDark: boolean;
   onAuthSuccess: () => void;
   onBack?: () => void;
   initialView?: AuthView;
   verificationToken?: string;
 }
 
-/**
- * AuthContainer manages the authentication flow
- * It handles navigation between login, register, forgot password, and email verification pages
- */
 export const AuthContainer: React.FC<AuthContainerProps> = ({
-  theme,
+  isDark,
   onAuthSuccess,
   onBack,
   initialView = 'login',
@@ -30,7 +25,7 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
   const [currentView, setCurrentView] = useState<AuthView>(
     verificationToken ? 'verify-email' : initialView
   );
-  
+
   const { login, register, resetPassword } = useAuth();
 
   const handleLogin = async (email: string, password: string) => {
@@ -42,13 +37,9 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
     await register(email, password, confirmPassword);
   };
 
-  const handleVerifyEmail = async (_token: string) => {
-    // Email verification not implemented
-  };
+  const handleVerifyEmail = async (_token: string) => {};
 
-  const handleResendVerification = async (_email: string) => {
-    // Email verification not implemented
-  };
+  const handleResendVerification = async (_email: string) => {};
 
   const handleResetPassword = async (email: string) => {
     await resetPassword(email);
@@ -59,7 +50,7 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
       case 'login':
         return (
           <LoginPage
-            theme={theme}
+            isDark={isDark}
             onLogin={handleLogin}
             onNavigateToRegister={() => setCurrentView('register')}
             onForgotPassword={() => setCurrentView('forgot-password')}
@@ -70,7 +61,7 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
       case 'register':
         return (
           <RegisterPage
-            theme={theme}
+            isDark={isDark}
             onRegister={handleRegister}
             onNavigateToLogin={() => setCurrentView('login')}
             onBack={onBack}
@@ -80,7 +71,7 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
       case 'forgot-password':
         return (
           <ForgotPasswordPage
-            theme={theme}
+            isDark={isDark}
             onResetPassword={handleResetPassword}
             onNavigateToLogin={() => setCurrentView('login')}
           />
@@ -89,7 +80,7 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
       case 'verify-email':
         return (
           <EmailVerificationPage
-            theme={theme}
+            isDark={isDark}
             verificationToken={verificationToken}
             onVerifyEmail={handleVerifyEmail}
             onResendVerification={handleResendVerification}

@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Mail, Loader } from 'lucide-react';
-import { ThemeType } from '@/types';
-import { THEMES } from '@constants/themes';
-
 export interface EmailVerificationPageProps {
-  theme: ThemeType;
+  isDark: boolean;
   verificationToken?: string;
   onVerifyEmail: (token: string) => Promise<void>;
   onResendVerification: (email: string) => Promise<void>;
@@ -14,7 +11,7 @@ export interface EmailVerificationPageProps {
 type VerificationStatus = 'verifying' | 'success' | 'error' | 'expired';
 
 export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
-  theme,
+  isDark,
   verificationToken,
   onVerifyEmail,
   onResendVerification,
@@ -25,9 +22,6 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
   const [isResending, setIsResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [error, setError] = useState('');
-
-  const isDark = theme === 'dark';
-  const themeConfig = THEMES[theme];
 
   useEffect(() => {
     if (verificationToken) {
@@ -80,7 +74,7 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
               <Loader className={`w-10 h-10 ${isDark ? 'text-blue-400' : 'text-blue-600'} animate-spin`} />
             </div>
             
-            <h2 className={`text-2xl font-serif font-bold ${themeConfig.accent} mb-3`}>
+            <h2 className={`text-2xl font-serif font-bold text-accent mb-3`}>
               Verifying Your Email
             </h2>
             
@@ -99,7 +93,7 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
               <CheckCircle className={`w-10 h-10 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
             </div>
             
-            <h2 className={`text-2xl font-serif font-bold ${themeConfig.accent} mb-3`}>
+            <h2 className={`text-2xl font-serif font-bold text-accent mb-3`}>
               Email Verified!
             </h2>
             
@@ -129,7 +123,7 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
               <XCircle className={`w-10 h-10 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} />
             </div>
             
-            <h2 className={`text-2xl font-serif font-bold ${themeConfig.accent} mb-3`}>
+            <h2 className={`text-2xl font-serif font-bold text-accent mb-3`}>
               Link Expired
             </h2>
             
@@ -231,7 +225,7 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
               <XCircle className={`w-10 h-10 ${isDark ? 'text-red-400' : 'text-red-600'}`} />
             </div>
             
-            <h2 className={`text-2xl font-serif font-bold ${themeConfig.accent} mb-3`}>
+            <h2 className={`text-2xl font-serif font-bold text-accent mb-3`}>
               Verification Failed
             </h2>
             
@@ -264,11 +258,11 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${themeConfig.bg} flex items-center justify-center p-4`}>
+    <div className={`min-h-screen bg-gradient-to-br bg-page-gradient flex items-center justify-center p-4`}>
       <div className="w-full max-w-md">
         {/* Logo/Title */}
         <div className="text-center mb-8">
-          <h1 className={`text-4xl font-serif font-bold ${themeConfig.accent} mb-2`}>
+          <h1 className={`text-4xl font-serif font-bold text-accent mb-2`}>
             My Inner Pages
           </h1>
           <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-amber-600'}`}>
@@ -277,7 +271,7 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
         </div>
 
         {/* Verification Card */}
-        <div className={`${themeConfig.paper} rounded-xl shadow-2xl border ${themeConfig.border} p-8 text-center`}>
+        <div className={`bg-surface rounded-xl shadow-2xl border border-default p-8 text-center`}>
           {renderContent()}
         </div>
       </div>
