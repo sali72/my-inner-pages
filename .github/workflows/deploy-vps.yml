@@ -55,10 +55,10 @@ jobs:
             git submodule update --init --recursive
             
             echo "🔧 Checking nginx configuration..."
-            if ! cmp -s nginx/nginx.conf /etc/nginx/nginx.conf || ! cmp -s nginx/innerpages.ir.conf /etc/nginx/sites-available/innerpages.ir; then
+            if ! cmp -s nginx/nginx.conf /etc/nginx/nginx.conf || ! cmp -s nginx/innerpages.ir.conf /etc/nginx/conf.d/innerpages.ir.conf; then
                 echo "📝 Nginx config changed, updating..."
                 sudo cp nginx/nginx.conf /etc/nginx/nginx.conf
-                sudo cp nginx/innerpages.ir.conf /etc/nginx/sites-available/innerpages.ir
+                sudo cp nginx/innerpages.ir.conf /etc/nginx/conf.d/innerpages.ir.conf
                 sudo nginx -t && sudo systemctl reload nginx
             else
                 echo "✓ Nginx config unchanged, skipping"
