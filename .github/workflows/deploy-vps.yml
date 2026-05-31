@@ -65,6 +65,7 @@ jobs:
             
             echo "📝 Creating root .env file for docker-compose..."
             echo "VITE_API_URL=https://innerpages.ir/api/v0" > .env
+            echo "VITE_WS_URL=wss://innerpages.ir/api/v0" >> .env
             echo "VITE_ENV=production" >> .env
             
             echo "🏗️  Building containers (15 min timeout)..."
