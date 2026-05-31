@@ -7,6 +7,9 @@ WORKDIR /app
 ARG VITE_API_URL=http://localhost:8000/api/v0
 ENV VITE_API_URL=$VITE_API_URL
 
+ARG VITE_WS_URL=ws://localhost:8000/api/v0
+ENV VITE_WS_URL=$VITE_WS_URL
+
 # Copy package files first for better caching
 COPY package.json package-lock.json ./
 
