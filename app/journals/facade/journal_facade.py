@@ -1,6 +1,7 @@
 from typing import Optional
 from beanie import PydanticObjectId
 
+from app.ai.rumination import compute_rumination_index
 from app.journals.db.models import Journal
 from app.journals.db.repository import JournalRepository
 from app.journals.config import JournalModuleConfig
@@ -45,11 +46,15 @@ class JournalFacade:
         # Normalize tags
         normalized_tags = self._normalize_tags(tags or [])
         
+        # Compute real-time rumination signal
+        rumination_index = compute_rumination_index(content)
+        
         return await self.repository.create(
             user_id=user_id,
             title=title.strip(),
             content=content.strip(),
-            tags=normalized_tags
+            tags=normalized_tags,
+            rumination_index=rumination_index,
         )
     
     async def get_journal(self, journal_id: str, user_id: str) -> Optional[Journal]:
@@ -140,12 +145,15 @@ class JournalFacade:
         if tags is not None:
             tags = self._normalize_tags(tags)
         
+        rumination_index = compute_rumination_index(content or "") if content is not None else None
+        
         return await self.repository.update(
             journal_id=obj_id,
             user_id=user_id,
             title=title,
             content=content,
-            tags=tags
+            tags=tags,
+            rumination_index=rumination_index,
         )
     
     async def delete_journal(self, journal_id: str, user_id: str) -> bool:

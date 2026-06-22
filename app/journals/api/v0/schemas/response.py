@@ -24,6 +24,9 @@ class JournalResponse(BaseModel):
     title: str = Field(..., description="Journal title")
     content: str = Field(..., description="Journal content")
     tags: list[str] = Field(default_factory=list, description="Journal tags")
+    rumination_index: Optional[float] = Field(
+        default=None, description="Real-time rumination signal (0-1)"
+    )
     
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
@@ -36,6 +39,7 @@ class JournalResponse(BaseModel):
             title=journal.title,
             content=journal.content,
             tags=journal.tags,
+            rumination_index=journal.rumination_index,
             created_at=journal.created_at,
             updated_at=journal.updated_at
         )

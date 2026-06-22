@@ -10,6 +10,8 @@ from app.ai.services.mirror_service import MirrorService
 from app.ai.ws.manager import ConnectionManager
 from app.core.config import Settings
 from app.core.deps.settings import get_settings
+from app.journals.deps import get_journal_repository
+from app.journals.db.repository import JournalRepository
 from app.memory.deps import get_memory_service
 from app.memory.service import MemoryService
 
@@ -64,10 +66,12 @@ def get_connection_manager() -> ConnectionManager:
 def get_chat_service(
     llm_client: LLMClient = Depends(get_llm_client),
     memory_service: MemoryService = Depends(get_memory_service),
+    journal_repository: JournalRepository = Depends(get_journal_repository),
     config: AIModuleConfig = Depends(get_ai_config),
 ) -> ChatService:
     return ChatService(
         llm_client=llm_client,
         memory_service=memory_service,
+        journal_repository=journal_repository,
         config=config,
     )

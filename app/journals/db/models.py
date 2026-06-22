@@ -11,6 +11,10 @@ class Journal(Document):
     title: str = Field(..., max_length=200)
     content: str = Field(..., max_length=50000)
     tags: list[str] = Field(default_factory=list)
+    rumination_index: Optional[float] = Field(
+        default=None, ge=0.0, le=1.0,
+        description="Real-time rumination signal (0-1). >= 0.70 triggers grounding in chat."
+    )
     
     # Metadata
     created_at: datetime = Field(default_factory=datetime.utcnow)
