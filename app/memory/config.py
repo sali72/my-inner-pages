@@ -18,6 +18,7 @@ class MemoryModuleConfig(BaseSettings):
     max_journals_for_context: int = 5
 
     max_journals_for_updater: int = 50
+    min_entries_for_update: int = 1
     update_after_entries: int = 5
     update_after_words: int = 5000
     updater_max_tokens: int = 1000

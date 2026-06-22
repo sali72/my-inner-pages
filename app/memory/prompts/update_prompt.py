@@ -23,7 +23,6 @@ Analyze the journal entries and update the user model. Follow these rules strict
 6. **Return only valid JSON**: No explanation, no markdown, no conversational text.
 
 Update these fields:
-- **stats**: Increment totalEntries and totalWords based on new entries.
 - **baseline**: emotionalTone (overall emotional landscape), thinkingStyle (cognitive patterns), selfFocus (self-directed vs. external focus), confidence (0.0-1.0 how well-understood the user seems).
 - **patterns**: List of recurring patterns with description and supporting evidence.
 - **activeThemes**: Currently active life themes (e.g., "career change", "relationship growth").
@@ -33,7 +32,6 @@ Return ONLY valid JSON conforming to this schema:
 {{
   "version": 1,
   "updatedAt": "<ISO date>",
-  "stats": {{"totalEntries": <int>, "totalWords": <int>}},
   "baseline": {{"emotionalTone": "<string>", "thinkingStyle": "<string>", "selfFocus": "<string>", "confidence": <float>}},
   "patterns": [{{"description": "<string>", "evidence": "<string>"}}],
   "activeThemes": ["<string>"],

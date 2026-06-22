@@ -38,15 +38,18 @@ class UserModelUpdater:
         self.config = config
 
     async def needs_update(self, user_id: str) -> bool:
+        total_journals = await self.journal_repository.count_by_user(user_id)
+        if total_journals < self.config.min_entries_for_update:
+            return False
+
         user_model = await self.user_model_repository.find_by_user_id(user_id)
         if user_model is None:
             return True
 
-        total_journals = await self.journal_repository.count_by_user(user_id)
         if user_model.stats is None:
             return True
 
-        new_entries = total_journals - user_model.stats.totalEntries
+        new_entries = total_journals - user_model.stats.lastUpdatedEntryCount
         if new_entries >= self.config.update_after_entries:
             logger.info("user_model_update_needed_by_entries", user_id=user_id, new_entries=new_entries)
             return True
@@ -92,9 +95,11 @@ class UserModelUpdater:
             )
 
             updated = self._parse_and_merge(user_model, response)
+            updated.version += 1
             updated.updatedAt = datetime.utcnow()
             updated.stats.totalEntries = await self.journal_repository.count_by_user(user_id)
             updated.stats.totalWords = await self._count_total_words(user_id)
+            updated.stats.lastUpdatedEntryCount = updated.stats.totalEntries
 
             await self.user_model_repository.upsert(updated)
             logger.info("user_model_updated_successfully", user_id=user_id)

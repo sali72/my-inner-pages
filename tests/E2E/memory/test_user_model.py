@@ -54,13 +54,13 @@ async def test_user_model_created_on_manual_update(
     assert update_resp.status_code == 200, f"Expected 200, got {update_resp.status_code}: {update_resp.text}"
     update_data = update_resp.json()
     assert update_data["status"] == "ok"
-    assert update_data["version"] == 1
+    assert update_data["version"] == 2
     assert update_data["stats"]["totalEntries"] == 3
     assert update_data["stats"]["totalWords"] > 0
 
     db_model = await UserModel.find_one({"user_id": test_user["user_id"]})
     assert db_model is not None
-    assert db_model.version == 1
+    assert db_model.version == 2
     assert db_model.stats.totalEntries == 3
     assert db_model.baseline.emotionalTone != ""
     assert len(db_model.conversationGuidelines) > 0
@@ -87,7 +87,7 @@ async def test_user_model_dev_get_endpoint(
     assert get_resp.status_code == 200
     data = get_resp.json()
     assert data["status"] == "ok"
-    assert data["version"] == 1
+    assert data["version"] == 2
     assert "updatedAt" in data
     assert data["stats"]["totalEntries"] == 1
     assert data["stats"]["totalWords"] > 0
@@ -136,7 +136,7 @@ async def test_user_model_persists_across_updates(
 
     assert second_data["stats"]["totalEntries"] == 2
     assert second_data["stats"]["totalWords"] > first_word_count
-    assert second_data["version"] == 1
+    assert second_data["version"] == 3
 
 
 @pytest.mark.asyncio

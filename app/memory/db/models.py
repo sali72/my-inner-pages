@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 class UserModelStats(BaseModel):
     totalEntries: int = 0
     totalWords: int = 0
+    lastUpdatedEntryCount: int = 0
 
 
 class UserModelBaseline(BaseModel):
@@ -41,7 +42,7 @@ class UserModel(Document):
             "example": {
                 "user_id": "507f1f77bcf86cd799439011",
                 "version": 1,
-                "stats": {"totalEntries": 0, "totalWords": 0},
+                "stats": {"totalEntries": 0, "totalWords": 0, "lastUpdatedEntryCount": 0},
                 "baseline": {
                     "emotionalTone": "",
                     "thinkingStyle": "",
