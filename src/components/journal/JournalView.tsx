@@ -45,6 +45,13 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const pages = [...entries, { id: 'new', date: 'Today', title: '', tags: [], content: '', isNew: true }];
   const currentPage = pages[currentPageIndex];
 
+  const handlePageClick = (direction: 'prev' | 'next') => {
+    const targetIndex = direction === 'prev' ? currentPageIndex - 1 : currentPageIndex + 1;
+    if (targetIndex >= 0 && targetIndex < pages.length) {
+      onNavigateToEntry(targetIndex);
+    }
+  };
+
   return (
     <>
       <div className="flex flex-col items-center justify-center px-4 pt-2 pb-6 relative">
@@ -59,6 +66,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
               onDragMove={onDragMove}
               onDragEnd={onDragEnd}
               onSave={onSaveNewEntry}
+              onPageClick={handlePageClick}
             />
           ) : (
             <JournalPage
@@ -72,6 +80,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
               onDragEnd={onDragEnd}
               onUpdate={(updates) => onUpdateEntry(currentPage.id, updates)}
               onDelete={() => onDeleteEntry(currentPage.id)}
+              onPageClick={handlePageClick}
             />
           )}
 

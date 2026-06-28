@@ -3,6 +3,7 @@ import { Save, X, Tag } from 'lucide-react';
 import { FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { detectRTL } from '@utils/textDirection';
+import { getClickDirection } from '@utils/clickNavigation';
 
 interface NewEntryPageProps {
   font: FontStyle;
@@ -13,6 +14,7 @@ interface NewEntryPageProps {
   onDragMove: (e: React.MouseEvent | React.TouchEvent) => void;
   onDragEnd: () => void;
   onSave: (title: string, content: string, tags: string[]) => void;
+  onPageClick?: (direction: 'prev' | 'next') => void;
 }
 
 export const NewEntryPage: React.FC<NewEntryPageProps> = ({
@@ -24,6 +26,7 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
   onDragMove,
   onDragEnd,
   onSave,
+  onPageClick,
 }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -58,11 +61,19 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
     }
   };
 
+  const hasContent = title.trim() || content.trim() || tags.length > 0;
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (hasContent) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('button, a, input, textarea, [role="button"]')) return;
+    const direction = getClickDirection(e);
+    if (direction) onPageClick?.(direction);
+  };
+
   const handleRemoveTag = (index: number) => {
     setTags(tags.filter((_, i) => i !== index));
   };
-
-  const hasContent = title.trim() || content.trim() || tags.length > 0;
 
   return (
     <div
@@ -75,10 +86,11 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
         }px) rotateY(${
           isFlipping ? (dragOffset > 0 ? '180deg' : '-180deg') : dragOffset * 0.15
         }deg)`,
-        transition: isFlipping ? 'transform 0.6s ease' : 'none',
-        opacity: isFlipping ? 0 : Math.max(0.3, 1 - Math.abs(dragOffset) * 0.002),
+        transition: isFlipping ? 'transform 0.4s ease, opacity 0.4s ease' : 'none',
+        opacity: Math.max(0.3, 1 - Math.abs(dragOffset) * 0.002),
         transformOrigin: dragOffset > 0 ? 'left center' : 'right center',
       }}
+      onClick={!hasContent ? handleClick : undefined}
       onMouseDown={!hasContent ? onDragStart : undefined}
       onMouseMove={!hasContent ? onDragMove : undefined}
       onMouseUp={!hasContent ? onDragEnd : undefined}

@@ -3,6 +3,7 @@ import { Save, X } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { detectRTL, renderTextWithLineDirection } from '@utils/textDirection';
+import { getClickDirection } from '@utils/clickNavigation';
 import { EntryMenu } from './EntryMenu';
 import { TagInput } from './TagInput';
 
@@ -17,6 +18,7 @@ interface JournalPageProps {
   onDragEnd: () => void;
   onUpdate: (updates: Partial<JournalEntry>) => void;
   onDelete: () => void;
+  onPageClick?: (direction: 'prev' | 'next') => void;
 }
 
 export const JournalPage: React.FC<JournalPageProps> = ({
@@ -30,6 +32,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   onDragEnd,
   onUpdate,
   onDelete,
+  onPageClick,
 }) => {
   const [editMode, setEditMode] = useState(false);
   const [editingContent, setEditingContent] = useState('');
@@ -83,6 +86,14 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     }
   };
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (editMode) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('button, a, input, textarea, [role="button"]')) return;
+    const direction = getClickDirection(e);
+    if (direction) onPageClick?.(direction);
+  };
+
   return (
     <div
       className={`card overflow-hidden ${!editMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
@@ -94,10 +105,11 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         }px) rotateY(${
           isFlipping ? (dragOffset > 0 ? '180deg' : '-180deg') : dragOffset * 0.15
         }deg)`,
-        transition: isFlipping ? 'transform 0.6s ease' : 'none',
-        opacity: isFlipping ? 0 : Math.max(0.3, 1 - Math.abs(dragOffset) * 0.002),
+        transition: isFlipping ? 'transform 0.4s ease, opacity 0.4s ease' : 'none',
+        opacity: Math.max(0.3, 1 - Math.abs(dragOffset) * 0.002),
         transformOrigin: dragOffset > 0 ? 'left center' : 'right center',
       }}
+      onClick={!editMode ? handleClick : undefined}
       onMouseDown={!editMode ? onDragStart : undefined}
       onMouseMove={!editMode ? onDragMove : undefined}
       onMouseUp={!editMode ? onDragEnd : undefined}
