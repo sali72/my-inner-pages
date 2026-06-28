@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 
-from app.auth.api.v0.schemas.request import RegisterRequest, LoginRequest, ResetPasswordRequest
+from app.auth.api.v0.schemas.request import RegisterRequest, LoginRequest, ResetPasswordRequest, UpdatePreferencesRequest
 from app.auth.api.v0.schemas.response import (
     UserResponse,
     LoginResponse,
@@ -149,3 +149,24 @@ async def verify_token(
     Requires valid JWT token in Authorization header.
     """
     return UserResponse.from_document(current_user)
+
+
+@router.put(
+    AuthRoutes.PREFERENCES,
+    response_model=UserResponse,
+    summary="Update user preferences",
+    dependencies=[Depends(get_db)]
+)
+async def update_preferences(
+    request: UpdatePreferencesRequest,
+    current_user: User = Depends(get_current_user),
+    facade: AuthFacade = Depends(get_auth_facade)
+) -> UserResponse:
+    """
+    Update current user's preferences (partial update).
+    
+    Only provided fields will be updated; omitted fields retain their current values.
+    """
+    preferences = request.model_dump(exclude_none=True)
+    user = await facade.update_preferences(str(current_user.id), preferences)
+    return UserResponse.from_document(user)

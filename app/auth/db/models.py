@@ -1,7 +1,15 @@
 from datetime import datetime
 from typing import Optional
 from beanie import Document
-from pydantic import Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr
+
+
+class UserPreferences(BaseModel):
+    """User preferences for theme and writing settings."""
+    mode: str = "system"
+    accent: str = "amber"
+    fontStyle: str = "serif"
+    fontSize: str = "medium"
 
 
 class User(Document):
@@ -13,6 +21,9 @@ class User(Document):
     # User metadata
     is_active: bool = Field(default=True)
     is_verified: bool = Field(default=False)
+    
+    # Preferences
+    preferences: UserPreferences = Field(default_factory=UserPreferences)
     
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)

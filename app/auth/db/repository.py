@@ -182,6 +182,38 @@ class UserRepository:
                 details={"user_id": str(user_id), "error": str(e)}
             )
     
+    async def update_preferences(
+        self,
+        user_id: PydanticObjectId,
+        preferences: dict,
+        session: Optional[AsyncIOMotorClientSession] = None
+    ) -> Optional[User]:
+        """
+        Update user preferences.
+
+        Args:
+            user_id: User document ID
+            preferences: Preferences dict to set
+            session: Optional MongoDB session for transactions
+
+        Returns:
+            Updated user or None if not found
+        """
+        try:
+            user = await self.find_by_id(user_id, session=session)
+            if not user:
+                return None
+
+            await user.set({"preferences": preferences, "updated_at": datetime.utcnow()}, session=session)
+            logger.info("user_preferences_updated", user_id=str(user_id))
+            return user
+        except PyMongoError as e:
+            logger.error("user_preferences_update_failed", error=str(e), user_id=str(user_id))
+            raise RepositoryException(
+                f"Failed to update preferences: {str(e)}",
+                details={"user_id": str(user_id), "error": str(e)}
+            )
+
     async def email_exists(
         self,
         email: str,

@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, Field, EmailStr, field_validator, ConfigDict
 
 
@@ -28,6 +29,26 @@ class RegisterRequest(BaseModel):
         """Validate that passwords match."""
         if self.password != self.confirm_password:
             raise ValueError("Passwords do not match")
+
+
+class UpdatePreferencesRequest(BaseModel):
+    """Request schema for updating user preferences."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "mode": "dark",
+                "accent": "dusk",
+                "fontStyle": "sans",
+                "fontSize": "large"
+            }
+        }
+    )
+    
+    mode: Optional[str] = Field(None, description="Theme mode: light, dark, or system")
+    accent: Optional[str] = Field(None, description="Accent color")
+    fontStyle: Optional[str] = Field(None, description="Font style: serif, sans, or mono")
+    fontSize: Optional[str] = Field(None, description="Font size: small, medium, large, or x-large")
 
 
 class LoginRequest(BaseModel):

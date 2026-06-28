@@ -168,6 +168,37 @@ class AuthFacade:
         except Exception:
             return None
 
+    async def update_preferences(self, user_id: str, preferences: dict) -> User:
+        """
+        Update user preferences (partial update, merges with existing).
+
+        Args:
+            user_id: User ID string
+            preferences: Dictionary of preference fields to update
+
+        Returns:
+            Updated user
+
+        Raises:
+            ValueError: If user not found
+        """
+        try:
+            obj_id = PydanticObjectId(user_id)
+        except Exception:
+            raise ValueError("Invalid user ID")
+
+        user = await self.repository.find_by_id(obj_id)
+        if not user:
+            raise ValueError("User not found")
+
+        current = user.preferences.model_dump() if user.preferences else {}
+        current.update(preferences)
+
+        updated = await self.repository.update_preferences(obj_id, current)
+        if not updated:
+            raise ValueError("Failed to update preferences")
+        return updated
+
     async def reset_password(self, email: str) -> bool:
         """
         Initiate password reset process.

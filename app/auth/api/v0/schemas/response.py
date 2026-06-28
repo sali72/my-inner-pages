@@ -3,6 +3,14 @@ from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 
+class UserPreferencesResponse(BaseModel):
+    """Response schema for user preferences."""
+    mode: str = Field(..., description="Theme mode: light, dark, or system")
+    accent: str = Field(..., description="Accent color")
+    fontStyle: str = Field(..., description="Font style: serif, sans, or mono")
+    fontSize: str = Field(..., description="Font size: small, medium, large, or x-large")
+
+
 class UserResponse(BaseModel):
     """Response schema for user data."""
     
@@ -25,17 +33,27 @@ class UserResponse(BaseModel):
     is_verified: bool = Field(..., description="Whether email is verified")
     created_at: datetime = Field(..., description="Account creation timestamp")
     last_login: Optional[datetime] = Field(None, description="Last login timestamp")
+    preferences: Optional[UserPreferencesResponse] = Field(None, description="User preferences")
     
     @classmethod
     def from_document(cls, user) -> "UserResponse":
         """Create response from User document."""
+        prefs = None
+        if user.preferences:
+            prefs = UserPreferencesResponse(
+                mode=user.preferences.mode,
+                accent=user.preferences.accent,
+                fontStyle=user.preferences.fontStyle,
+                fontSize=user.preferences.fontSize
+            )
         return cls(
             id=str(user.id),
             email=user.email,
             is_active=user.is_active,
             is_verified=user.is_verified,
             created_at=user.created_at,
-            last_login=user.last_login
+            last_login=user.last_login,
+            preferences=prefs
         )
 
 

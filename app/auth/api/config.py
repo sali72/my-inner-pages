@@ -12,3 +12,4 @@ class AuthRoutes:
     ME: Final[str] = "/me"
     VERIFY: Final[str] = "/verify"
     RESET_PASSWORD: Final[str] = "/reset-password"
+    PREFERENCES: Final[str] = "/me/preferences"
