@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useCallback, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import { Mode, Accent, FontStyle, ContentFontSize } from '@/types';
 import { buildThemeTokens } from '@/utils/themeTokens';
 
@@ -16,6 +16,7 @@ interface ThemeContextValue {
 }
 
 const STORAGE_KEY = 'my-inner-pages-theme';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
 
 interface PersistedSettings {
   mode: Mode;
@@ -45,7 +46,7 @@ function validate(raw: Partial<PersistedSettings>): PersistedSettings {
   };
 }
 
-function loadSettings(): PersistedSettings {
+function loadLocal(): PersistedSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return validate(JSON.parse(raw));
@@ -53,23 +54,64 @@ function loadSettings(): PersistedSettings {
   return { ...DEFAULTS };
 }
 
-function saveSettings(settings: PersistedSettings) {
+function saveLocal(settings: PersistedSettings) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+}
+
+async function fetchRemote(): Promise<PersistedSettings | null> {
+  const token = localStorage.getItem('authToken');
+  if (!token) return null;
+  try {
+    const res = await fetch(`${API_URL}/auth/me`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.preferences) {
+      return validate(data.preferences);
+    }
+  } catch {}
+  return null;
+}
+
+async function saveRemote(settings: PersistedSettings) {
+  const token = localStorage.getItem('authToken');
+  if (!token) return;
+  try {
+    await fetch(`${API_URL}/auth/me/preferences`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    });
+  } catch {}
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [settings, setSettings] = useState<PersistedSettings>(loadSettings);
+  const [settings, setSettings] = useState<PersistedSettings>(loadLocal);
   const [systemDark, setSystemDark] = useState(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches
   );
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  useEffect(() => {
+    fetchRemote().then(remote => {
+      if (remote) {
+        setSettings(prev => {
+          const merged = { ...prev, ...remote };
+          saveLocal(merged);
+          return merged;
+        });
+      }
+    });
   }, []);
 
   const resolvedMode: 'light' | 'dark' =
@@ -98,7 +140,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     applyTokens();
-    saveSettings(settings);
+    saveLocal(settings);
+
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => saveRemote(settings), 1000);
+
+    return () => {
+      if (syncTimer.current) clearTimeout(syncTimer.current);
+    };
   }, [applyTokens, settings]);
 
   const setter = useCallback(<K extends keyof PersistedSettings>(
