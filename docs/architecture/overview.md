@@ -23,7 +23,7 @@
                    │ Beanie ODM
 ┌──────────────────▼──────────────────────────────────────────┐
 │                      MongoDB                                │
-│  - User documents (credentials, profile)                   │
+│  - User documents (credentials, profile, preferences)      │
 │  - Journal documents (entries with tags)                   │
 │  - Replica set for transactions                            │
 └─────────────────────────────────────────────────────────────┘
@@ -81,7 +81,7 @@ App (root)
 ### State Management
 - **Global State**: AuthContext (user, login, logout)
 - **Feature State**: Custom hooks (useJournalEntries, useSettings, usePageFlip)
-- **Local Storage**: Auth token, theme preferences
+- **Local Storage**: Auth token (cache), theme preferences (cache with server sync)
 
 ## Data Flow
 
@@ -92,6 +92,16 @@ App (root)
 3. API call → api.post('/journals', data)
 4. Backend → Route validates → Facade creates → Repository saves
 5. Response → Update local state → UI reflects new entry
+```
+
+### Preferences Flow
+```
+1. User changes setting → ThemeContext setter
+2. localStorage updated immediately (instant response)
+3. Debounced (1s) PUT /auth/me/preferences → Backend
+4. Backend → Route validates → Facade merges → Repository $set
+5. On page load: GET /auth/me returns preferences
+6. ThemeContext merges server preferences with local cache
 ```
 
 ### AI Reflection Flow
