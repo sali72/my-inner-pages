@@ -7,9 +7,25 @@ This directory contains End-to-End (E2E) tests for the journaling application.
 ```
 tests/
 ├── conftest.py              # Shared pytest fixtures and configuration
+├── config.py                # API endpoint prefixes for tests
 ├── E2E/                     # End-to-End tests
-│   └── journals/            # Journal-related E2E tests
-│       └── test_create_journal.py  # Tests for creating journal entries
+│   ├── auth/                # Authentication module tests
+│   │   ├── test_register.py
+│   │   ├── test_login.py
+│   │   ├── test_get_me.py
+│   │   ├── test_verify_token.py
+│   │   ├── test_reset_password.py
+│   │   └── test_preferences.py
+│   ├── journals/            # Journal module tests
+│   │   ├── test_create_journal.py
+│   │   ├── test_list_journals.py
+│   │   ├── test_get_journal.py
+│   │   ├── test_update_journal.py
+│   │   └── test_delete_journal.py
+│   ├── ai/                  # AI/Mirror module tests
+│   │   └── test_mirror_reflection.py
+│   └── memory/              # Memory module tests
+│       └── test_user_model.py
 └── README.md                # This file
 ```
 
@@ -48,7 +64,7 @@ The `conftest.py` file provides the following fixtures:
 - **`client`**: Async HTTP client for making API requests
 
 ### Authentication Fixtures
-- **`test_user`**: Creates a registered and logged-in test user
+- **`test_user`**: Creates a registered and logged-in test user (default preferences set)
   - Returns: `{"email": str, "password": str, "user_id": str, "access_token": str}`
 - **`authenticated_client`**: HTTP client with authentication headers pre-configured
 - **`another_test_user`**: Creates a second test user for multi-user scenarios

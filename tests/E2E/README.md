@@ -4,10 +4,11 @@ This directory contains comprehensive end-to-end tests for all API modules. Thes
 
 ## Overview
 
-**Total Tests**: 35 tests across 3 modules
-- **Auth Module**: 13 tests
+**Total Tests**: 42 tests across 4 modules
+- **Auth Module**: 20 tests
 - **Journals Module**: 13 tests
 - **AI Module**: 9 tests
+- **Memory Module**: 4 tests
 
 ## Directory Structure
 
@@ -19,6 +20,7 @@ tests/E2E/
 │   ├── test_get_me.py         # Get current user (2 tests)
 │   ├── test_verify_token.py   # JWT token verification (3 tests)
 │   ├── test_reset_password.py # Password reset (3 tests)
+│   ├── test_preferences.py    # User preferences (7 tests)
 │   └── README.md              # Auth tests documentation
 │
 ├── journals/                  # Journals module tests
@@ -29,9 +31,12 @@ tests/E2E/
 │   ├── test_delete_journal.py # Delete journal entries (3 tests)
 │   └── README.md              # Journals tests documentation
 │
-└── ai/                        # AI module tests
-    ├── test_mirror_reflection.py # Mirror reflections (9 tests)
-    └── README.md              # AI tests documentation
+├── ai/                        # AI module tests
+│   ├── test_mirror_reflection.py # Mirror reflections (9 tests)
+│   └── README.md              # AI tests documentation
+│
+└── memory/                    # Memory module tests
+    └── test_user_model.py     # User model (4 tests)
 ```
 
 ## Key Features
@@ -123,7 +128,7 @@ async def test_create_journal_happy_path(authenticated_client: AsyncClient, test
 
 ## Test Coverage Summary
 
-### Auth Module (13 tests)
+### Auth Module (20 tests)
 - ✅ User registration with validation
 - ✅ Email normalization (lowercase)
 - ✅ User login with JWT token generation
@@ -132,6 +137,10 @@ async def test_create_journal_happy_path(authenticated_client: AsyncClient, test
 - ✅ Getting current user information
 - ✅ JWT token verification
 - ✅ Password reset requests
+- ✅ Default preferences on registration
+- ✅ Full and partial preference updates
+- ✅ Preferences persisted in database
+- ✅ Preferences survive login/logout cycles
 - ✅ Proper error responses (401, 403, 404)
 
 ### Journals Module (13 tests)
@@ -153,6 +162,11 @@ async def test_create_journal_happy_path(authenticated_client: AsyncClient, test
 - ✅ Invalid mode handling
 - ✅ Authentication requirements
 - ✅ Mock LLM integration (no API costs)
+
+### Memory Module (4 tests)
+- ✅ User model CRUD operations
+- ✅ User model updates with new journal entries
+- ✅ User model retrieval by user ID
 
 ## Configuration
 

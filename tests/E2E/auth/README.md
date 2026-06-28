@@ -32,6 +32,16 @@ Tests for password reset:
 - **test_reset_password_non_existing_user**: Verifies the endpoint returns success even for non-existing emails (prevents email enumeration)
 - **test_reset_password_email_normalization**: Verifies email normalization works in password reset requests
 
+### `test_preferences.py`
+Tests for user preferences:
+- **test_get_preferences_defaults**: New user has default preferences (mode: system, accent: amber, fontStyle: serif, fontSize: medium)
+- **test_get_preferences_in_get_me**: Preferences are consistently returned in GET /auth/me
+- **test_update_preferences_full**: Updating all 4 preference fields is persisted in response and database
+- **test_update_preferences_partial**: Partial update changes only specified fields, others remain at defaults
+- **test_update_preferences_empty**: Sending an empty object leaves preferences unchanged
+- **test_update_preferences_without_auth**: Verifies 403 response when updating preferences without authentication
+- **test_preferences_survive_login_logout**: Preferences persist server-side across authentication sessions
+
 ## Key Features
 
 ✅ **No Database Mocking**: All tests interact with a real MongoDB test database
@@ -78,7 +88,8 @@ Each test follows the Arrange-Act-Assert pattern:
 
 - `POST /api/v0/auth/register` - User registration
 - `POST /api/v0/auth/login` - User login
-- `GET /api/v0/auth/me` - Get current user information
+- `GET /api/v0/auth/me` - Get current user information (includes preferences)
+- `PUT /api/v0/auth/me/preferences` - Update user preferences (partial update)
 - `GET /api/v0/auth/verify` - Verify JWT token
 - `POST /api/v0/auth/reset-password` - Request password reset
 
