@@ -79,7 +79,7 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
     <div
       className={`card overflow-hidden ${!hasContent ? 'cursor-grab active:cursor-grabbing' : ''}`}
       style={{
-        minHeight: '600px',
+        minHeight: 'calc(100vh - 12rem)',
         touchAction: 'none',
         transform: `translateX(${
           isFlipping ? (dragOffset > 0 ? '100%' : '-100%') : dragOffset * 0.5
@@ -99,7 +99,7 @@ export const NewEntryPage: React.FC<NewEntryPageProps> = ({
       onTouchMove={!hasContent ? onDragMove : undefined}
       onTouchEnd={!hasContent ? onDragEnd : undefined}
     >
-      <div className="p-8 md:p-12 overflow-y-auto" style={{ minHeight: '600px' }}>
+      <div className="p-8 md:p-12 overflow-y-auto" style={{ minHeight: 'calc(100vh - 12rem)' }}>
         <div className="mb-6 flex justify-between items-start">
           <div className="flex-1">
             <p className="text-sm font-medium text-muted">

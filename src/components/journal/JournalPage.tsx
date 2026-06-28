@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Save, X } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
@@ -39,6 +39,21 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const [editingTitle, setEditingTitle] = useState('');
   const [editingTags, setEditingTags] = useState<string[]>([]);
   const [showMenu, setShowMenu] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const autoResizeTextarea = () => {
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    }
+  };
+
+  useEffect(() => {
+    if (editMode) {
+      autoResizeTextarea();
+    }
+  }, [editMode]);
 
   const startEditing = () => {
     setEditingContent(entry.content);
@@ -98,7 +113,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     <div
       className={`card overflow-hidden ${!editMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
       style={{
-        minHeight: '600px',
+        minHeight: 'calc(100vh - 12rem)',
         touchAction: 'none',
         transform: `translateX(${
           isFlipping ? (dragOffset > 0 ? '100%' : '-100%') : dragOffset * 0.5
@@ -118,7 +133,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       onTouchMove={!editMode ? onDragMove : undefined}
       onTouchEnd={!editMode ? onDragEnd : undefined}
     >
-      <div className="p-8 md:p-12 overflow-y-auto" style={{ minHeight: '600px' }}>
+      <div className="p-8 md:p-12" style={{ minHeight: 'calc(100vh - 12rem)' }}>
         <div className="mb-6 flex justify-between items-start">
           <div className="flex-1">
             <p className="text-sm font-medium text-muted">
@@ -176,15 +191,20 @@ export const JournalPage: React.FC<JournalPageProps> = ({
           )}
         </div>
 
-        <div className="flex-1 mb-4" style={{ minHeight: '400px' }}>
+        <div className="mb-4" style={{ minHeight: 'calc(100vh - 24rem)' }}>
           {editMode ? (
             <textarea
+              ref={textareaRef}
               value={editingContent}
-              onChange={(e) => setEditingContent(e.target.value)}
-              className={`w-full h-full ${getFontClass(font)} ${getFontSizeClass(fontSize)} leading-relaxed resize-none focus:outline-none text-body`}
+              onChange={(e) => {
+                setEditingContent(e.target.value);
+                autoResizeTextarea();
+              }}
+              className={`w-full ${getFontClass(font)} ${getFontSizeClass(fontSize)} leading-relaxed resize-none focus:outline-none text-body`}
               style={{
                 background: 'transparent',
-                minHeight: '400px',
+                minHeight: 'calc(100vh - 24rem)',
+                overflow: 'hidden',
                 unicodeBidi: 'plaintext',
               } as React.CSSProperties}
             />
