@@ -65,7 +65,7 @@ export const api = {
 
 // --- Shared Zod schemas ---
 
-const isoDatetime = z.string().datetime();
+const isoDatetime = z.string();
 
 export const journalResponseSchema = z.object({
     id: z.string(),

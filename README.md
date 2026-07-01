@@ -58,6 +58,23 @@ VITE_API_URL=http://localhost:8000/api/v0
 - Tailwind CSS
 - Lucide Icons
 
+## Testing
+
+### End-to-End Tests (Playwright)
+
+```bash
+npm run test:e2e
+```
+
+6 E2E tests covering auth flow (register, login, logout) and journal CRUD (create, edit, delete).
+
+**Setup:**
+1. Backend must be running on `localhost:8000` (MongoDB too)
+2. `npm install` (Playwright browsers are installed via `postinstall`)
+3. `npm run test:e2e` starts Vite dev server automatically, then runs tests
+
+**Convention:** All selectors use visible text, aria-labels, or semantic roles — no test IDs.
+
 ## Architecture
 
 Single-page app with feature-based organization. Auth state via Context API. No routing - conditional rendering based on authentication state and view state (`journal` | `mirror` | `settings`).
