@@ -197,6 +197,12 @@ class AuthFacade:
         updated = await self.repository.update_preferences(obj_id, current)
         if not updated:
             raise ValueError("Failed to update preferences")
+
+        # Invalidate and re-cache so verify_token returns fresh data immediately
+        cache_key = f"user:{user_id}"
+        user_cache.delete(cache_key)
+        user_cache.set(cache_key, updated, ttl=300)
+
         return updated
 
     async def reset_password(self, email: str) -> bool:
