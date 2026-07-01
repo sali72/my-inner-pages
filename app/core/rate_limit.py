@@ -83,8 +83,14 @@ rate_limiter = RateLimiter()
 def check_rate_limit(
     request: Request,
     max_requests: int = 5,
-    window_seconds: int = 60
+    window_seconds: int = 60,
+    _env: str = "",
 ):
+    import os
+    if _env == "":
+        _env = os.getenv("ENVIRONMENT", "development")
+    if _env == "development":
+        max_requests = 100
     """
     Dependency to check rate limit.
     
