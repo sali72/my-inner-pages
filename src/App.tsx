@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ViewType } from '@/types';
 import { useAuth } from './contexts/AuthContext';
 import { useJournalEntries } from '@hooks/useJournalEntries';
@@ -15,18 +15,29 @@ import { SettingsView } from '@components/settings';
 const AppInner: React.FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { mode, accent, fontStyle, fontSize, resolvedMode,
-    setMode, setAccent, setFontStyle, setFontSize } = useTheme();
+    setMode, setAccent, setFontStyle, setFontSize, syncFromRemote, resetToDefaults } = useTheme();
   const [activeView, setActiveView] = useState<ViewType>('journal');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [navigationSidebarOpen, setNavigationSidebarOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const isDark = resolvedMode === 'dark';
+  const wasAuthenticated = useRef(isAuthenticated);
 
   useEffect(() => {
     if (window.location.pathname !== '/') {
       window.history.replaceState({}, '', '/');
     }
   }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (isAuthenticated && !wasAuthenticated.current) {
+      syncFromRemote();
+    } else if (!isAuthenticated && wasAuthenticated.current) {
+      resetToDefaults();
+    }
+    wasAuthenticated.current = isAuthenticated;
+  }, [isAuthenticated, authLoading, syncFromRemote, resetToDefaults]);
 
   const { entries, loading, addEntry, updateEntry, deleteEntry } = useJournalEntries();
 

@@ -13,9 +13,10 @@ interface ThemeContextValue {
   setAccent: (a: Accent) => void;
   setFontStyle: (f: FontStyle) => void;
   setFontSize: (s: ContentFontSize) => void;
+  syncFromRemote: () => Promise<void>;
+  resetToDefaults: () => void;
 }
 
-const STORAGE_KEY = 'my-inner-pages-theme';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
 
 interface PersistedSettings {
@@ -44,18 +45,6 @@ function validate(raw: Partial<PersistedSettings>): PersistedSettings {
     fontStyle: VALID_FONTS.includes(raw.fontStyle!) ? raw.fontStyle! : DEFAULTS.fontStyle,
     fontSize: VALID_SIZES.includes(raw.fontSize!) ? raw.fontSize! : DEFAULTS.fontSize,
   };
-}
-
-function loadLocal(): PersistedSettings {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return validate(JSON.parse(raw));
-  } catch {}
-  return { ...DEFAULTS };
-}
-
-function saveLocal(settings: PersistedSettings) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
 async function fetchRemote(): Promise<PersistedSettings | null> {
@@ -89,11 +78,11 @@ async function saveRemote(settings: PersistedSettings) {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [settings, setSettings] = useState<PersistedSettings>(loadLocal);
+  const [settings, setSettings] = useState<PersistedSettings>({ ...DEFAULTS });
   const [systemDark, setSystemDark] = useState(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches
   );
-  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hydrated = useRef(false);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -102,16 +91,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  useEffect(() => {
-    fetchRemote().then(remote => {
-      if (remote) {
-        setSettings(prev => {
-          const merged = { ...prev, ...remote };
-          saveLocal(merged);
-          return merged;
-        });
-      }
-    });
+  const syncFromRemote = useCallback(async () => {
+    const remote = await fetchRemote();
+    if (remote) {
+      setSettings(remote);
+    }
+  }, []);
+
+  const resetToDefaults = useCallback(() => {
+    setSettings({ ...DEFAULTS });
   }, []);
 
   const resolvedMode: 'light' | 'dark' =
@@ -140,14 +128,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     applyTokens();
-    saveLocal(settings);
 
-    if (syncTimer.current) clearTimeout(syncTimer.current);
-    syncTimer.current = setTimeout(() => saveRemote(settings), 1000);
+    if (!hydrated.current) {
+      hydrated.current = true;
+      return;
+    }
 
-    return () => {
-      if (syncTimer.current) clearTimeout(syncTimer.current);
-    };
+    saveRemote(settings);
   }, [applyTokens, settings]);
 
   const setter = useCallback(<K extends keyof PersistedSettings>(
@@ -167,7 +154,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setAccent: (a) => setter('accent', a),
     setFontStyle: (f) => setter('fontStyle', f),
     setFontSize: (s) => setter('fontSize', s),
-  }), [settings, resolvedMode, setter]);
+    syncFromRemote,
+    resetToDefaults,
+  }), [settings, resolvedMode, setter, syncFromRemote, resetToDefaults]);
 
   return (
     <ThemeContext.Provider value={ctx}>
