@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 
 // Backend API URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = useCallback(async (email: string, password: string): Promise<void> => {
     const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -97,12 +97,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       emailVerified: userData.is_verified || false,
     };
     
-    console.log('Login successful, updating auth state:', newUser);
     setUser(newUser);
     setIsAuthenticated(true);
-  };
+  }, []);
 
-  const register = async (email: string, password: string, confirmPassword: string): Promise<void> => {
+  const register = useCallback(async (email: string, password: string, confirmPassword: string): Promise<void> => {
     const response = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -117,9 +116,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const error = await response.json();
       throw new Error(error.detail || 'Registration failed');
     }
-  };
+  }, []);
 
-  const resetPassword = async (email: string): Promise<void> => {
+  const resetPassword = useCallback(async (email: string): Promise<void> => {
     const response = await fetch(`${API_URL}/auth/reset-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -130,24 +129,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const error = await response.json();
       throw new Error(error.detail || 'Failed to send reset email');
     }
-  };
+  }, []);
 
-  const logout = async (): Promise<void> => {
+  const logout = useCallback(async (): Promise<void> => {
     clearSessionData();
     setUser(null);
     setIsAuthenticated(false);
-  };
+  }, []);
+
+  const value = useMemo(() => ({
+    user,
+    isAuthenticated,
+    isLoading,
+    login,
+    register,
+    logout,
+    resetPassword,
+  }), [user, isAuthenticated, isLoading, login, register, logout, resetPassword]);
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      isAuthenticated,
-      isLoading,
-      login,
-      register,
-      logout,
-      resetPassword,
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

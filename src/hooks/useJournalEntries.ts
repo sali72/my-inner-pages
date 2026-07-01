@@ -1,120 +1,80 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { JournalEntry } from '@/types';
-import { api } from '@utils/api';
+import { api, journalListResponseSchema, journalResponseSchema, type JournalResponse } from '@utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface BackendJournal {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  created_at: string;
-  updated_at: string;
+const QUERY_KEY = ['journals'] as const;
+
+function mapEntry(item: JournalResponse): JournalEntry {
+  return {
+    id: item.id,
+    title: item.title,
+    content: item.content,
+    tags: item.tags,
+    date: new Date(item.created_at).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }),
+    created_at: item.created_at,
+  };
 }
 
 export const useJournalEntries = () => {
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
-  // Load entries from backend when authenticated
-  useEffect(() => {
-    if (isAuthenticated && !authLoading) {
-      loadEntries();
-    }
-  }, [isAuthenticated, authLoading]);
+  const { data, isLoading } = useQuery({
+    queryKey: QUERY_KEY,
+    queryFn: async () => {
+      const response = await api.get('/journals', journalListResponseSchema);
+      return response.items
+        .map(mapEntry)
+        .sort(
+          (a, b) =>
+            new Date(a.created_at!).getTime() - new Date(b.created_at!).getTime(),
+        );
+    },
+    enabled: isAuthenticated && !authLoading,
+    staleTime: 30_000,
+  });
 
-  const loadEntries = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get<{ items: BackendJournal[] }>('/journals');
-      const mappedEntries: JournalEntry[] = response.items.map((item) => ({
-        id: item.id,
-        title: item.title,
-        content: item.content,
-        tags: item.tags,
-        date: new Date(item.created_at).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        }),
-        created_at: item.created_at, // Keep for sorting
-      }));
+  const createMutation = useMutation({
+    mutationFn: (entry: Omit<JournalEntry, 'id'>) =>
+      api.post('/journals', { title: entry.title, content: entry.content, tags: entry.tags }, journalResponseSchema),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
 
-      // Sort by creation date (oldest first, so newest is at the end)
-      mappedEntries.sort((a, b) =>
-        new Date(a.created_at!).getTime() - new Date(b.created_at!).getTime()
-      );
+  const updateMutation = useMutation({
+    mutationFn: ({ id, title, content, tags }: Partial<JournalEntry> & { id: number | string }) =>
+      api.put(`/journals/${id}`, { title, content, tags }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
 
-      setEntries(mappedEntries);
-    } catch (error) {
-      console.error('Failed to load journals:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const deleteMutation = useMutation({
+    mutationFn: (id: number | string) => api.delete(`/journals/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
 
   const addEntry = async (entry: Omit<JournalEntry, 'id'>) => {
-    try {
-      const response = await api.post<BackendJournal>('/journals', {
-        title: entry.title,
-        content: entry.content,
-        tags: entry.tags,
-      });
-
-      const newEntry: JournalEntry = {
-        id: response.id,
-        title: response.title,
-        content: response.content,
-        tags: response.tags,
-        date: new Date(response.created_at).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        }),
-        created_at: response.created_at, // Keep for sorting
-      };
-
-      // Add to end (newest entries go to the end)
-      setEntries([...entries, newEntry]);
-      return newEntry;
-    } catch (error) {
-      console.error('Failed to create journal:', error);
-      throw error;
-    }
+    const created = await createMutation.mutateAsync(entry);
+    return mapEntry(created);
   };
 
   const updateEntry = async (id: number | string, updates: Partial<JournalEntry>) => {
-    try {
-      await api.put(`/journals/${id}`, {
-        title: updates.title,
-        content: updates.content,
-        tags: updates.tags,
-      });
-
-      setEntries(entries.map((e) => (e.id === id ? { ...e, ...updates } : e)));
-    } catch (error) {
-      console.error('Failed to update journal:', error);
-      throw error;
-    }
+    await updateMutation.mutateAsync({ id, ...updates });
   };
 
   const deleteEntry = async (id: number | string) => {
-    try {
-      await api.delete(`/journals/${id}`);
-      setEntries(entries.filter((e) => e.id !== id));
-    } catch (error) {
-      console.error('Failed to delete journal:', error);
-      throw error;
-    }
+    await deleteMutation.mutateAsync(id);
   };
 
   return {
-    entries,
-    loading,
+    entries: data ?? [],
+    loading: isLoading,
     addEntry,
     updateEntry,
     deleteEntry,
-    refreshEntries: loadEntries,
+    refreshEntries: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   };
 };
