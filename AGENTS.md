@@ -36,3 +36,6 @@ React 18 SPA with TypeScript, Vite, Tailwind CSS, TanStack Query, Playwright.
 - Do NOT add react-router — conditional rendering pattern is intentional
 - Do NOT use test IDs in E2E tests — use user-visible selectors
 - Do NOT use relative imports like `../../` when `@components/` alias exists
+
+## Reference docs
+- `README.md` — setup guide, features overview, user flow, configuration
