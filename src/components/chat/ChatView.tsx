@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { MessageSquare, Send, Square, Loader2, AlertCircle, MessageCircle, Copy, Check, RotateCw, Pencil, ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { MessageSquare, Send, Square, Loader2, AlertCircle, Copy, Check, RotateCw, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
 import { useChatWebSocket } from '@hooks/useChatWebSocket';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ChatHistorySidebar } from './ChatHistorySidebar';
@@ -203,30 +203,6 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
     <>
       <div className="h-[calc(100vh-5rem)] px-4 pt-2 pb-0 flex flex-col">
       <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col min-h-0">
-        <div className="flex items-center gap-3 mb-3 shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-            <MessageCircle className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-body">Chat</h1>
-            <div className="flex items-center gap-2">
-              <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
-              <span className="text-xs text-muted">
-                {isConnected ? 'Connected' : 'Disconnected'}
-              </span>
-            </div>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              onClick={handleNewChat}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-surface-hover text-muted hover:bg-accent-tint transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">New chat</span>
-            </button>
-          </div>
-        </div>
-
         <div className="flex-1 rounded-2xl bg-elevated border border-default overflow-hidden flex flex-col min-h-0">
             {messages.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
