@@ -40,3 +40,13 @@ Python 3.11+ FastAPI server with MongoDB/Beanie, LangChain AI, JWT auth.
 - Do NOT use synchronous PyMongo — use async Motor
 - Do NOT bypass `get_current_user()` — always validate auth
 - Do NOT hardcode secrets — use `Settings` from pydantic-settings
+
+## Reference docs
+- `README.md` — setup guide, API endpoint reference, WebSocket protocol, .env config
+- `docs/architecture/ARCHITECTURE.md` — backend architecture deep-dive
+- `docs/architecture/DEPENDENCY_INJECTION.md` — DI wiring and overrides
+- `docs/architecture/DATABASE_DESIGN.md` — MongoDB schema, indexes, repository patterns
+- `docs/features/caching.md` — in-memory cache patterns
+- `docs/features/rate-limiting.md` — rate limiter design
+- `docs/features/chat.md` — chat service internals
+- `docs/features/user-model.md` — user model extraction pipeline
