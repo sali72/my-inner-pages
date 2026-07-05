@@ -16,7 +16,9 @@ Write freely. See yourself more clearly. Grow.
 
 1. **✍️ Write** — Pour your thoughts onto the page. No judgment, no pressure.
 2. **🔍 Reflect** — The AI offers gentle reflections based on what you've written.
-3. **💡 Understand** — Spot patterns, make connections, and gain real clarity over time.
+3. **💬 Chat** — Have a real-time conversation with the AI about your journal,
+   patterns, or anything on your mind. Chats are saved and browsable.
+4. **💡 Understand** — Spot patterns, make connections, and gain real clarity over time.
 
 ### The Four Reflection Lenses
 
