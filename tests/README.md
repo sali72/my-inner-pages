@@ -1,49 +1,48 @@
-# E2E Test Suite
+# Test Suite
 
-This directory contains End-to-End (E2E) tests for the journaling application.
+This directory contains tests for the journaling application, organized by scope.
 
 ## Structure
 
 ```
 tests/
-├── conftest.py              # Shared pytest fixtures and configuration
+├── conftest.py              # Shared pytest fixtures and configuration (E2E)
 ├── config.py                # API endpoint prefixes for tests
-├── E2E/                     # End-to-End tests
+├── E2E/                     # End-to-End tests (full API + DB)
 │   ├── auth/                # Authentication module tests
-│   │   ├── test_register.py
-│   │   ├── test_login.py
-│   │   ├── test_get_me.py
-│   │   ├── test_verify_token.py
-│   │   ├── test_reset_password.py
-│   │   └── test_preferences.py
 │   ├── journals/            # Journal module tests
-│   │   ├── test_create_journal.py
-│   │   ├── test_list_journals.py
-│   │   ├── test_get_journal.py
-│   │   ├── test_update_journal.py
-│   │   └── test_delete_journal.py
 │   ├── ai/                  # AI/Mirror module tests
-│   │   └── test_mirror_reflection.py
+│   ├── chat/                # Chat module tests
 │   └── memory/              # Memory module tests
-│       └── test_user_model.py
+├── Integration/             # Integration tests (component-level)
+│   ├── conftest.py          # Lightweight DB fixture
+│   ├── Internal/            # Internal dependency checks
+│   │   └── test_database.py # MongoDB connectivity, collections, indexes
+│   └── External/            # External service reachability checks
+│       └── test_llm_reachability.py  # LLM provider reachability (no cost)
 └── README.md                # This file
 ```
 
 ## Running Tests
 
-To run all E2E tests:
+### E2E Tests (full API + real DB)
 ```bash
-pytest tests/E2E/
+uv run pytest tests/E2E/
 ```
 
-To run specific test files:
+### Internal Integration Tests (DB connectivity, indexes)
 ```bash
-pytest tests/E2E/journals/test_create_journal.py -v
+uv run pytest tests/Integration/Internal/ -v
 ```
 
-To run a specific test:
+### External Integration Tests (LLM provider reachability)
 ```bash
-pytest tests/E2E/journals/test_create_journal.py::test_create_journal_happy_path -v
+uv run pytest tests/Integration/External/ -v
+```
+
+### All Integration Tests
+```bash
+uv run pytest tests/Integration/ -v
 ```
 
 ## Test Database
