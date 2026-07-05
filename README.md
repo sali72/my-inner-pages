@@ -17,15 +17,16 @@ src/
 │   ├── landing/       # Landing page (pre-auth)
 │   ├── auth/          # Authentication (Login, Register, etc)
 │   ├── journal/       # Journal entries, pages, tags
+│   ├── chat/          # AI Chat (ChatView, ChatHistorySidebar, MarkdownRenderer)
 │   ├── mirror/        # AI reflection feature
 │   ├── settings/      # User settings
 │   ├── layout/        # Header, Sidebar
 │   └── common/        # Reusable components (DropdownMenu, IconButton)
 ├── contexts/          # React contexts (AuthContext)
-├── hooks/             # Custom hooks (useJournalEntries, useSettings, usePageFlip)
+├── hooks/             # Custom hooks (useJournalEntries, useChatWebSocket, useSettings, usePageFlip)
 ├── constants/         # Theme & mirror mode configs
-├── types/             # TypeScript types
-└── utils/             # Helpers (theme, errorHandler, fonts, textDirection)
+├── types/             # TypeScript types (includes chat types)
+└── utils/             # Helpers (theme, errorHandler, fonts, textDirection, api)
 ```
 
 ## Configuration (.env)
@@ -47,6 +48,10 @@ VITE_API_URL=http://localhost:8000/api/v0
   - Click any entry to jump directly to that page
   - Visual highlighting of current journal
   - Closes when clicking outside sidebar
+- **AI Chat** - Real-time WebSocket chat with the AI. Conversations persisted
+  (survive sessions), browsable via right sidebar. Lazy-created on first message.
+  Auto-title from first user message. Access via list icon in top-right corner
+  (chat section). Preserved across view switches within a session.
 - **Mirror** - AI reflections in 4 modes (emotional, cognitive, behavioral, relational)
 - **Themes** - Vintage, minimal, dark
 - **Settings** - Font, size, theme, ambient sound
