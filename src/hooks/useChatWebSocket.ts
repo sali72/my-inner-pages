@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { ChatMessage, ChatState, WSClientMessage, WSServerMessage } from '@/types/chat';
+import { api, chatResponseSchema } from '@utils/api';
 
 const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/api/v0';
-const STORAGE_KEY = 'chat_messages';
 
 interface UseChatWebSocketReturn extends ChatState {
   sendMessage: (content: string) => void;
@@ -12,35 +12,23 @@ interface UseChatWebSocketReturn extends ChatState {
   disconnect: () => void;
   reconnect: () => void;
   startNewChat: () => void;
-}
-
-function loadMessages(): ChatMessage[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveMessages(messages: ChatMessage[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-  } catch { /* quota exceeded etc */ }
+  loadChat: (chatId: string) => Promise<void>;
 }
 
 export function useChatWebSocket(): UseChatWebSocketReturn {
   const wsRef = useRef<WebSocket | null>(null);
-  const [state, setState] = useState<ChatState>(() => ({
-    messages: loadMessages(),
+  const [state, setState] = useState<ChatState>({
+    chatId: null,
+    messages: [],
     isConnected: false,
     isStreaming: false,
     isContextLoaded: false,
     error: null,
-  }));
+  });
   const currentAssistantMsg = useRef('');
   const messagesRef = useRef(state.messages);
   messagesRef.current = state.messages;
+  const chatIdRef = useRef<string | null>(null);
 
   const cleanup = useCallback(() => {
     if (wsRef.current) {
@@ -53,7 +41,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     }
   }, []);
 
-  const connect = useCallback(() => {
+  const connect = useCallback((targetChatId?: string | null) => {
     cleanup();
 
     const token = localStorage.getItem('authToken');
@@ -62,7 +50,12 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       return;
     }
 
-    const ws = new WebSocket(`${WS_BASE_URL}/chat/ws?token=${token}`);
+    const params = new URLSearchParams({ token });
+    if (targetChatId) {
+      params.set('chat_id', targetChatId);
+    }
+
+    const ws = new WebSocket(`${WS_BASE_URL}/chat/ws?${params}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -82,9 +75,16 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       const data: WSServerMessage = JSON.parse(event.data);
 
       switch (data.type) {
-        case 'context_loaded':
-          setState(prev => ({ ...prev, isContextLoaded: true }));
+        case 'context_loaded': {
+          const newChatId = data.chat_id;
+          chatIdRef.current = newChatId;
+          setState(prev => ({
+            ...prev,
+            chatId: newChatId,
+            isContextLoaded: true,
+          }));
           break;
+        }
 
         case 'token':
           currentAssistantMsg.current += data.content;
@@ -101,6 +101,10 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
         case 'done': {
           const finalContent = currentAssistantMsg.current;
           currentAssistantMsg.current = '';
+          if (data.chat_id) {
+            chatIdRef.current = data.chat_id;
+            setState(prev => ({ ...prev, chatId: data.chat_id! }));
+          }
           setState(prev => {
             const msgs = [...prev.messages];
             const last = msgs[msgs.length - 1];
@@ -124,28 +128,51 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     };
   }, [cleanup]);
 
-  // Persist messages on every change
-  useEffect(() => {
-    saveMessages(state.messages);
-  }, [state.messages]);
-
   const disconnect = useCallback(() => {
     cleanup();
     setState({
+      chatId: null,
       messages: [],
       isConnected: false,
       isStreaming: false,
       isContextLoaded: false,
       error: null,
     });
+    chatIdRef.current = null;
   }, [cleanup]);
 
-  const startNewChat = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    currentAssistantMsg.current = '';
+  const connectNew = useCallback(() => {
     disconnect();
-    connect();
+    connect(null);
   }, [disconnect, connect]);
+
+  const loadChat = useCallback(async (targetChatId: string) => {
+    currentAssistantMsg.current = '';
+    cleanup();
+    setState(prev => ({
+      ...prev,
+      messages: [],
+      isContextLoaded: false,
+      error: null,
+    }));
+
+    try {
+      const chat = await api.get(`/chats/${targetChatId}`, chatResponseSchema);
+      if (chat && chat.messages) {
+        const loadedMessages: ChatMessage[] = chat.messages.map((m: { role: string; content: string; created_at: string }) => ({
+          id: crypto.randomUUID(),
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          timestamp: new Date(m.created_at).getTime(),
+        }));
+        setState(prev => ({ ...prev, messages: loadedMessages }));
+      }
+    } catch {
+      // silently fail; messages stay empty
+    }
+
+    connect(targetChatId);
+  }, [cleanup, connect]);
 
   const sendMessage = useCallback((content: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
@@ -173,12 +200,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
 
     currentAssistantMsg.current = '';
 
-    const history = messagesRef.current
-      .filter(m => m.id !== 'streaming' && m.content)
-      .map(m => ({ role: m.role, content: m.content }));
-
-    const msg: WSClientMessage = { type: 'message', content, history };
-
+    const msg: WSClientMessage = { type: 'message', content };
     wsRef.current.send(JSON.stringify(msg));
   }, []);
 
@@ -196,71 +218,31 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       return { ...prev, messages: msgs, isStreaming: false };
     });
     cleanup();
-    connect();
+    connect(chatIdRef.current);
   }, [cleanup, connect]);
 
-  const sendWithBase = useCallback((content: string) => {
+  const getLastUserContent = useCallback((): string | null => {
     const msgs = messagesRef.current;
-    let lastUserIdx = -1;
     for (let i = msgs.length - 1; i >= 0; i--) {
       if (msgs[i].role === 'user') {
-        lastUserIdx = i;
-        break;
+        return msgs[i].content;
       }
     }
-    if (lastUserIdx === -1) return;
-
-    const baseMessages = msgs.slice(0, lastUserIdx);
-
-    const userMsg: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content,
-      timestamp: Date.now(),
-    };
-
-    const placeholder: ChatMessage = {
-      id: 'streaming',
-      role: 'assistant',
-      content: '',
-      timestamp: Date.now(),
-    };
-
-    const history = baseMessages
-      .filter(m => m.content)
-      .map(m => ({ role: m.role, content: m.content }));
-
-    setState(prev => ({
-      ...prev,
-      messages: [...baseMessages, userMsg, placeholder],
-      isStreaming: true,
-      error: null,
-    }));
-
-    currentAssistantMsg.current = '';
-
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      const msg: WSClientMessage = { type: 'message', content, history };
-      wsRef.current.send(JSON.stringify(msg));
-    }
+    return null;
   }, []);
 
   const regenerate = useCallback(() => {
-    const msgs = messagesRef.current;
-    for (let i = msgs.length - 1; i >= 0; i--) {
-      if (msgs[i].role === 'user') {
-        sendWithBase(msgs[i].content);
-        return;
-      }
-    }
-  }, [sendWithBase]);
+    const lastContent = getLastUserContent();
+    if (!lastContent) return;
+    sendMessage(lastContent);
+  }, [getLastUserContent, sendMessage]);
 
   const editMessage = useCallback((content: string) => {
-    sendWithBase(content);
-  }, [sendWithBase]);
+    sendMessage(content);
+  }, [sendMessage]);
 
   useEffect(() => {
-    connect();
+    connect(null);
     return cleanup;
   }, [connect, cleanup]);
 
@@ -271,7 +253,8 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     regenerate,
     editMessage,
     disconnect,
-    reconnect: connect,
-    startNewChat,
+    reconnect: () => connect(chatIdRef.current),
+    startNewChat: connectNew,
+    loadChat,
   };
 }

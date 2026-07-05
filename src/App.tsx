@@ -19,6 +19,7 @@ const AppInner: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>('journal');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [navigationSidebarOpen, setNavigationSidebarOpen] = useState(false);
+  const [chatHistoryOpen, setChatHistoryOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [chatInitialMessage, setChatInitialMessage] = useState<string | null>(null);
   const isDark = resolvedMode === 'dark';
@@ -127,7 +128,7 @@ const AppInner: React.FC = () => {
       <Header
         activeView={activeView}
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-        onNavigationClick={activeView === 'journal' ? () => setNavigationSidebarOpen(!navigationSidebarOpen) : undefined}
+        onNavigationClick={activeView === 'journal' ? () => setNavigationSidebarOpen(!navigationSidebarOpen) : activeView === 'chat' ? () => setChatHistoryOpen(!chatHistoryOpen) : undefined}
       />
 
       <Sidebar
@@ -171,6 +172,8 @@ const AppInner: React.FC = () => {
             isDark={isDark}
             initialMessage={chatInitialMessage}
             onInitialMessageSent={() => setChatInitialMessage(null)}
+            chatHistoryOpen={chatHistoryOpen}
+            onToggleChatHistory={() => setChatHistoryOpen(!chatHistoryOpen)}
           />
         )}
 
