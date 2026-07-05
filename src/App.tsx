@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ViewType } from '@/types';
+import { ViewType, JournalEntry } from '@/types';
 import { useAuth } from './contexts/AuthContext';
 import { useJournalEntries } from '@hooks/useJournalEntries';
 import { usePageFlip } from '@hooks/usePageFlip';
@@ -20,6 +20,7 @@ const AppInner: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [navigationSidebarOpen, setNavigationSidebarOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [chatInitialMessage, setChatInitialMessage] = useState<string | null>(null);
   const isDark = resolvedMode === 'dark';
   const wasAuthenticated = useRef(isAuthenticated);
 
@@ -75,6 +76,13 @@ const AppInner: React.FC = () => {
       console.error('Failed to save entry:', error);
       alert('Failed to save journal entry. Please try again.');
     }
+  };
+
+  const handleStartChat = (entry: JournalEntry) => {
+    setChatInitialMessage(
+      `I'd like to discuss my journal entry "${entry.title}". Here's what I wrote:\n\n${entry.content}`
+    );
+    setActiveView('chat');
   };
 
   const handleDeleteEntry = async (id: number | string) => {
@@ -152,12 +160,19 @@ const AppInner: React.FC = () => {
             onGoToNewEntry={() => goToPage(pages.length - 1)}
             onToggleNavigationSidebar={() => setNavigationSidebarOpen(!navigationSidebarOpen)}
             onNavigateToEntry={goToPage}
+            onStartChat={handleStartChat}
           />
         ) : null}
 
         {activeView === 'mirror' && <MirrorView isDark={isDark} />}
 
-        {activeView === 'chat' && <ChatView isDark={isDark} />}
+        {activeView === 'chat' && (
+          <ChatView
+            isDark={isDark}
+            initialMessage={chatInitialMessage}
+            onInitialMessageSent={() => setChatInitialMessage(null)}
+          />
+        )}
 
         {activeView === 'settings' && (
           <SettingsView

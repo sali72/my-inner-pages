@@ -22,6 +22,7 @@ interface JournalViewProps {
   onGoToNewEntry: () => void;
   onToggleNavigationSidebar: () => void;
   onNavigateToEntry: (index: number) => void;
+  onStartChat: (entry: JournalEntry) => void;
 }
 
 export const JournalView: React.FC<JournalViewProps> = ({
@@ -41,6 +42,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
   onGoToNewEntry,
   onToggleNavigationSidebar,
   onNavigateToEntry,
+  onStartChat,
 }) => {
   const pages = [...entries, { id: 'new', date: 'Today', title: '', tags: [], content: '', isNew: true }];
   const currentPage = pages[currentPageIndex];
@@ -80,6 +82,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
               onDragEnd={onDragEnd}
               onUpdate={(updates) => onUpdateEntry(currentPage.id, updates)}
               onDelete={() => onDeleteEntry(currentPage.id)}
+              onChat={() => onStartChat(currentPage)}
               onPageClick={handlePageClick}
             />
           )}

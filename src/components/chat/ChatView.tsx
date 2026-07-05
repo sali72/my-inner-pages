@@ -8,9 +8,11 @@ const LINE_HEIGHT = 20;
 
 interface ChatViewProps {
   isDark: boolean;
+  initialMessage?: string | null;
+  onInitialMessageSent?: () => void;
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ isDark }) => {
+export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onInitialMessageSent }) => {
   const {
     messages,
     isConnected,
@@ -36,6 +38,8 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark }) => {
   const editInputRef = useRef<HTMLTextAreaElement>(null);
   const initialRender = useRef(true);
   const userScrolledUp = useRef(false);
+  const processedMessageRef = useRef<string>('');
+  const pendingMessageRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (initialRender.current) {
@@ -47,6 +51,22 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark }) => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (initialMessage && initialMessage !== processedMessageRef.current) {
+      processedMessageRef.current = initialMessage;
+      pendingMessageRef.current = initialMessage;
+      startNewChat();
+    }
+  }, [initialMessage, startNewChat]);
+
+  useEffect(() => {
+    if (isConnected && pendingMessageRef.current) {
+      sendMessage(pendingMessageRef.current);
+      pendingMessageRef.current = null;
+      onInitialMessageSent?.();
+    }
+  }, [isConnected, sendMessage, onInitialMessageSent]);
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;

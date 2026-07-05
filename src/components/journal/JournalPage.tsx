@@ -18,6 +18,7 @@ interface JournalPageProps {
   onDragEnd: () => void;
   onUpdate: (updates: Partial<JournalEntry>) => void;
   onDelete: () => void;
+  onChat: () => void;
   onPageClick?: (direction: 'prev' | 'next') => void;
 }
 
@@ -32,6 +33,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   onDragEnd,
   onUpdate,
   onDelete,
+  onChat,
   onPageClick,
 }) => {
   const [editMode, setEditMode] = useState(false);
@@ -170,6 +172,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
               onEdit={startEditing}
               onCopy={copyToClipboard}
               onShare={shareEntry}
+              onChat={onChat}
               onDelete={handleDelete}
             />
           )}
