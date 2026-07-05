@@ -10,7 +10,7 @@ async function createEntry(page: Page, title: string, content: string) {
   }
 
   await page.fill('input[placeholder="Title..."]', title);
-  await page.locator('textarea').fill(content);
+  await page.getByPlaceholder('Begin writing your story...').fill(content);
   await page.getByTitle('Save Entry').click();
   await expect(page.locator('h2').filter({ hasText: title })).toBeVisible({ timeout: 5000 });
 }
@@ -49,7 +49,7 @@ test.describe('Journal CRUD', () => {
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
 
     // Modify content in edit mode
-    await page.locator('textarea').fill('Updated content after editing.');
+    await page.locator('textarea').first().fill('Updated content after editing.');
 
     // Click Save (the button with the Save icon, not the "New Entry" FAB)
     await page.locator('button.btn-primary:has(.lucide-save)').click();
