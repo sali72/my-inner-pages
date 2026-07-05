@@ -17,7 +17,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-10" onClick={onClose} />
+      <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); onClose(); }} />
       <div
         className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} mt-2 min-w-[12rem] rounded-lg shadow-card-lg z-20 card`}
       >
