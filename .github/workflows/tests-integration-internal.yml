@@ -1,0 +1,30 @@
+name: Integration Tests — Internal
+
+on:
+  workflow_dispatch:
+
+jobs:
+  internal-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.0
+        with:
+          mongodb-version: 4.4
+
+      - name: Run internal integration tests
+        working-directory: backend
+        run: uv run pytest tests/Integration/Internal/ -v --tb=short
