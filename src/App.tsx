@@ -167,7 +167,7 @@ const AppInner: React.FC = () => {
 
         {activeView === 'mirror' && <MirrorView isDark={isDark} />}
 
-        {activeView === 'chat' && (
+        <div className={activeView === 'chat' ? '' : 'hidden'}>
           <ChatView
             isDark={isDark}
             initialMessage={chatInitialMessage}
@@ -175,7 +175,7 @@ const AppInner: React.FC = () => {
             chatHistoryOpen={chatHistoryOpen}
             onToggleChatHistory={() => setChatHistoryOpen(!chatHistoryOpen)}
           />
-        )}
+        </div>
 
         {activeView === 'settings' && (
           <SettingsView
