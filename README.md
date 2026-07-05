@@ -21,6 +21,11 @@ USE_MOCK_LLM=true uv run fastapi dev app/main.py
 app/
 ├── auth/              # Authentication (JWT)
 ├── journals/          # Journal CRUD (user-specific)
+├── chat/              # Chat persistence
+│   ├── db/            # Chat Beanie document + repository
+│   ├── api/v0/        # REST endpoints (list, get, delete)
+│   ├── service.py     # ChatPersistenceService
+│   └── history_manager.py  # Sliding-window history
 ├── ai/                # AI features
 │   ├── integrations/  # LLM clients (OpenRouter, Mock)
 │   ├── prompts/       # LangChain prompt templates
@@ -66,16 +71,20 @@ See `.env.example` for all options.
 - **Memory** (`/api/v0/memory`) — user model (dev only)
   - `POST /update-user-model` — manual LLM re-build
   - `GET /user-model` — inspect current model
+- **Chats** (`/api/v0/chats`) — persistent chat storage (JWT required)
+  - `GET /chats` — list chats (paginated, `?page=1&page_size=50`)
+  - `GET /chats/{chat_id}` — get single chat with full messages
+  - `DELETE /chats/{chat_id}` — delete a chat
 
 ### WebSocket
-- **Chat** (`/api/v0/chat/ws?token=<jwt>`) — real-time AI chat with user model + journal memory
+- **Chat** (`/api/v0/chat/ws?token=<jwt>[&chat_id=<id>]`) — real-time AI chat with persistence
 
   **Protocol:**
-  1. Client connects with JWT in query param
-  2. Server sends `{"type": "context_loaded"}` after fetching user model + recent entries
+  1. Connect with JWT (optional `chat_id` to resume an existing chat)
+  2. Server sends `{"type": "context_loaded", "chat_id": string|null}`
   3. Client sends `{"type": "message", "content": "..."}
   4. Server streams response tokens: `{"type": "token", "content": "..."}`
-  5. Server signals completion: `{"type": "done"}`
+  5. Server signals completion: `{"type": "done"}` (includes `chat_id` on first response of a new chat)
 
 ## Tech Stack
 

@@ -12,8 +12,12 @@ Generates personalized insights based on a user's recent journal entries. Suppor
 3. **Behavioral** — Reflect on actions and habits
 4. **Relational** — Understand relationships and connections
 
-### Chat — Real-time AI Conversation
-WebSocket-based chat where the user can have a conversation with the AI. The chat is **ephemeral** (no messages saved) but the AI receives the user's recent journal entries as context for personalized responses.
+### Chat — Real-time AI Conversation with Persistence
+WebSocket-based chat where the user can have a conversation with the AI.
+Messages are saved to MongoDB as they arrive (user immediately, assistant after
+stream completes). Conversations are browsable via a REST API + frontend sidebar.
+The AI receives the user's recent journal entries + sliding-window chat history
+as context. See `app/chat/` module for persistence layer.
 
 ## Structure
 
@@ -76,18 +80,23 @@ CHAT_TEMPERATURE=0.7
 
 ### WebSocket
 
-#### `/api/v0/chat/ws?token=<jwt>`
+#### `/api/v0/chat/ws?token=<jwt>[&chat_id=<id>]`
 
-Real-time AI chat with journal context. Connection flow:
+Real-time AI chat with persistence. Optional `chat_id` to resume an existing chat.
 
-1. Connect with JWT in query string
-2. Server fetches user's recent journals, sends `{"type": "context_loaded"}`
+Connection flow:
+
+1. Connect with JWT (with or without `chat_id`)
+2. Server sends `{"type": "context_loaded", "chat_id": string|null}`
+   (`null` when no `chat_id` provided — chat not created yet)
 3. Send message: `{"type": "message", "content": "text..."}`
 4. Receive tokens: `{"type": "token", "content": "partial..."}`
-5. Completion: `{"type": "done"}`
+5. Completion: `{"type": "done"}` (includes `chat_id` on first response of a new chat)
 6. Error (connection stays alive): `{"type": "error", "content": "message..."}`
 
-The server maintains conversation history in memory per connection — client only sends new messages. Context is fetched once at connection start.
+Messages are persisted to MongoDB via `app/chat/` module. Chat is created lazily
+on first user message (not on connect). Sliding-window history (last N turns) is
+fed into the LLM context.
 
 ## Future Enhancements
 
