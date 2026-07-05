@@ -20,3 +20,7 @@ AI-powered private journaling app. Backend: FastAPI + MongoDB. Frontend: React +
 - Never commit `.env` files, secrets, or credentials
 - Lockfiles (`package-lock.json`, `uv.lock`) committed on dependency changes
 - Keep `AGENTS.md` files updated alongside code changes in the same PR
+
+## Reference docs
+- `docs/architecture/overview.md` — system architecture overview
+- `docs/changelog.md` — project changelog
