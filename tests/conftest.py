@@ -21,6 +21,7 @@ from tests.config import AUTH_PREFIX
 from app.auth.db.models import User
 from app.journals.db.models import Journal
 from app.memory.db.models import UserModel
+from app.chat.db.models import Chat
 
 
 @pytest.fixture(scope="session")
@@ -90,7 +91,7 @@ async def test_db_client(test_settings: Settings) -> AsyncGenerator[AsyncIOMotor
     # Initialize Beanie with test database
     await init_beanie(
         database=client[test_settings.database_name],
-        document_models=[User, Journal, UserModel]
+        document_models=[User, Journal, UserModel, Chat]
     )
     
     # Mark that Beanie is initialized to prevent re-initialization
