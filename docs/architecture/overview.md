@@ -25,6 +25,8 @@
 │                      MongoDB                                │
 │  - User documents (credentials, profile, preferences)      │
 │  - Journal documents (entries with tags)                   │
+│  - Chat documents (messages, metadata, linked entries)     │
+│  - UserModel documents (psychological profile)             │
 │  - Replica set for transactions                            │
 └─────────────────────────────────────────────────────────────┘
 
@@ -71,10 +73,17 @@ App (root)
 │   └── ForgotPasswordPage
 └── Authenticated App (when logged in)
     ├── Header
+    │   └── List button toggles JournalNavigationSidebar or ChatHistorySidebar
     ├── Sidebar (navigation menu)
     └── Main Content
         ├── JournalView (activeView === 'journal')
+        │   └── JournalNavigationSidebar (right overlay)
         ├── MirrorView (activeView === 'mirror')
+        ├── ChatView (always mounted, hidden via CSS when not active)
+        │   ├── WebSocket connection to /api/v0/chat/ws
+        │   ├── Message list with Markdown rendering
+        │   ├── Message actions (copy, edit, regenerate)
+        │   └── ChatHistorySidebar (right overlay)
         └── SettingsView (activeView === 'settings')
 ```
 
@@ -112,6 +121,21 @@ App (root)
 4. LLM service → Formats context → Calls OpenRouter API
 5. Response → Streams back to frontend
 6. UI displays reflection
+```
+
+### Chat Flow
+```
+1. User opens Chat view → ChatView mounts (via CSS hidden → visible)
+2. useChatWebSocket hook connects WebSocket:
+   - No chat_id → server sends context_loaded with chat_id: null
+   - Existing chat_id → server sends context_loaded with chat_id
+3. User types message → sendMessage() via WebSocket
+4. Backend persists user message to MongoDB (creates chat if first msg)
+5. Backend streams LLM tokens → frontend renders via MarkdownRenderer
+6. Stream completes → backend persists assistant message → frontend receives done
+7. Chat list loaded via REST GET /chats for sidebar
+8. User can switch views → ChatView stays mounted (hidden), WebSocket stays open
+9. User can browse history via ChatHistorySidebar (right overlay, REST-backed)
 ```
 
 ## Key Design Patterns
