@@ -71,5 +71,4 @@ dist-ssr
 *.sw?
 
 .env
-AGENTS.md
 /my-docs
