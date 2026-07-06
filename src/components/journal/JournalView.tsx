@@ -164,6 +164,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
         onClearFilters={handleClearFilters}
         onSelectEntry={handleSelectEntry}
         onNewEntry={handleNewEntry}
+        onStartChat={onStartChat}
+        onDeleteEntry={(id) => handleDeleteEntry(id)}
       />
       <button
         onClick={handleNewEntry}

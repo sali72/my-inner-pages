@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Calendar, Tag, Search, Filter, X } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { renderTextWithLineDirection } from '@utils/textDirection';
+import { EntryMenu } from './EntryMenu';
+import { ConfirmModal } from './ConfirmModal';
 
 type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc';
 
@@ -22,6 +24,8 @@ interface JournalTimelineProps {
   onClearFilters: () => void;
   onSelectEntry: (id: number | string) => void;
   onNewEntry: () => void;
+  onStartChat: (entry: JournalEntry) => void;
+  onDeleteEntry: (id: number | string) => void;
 }
 
 const MOOD_COLORS: Record<string, string> = {
@@ -57,8 +61,32 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
   onClearFilters,
   onSelectEntry,
   onNewEntry,
+  onStartChat,
+  onDeleteEntry,
 }) => {
   const hasActiveFilters = searchQuery || selectedTags.length > 0;
+  const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
+  const [entryToDelete, setEntryToDelete] = useState<JournalEntry | null>(null);
+
+  const handleCopy = (entry: JournalEntry) => {
+    navigator.clipboard.writeText(`${entry.title}\n\n${entry.content}`);
+  };
+
+  const handleShare = (entry: JournalEntry) => {
+    const text = `${entry.title}\n\n${entry.content}`;
+    if (navigator.share) {
+      navigator.share({ title: entry.title, text });
+    } else {
+      navigator.clipboard.writeText(text);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (entryToDelete) {
+      onDeleteEntry(entryToDelete.id);
+      setEntryToDelete(null);
+    }
+  };
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4 py-6">
@@ -173,48 +201,73 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
       ) : (
         <div className="space-y-4">
           {entries.map((entry) => (
-            <button
-              key={entry.id}
-              onClick={() => onSelectEntry(entry.id)}
-              className="w-full text-left card p-6 hover:shadow-elevated transition-all hover:-translate-y-0.5"
-            >
-              <div className="flex items-center gap-2 text-sm text-muted mb-2">
-                {getMoodDot(entry.mood)}
-                <Calendar className="w-3.5 h-3.5" />
-                {entry.date}
-              </div>
-
-              <h2
-                className={`text-xl ${getFontClass(font)} font-bold text-body mb-2`}
+            <div key={entry.id} className="relative group">
+              <button
+                onClick={() => onSelectEntry(entry.id)}
+                className="w-full text-left card p-6 hover:shadow-elevated transition-all hover:-translate-y-0.5"
               >
-                {entry.title || 'Untitled'}
-              </h2>
-
-              {entry.tags && entry.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {entry.tags.map((tag, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent-tint text-accent-tint"
-                    >
-                      <Tag className="w-3 h-3" />
-                      {tag}
-                    </span>
-                  ))}
+                <div className="flex items-center gap-2 text-sm text-muted mb-2">
+                  {getMoodDot(entry.mood)}
+                  <Calendar className="w-3.5 h-3.5" />
+                  {entry.date}
                 </div>
-              )}
 
-              {entry.content && (
-                <div
-                  className={`${getFontClass(font)} ${getFontSizeClass(fontSize)} leading-relaxed text-body line-clamp-3`}
+                <h2
+                  className={`text-xl ${getFontClass(font)} font-bold text-body mb-2`}
                 >
-                  {renderTextWithLineDirection(entry.content)}
+                  {entry.title || 'Untitled'}
+                </h2>
+
+                {entry.tags && entry.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {entry.tags.map((tag, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent-tint text-accent-tint"
+                      >
+                        <Tag className="w-3 h-3" />
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {entry.content && (
+                  <div
+                    className={`${getFontClass(font)} ${getFontSizeClass(fontSize)} leading-relaxed text-body line-clamp-3`}
+                  >
+                    {renderTextWithLineDirection(entry.content)}
+                  </div>
+                )}
+              </button>
+
+              <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+                <div className={`${openMenuId === entry.id ? '' : 'invisible group-hover:visible'} transition-all`}>
+                  <EntryMenu
+                    isOpen={openMenuId === entry.id}
+                    onToggle={() => setOpenMenuId(openMenuId === entry.id ? null : entry.id)}
+                    onEdit={() => { onSelectEntry(entry.id); setOpenMenuId(null); }}
+                    onCopy={() => { handleCopy(entry); setOpenMenuId(null); }}
+                    onShare={() => { handleShare(entry); setOpenMenuId(null); }}
+                    onChat={() => { onStartChat(entry); setOpenMenuId(null); }}
+                    onDelete={() => { setEntryToDelete(entry); setOpenMenuId(null); }}
+                  />
                 </div>
-              )}
-            </button>
+              </div>
+            </div>
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={entryToDelete !== null}
+        title="Delete Entry"
+        message={`Are you sure you want to delete "${entryToDelete?.title || 'Untitled'}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setEntryToDelete(null)}
+      />
     </div>
   );
 };
