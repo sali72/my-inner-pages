@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ViewType, JournalEntry } from '@/types';
 import { useAuth } from './contexts/AuthContext';
 import { useJournalEntries } from '@hooks/useJournalEntries';
-import { usePageFlip } from '@hooks/usePageFlip';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { LandingPage } from '@components/landing';
 import { AuthContainer } from '@components/auth';
@@ -18,7 +17,6 @@ const AppInner: React.FC = () => {
     setMode, setAccent, setFontStyle, setFontSize, syncFromRemote, resetToDefaults } = useTheme();
   const [activeView, setActiveView] = useState<ViewType>('journal');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [navigationSidebarOpen, setNavigationSidebarOpen] = useState(false);
   const [chatHistoryOpen, setChatHistoryOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [chatInitialMessage, setChatInitialMessage] = useState<string | null>(null);
@@ -43,40 +41,17 @@ const AppInner: React.FC = () => {
 
   const { entries, loading, addEntry, updateEntry, deleteEntry } = useJournalEntries();
 
-  const pages = [...entries, { id: 'new', date: 'Today', title: '', tags: [], content: '', isNew: true }];
-  const {
-    currentPageIndex,
-    dragOffset,
-    isFlipping,
-    handleDragStart,
-    handleDragMove,
-    handleDragEnd,
-    goToPage,
-  } = usePageFlip(pages.length);
-
-  useEffect(() => {
-    if (!loading && entries.length > 0 && currentPageIndex === 0) {
-      goToPage(entries.length - 1);
-    }
-  }, [loading, entries.length]);
-
-  const handleSaveNewEntry = async (title: string, content: string, tags: string[]) => {
-    try {
-      await addEntry({
-        date: new Date().toLocaleDateString('en-US', {
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric',
-        }),
-        title,
-        tags,
-        content,
-      });
-      goToPage(entries.length);
-    } catch (error) {
-      console.error('Failed to save entry:', error);
-      alert('Failed to save journal entry. Please try again.');
-    }
+  const handleSaveNewEntry = async (title: string, content: string, tags: string[], created_at?: string) => {
+    const created = await addEntry({
+      date: created_at
+        ? new Date(created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+        : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      title,
+      tags,
+      content,
+      created_at,
+    });
+    return created.id;
   };
 
   const handleStartChat = (entry: JournalEntry) => {
@@ -89,10 +64,6 @@ const AppInner: React.FC = () => {
   const handleDeleteEntry = async (id: number | string) => {
     try {
       await deleteEntry(id);
-      const newLength = entries.length - 1;
-      if (currentPageIndex >= newLength) {
-        goToPage(Math.max(0, newLength));
-      }
     } catch (error) {
       console.error('Failed to delete entry:', error);
       alert('Failed to delete journal entry. Please try again.');
@@ -128,7 +99,7 @@ const AppInner: React.FC = () => {
       <Header
         activeView={activeView}
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-        onNavigationClick={activeView === 'journal' ? () => setNavigationSidebarOpen(!navigationSidebarOpen) : activeView === 'chat' ? () => setChatHistoryOpen(!chatHistoryOpen) : undefined}
+        onNavigationClick={activeView === 'chat' ? () => setChatHistoryOpen(!chatHistoryOpen) : undefined}
       />
 
       <Sidebar
@@ -146,21 +117,11 @@ const AppInner: React.FC = () => {
         ) : activeView === 'journal' ? (
           <JournalView
             entries={entries}
-            currentPageIndex={currentPageIndex}
             font={fontStyle}
             fontSize={fontSize}
-            dragOffset={dragOffset}
-            isFlipping={isFlipping}
-            navigationSidebarOpen={navigationSidebarOpen}
-            onDragStart={handleDragStart}
-            onDragMove={handleDragMove}
-            onDragEnd={handleDragEnd}
             onUpdateEntry={updateEntry}
             onDeleteEntry={handleDeleteEntry}
             onSaveNewEntry={handleSaveNewEntry}
-            onGoToNewEntry={() => goToPage(pages.length - 1)}
-            onToggleNavigationSidebar={() => setNavigationSidebarOpen(!navigationSidebarOpen)}
-            onNavigateToEntry={goToPage}
             onStartChat={handleStartChat}
           />
         ) : null}

@@ -1,225 +1,534 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Save, X } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import {
+  ArrowLeft, Copy, Share2, Plus, X,
+  MessageCircle, Trash2, MoreVertical, Check, Loader2, AlertCircle
+} from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
-import { detectRTL, renderTextWithLineDirection } from '@utils/textDirection';
-import { getClickDirection } from '@utils/clickNavigation';
-import { EntryMenu } from './EntryMenu';
-import { TagInput } from './TagInput';
+import { detectRTL } from '@utils/textDirection';
+import { ConfirmModal } from './ConfirmModal';
 
 interface JournalPageProps {
   entry: JournalEntry;
   font: FontStyle;
   fontSize: ContentFontSize;
-  dragOffset: number;
-  isFlipping: boolean;
-  onDragStart: (e: React.MouseEvent | React.TouchEvent) => void;
-  onDragMove: (e: React.MouseEvent | React.TouchEvent) => void;
-  onDragEnd: () => void;
-  onUpdate: (updates: Partial<JournalEntry>) => void;
+  isNew?: boolean;
+  allAppTags?: string[];
+  onUpdate?: (updates: Partial<JournalEntry>) => void;
+  onCreate?: (title: string, content: string, tags: string[], created_at?: string) => Promise<number | string>;
   onDelete: () => void;
   onChat: () => void;
-  onPageClick?: (direction: 'prev' | 'next') => void;
+  onBack: () => void;
+}
+
+type SaveStatus = 'saving' | 'saved' | 'error' | null;
+
+const SaveIndicator: React.FC<{ status: SaveStatus }> = ({ status }) => {
+  if (!status) return null;
+  const styles = {
+    saving: { icon: <Loader2 className="w-3 h-3 animate-spin" />, text: 'Saving...', cls: 'text-muted' },
+    saved: { icon: <Check className="w-3 h-3" />, text: 'Saved', cls: 'text-green-500' },
+    error: { icon: <AlertCircle className="w-3 h-3" />, text: 'Couldn\'t save', cls: 'text-red-500' },
+  };
+  const s = styles[status];
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs transition-opacity ${s.cls}`}>
+      {s.icon}{s.text}
+    </span>
+  );
+};
+
+function parseHashTags(text: string): string[] {
+  const matches = text.match(/#(\w+)/g);
+  if (!matches) return [];
+  return [...new Set(matches.map(m => m.slice(1)))];
+}
+
+function stripHashTag(text: string, tag: string): string {
+  return text.replace(new RegExp(`#${tag}\\b`, 'g'), '').replace(/\s+/g, ' ').trim();
+}
+
+function getCursorPixelPos(textarea: HTMLTextAreaElement): { top: number; left: number } | null {
+  const mirror = document.createElement('div');
+  const style = window.getComputedStyle(textarea);
+  const props = [
+    'font', 'fontSize', 'fontFamily', 'lineHeight', 'letterSpacing',
+    'padding', 'border', 'boxSizing',
+  ] as const;
+  const css = [
+    ...props.map(p => {
+      const k = p.replace(/([A-Z])/g, '-$1').toLowerCase();
+      return `${k}: ${style[p as unknown as number]}`;
+    }),
+    `width: ${textarea.clientWidth}px`,
+    'white-space: pre-wrap',
+    'word-wrap: break-word',
+    'overflow-wrap: break-word',
+    'position: absolute',
+    'top: -9999px',
+    'left: 0',
+    'visibility: hidden',
+  ].join('; ');
+  mirror.style.cssText = css;
+
+  const textBefore = textarea.value.slice(0, textarea.selectionStart);
+  mirror.appendChild(document.createTextNode(textBefore));
+
+  const marker = document.createElement('span');
+  marker.textContent = '|';
+  mirror.appendChild(marker);
+
+  document.body.appendChild(mirror);
+  const markerRect = marker.getBoundingClientRect();
+  document.body.removeChild(mirror);
+
+  return { top: markerRect.top, left: markerRect.left };
 }
 
 export const JournalPage: React.FC<JournalPageProps> = ({
   entry,
   font,
   fontSize,
-  dragOffset,
-  isFlipping,
-  onDragStart,
-  onDragMove,
-  onDragEnd,
+  isNew = false,
+  allAppTags = [],
   onUpdate,
+  onCreate,
   onDelete,
   onChat,
-  onPageClick,
+  onBack,
 }) => {
-  const [editMode, setEditMode] = useState(false);
-  const [editingContent, setEditingContent] = useState('');
-  const [editingTitle, setEditingTitle] = useState('');
-  const [editingTags, setEditingTags] = useState<string[]>([]);
+  const [title, setTitle] = useState(entry.title);
+  const [content, setContent] = useState(entry.content);
+  const [explicitTags, setExplicitTags] = useState<string[]>([]);
   const [showMenu, setShowMenu] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>(null);
+  const [showTagInput, setShowTagInput] = useState(false);
+  const [tagInputValue, setTagInputValue] = useState('');
 
-  const autoResizeTextarea = () => {
+  const [entryDate, setEntryDate] = useState(() => {
+    if (entry.created_at) {
+      const d = new Date(entry.created_at);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+    return new Date().toISOString().split('T')[0];
+  });
+  const [isEditingDate, setIsEditingDate] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const formattedDate = useMemo(() => {
+    const d = new Date(entryDate + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  }, [entryDate]);
+
+  const [showAuto, setShowAuto] = useState(false);
+  const [autoQuery, setAutoQuery] = useState('');
+  const [autoPos, setAutoPos] = useState({ top: 0, left: 0 });
+  const autoTriggerPosRef = useRef(0);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const autoRef = useRef<HTMLDivElement>(null);
+  const tagInputRef = useRef<HTMLInputElement>(null);
+  const saveStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasCreatedRef = useRef(false);
+
+  useEffect(() => {
+    const fromContent = parseHashTags(entry.content || '');
+    const orphaned = (entry.tags || []).filter(t => !fromContent.includes(t));
+    setExplicitTags(orphaned);
+  }, [entry.id]);
+
+  const parsedTags = useMemo(() => parseHashTags(content), [content]);
+
+  const allTags = useMemo(() => {
+    return [...new Set([...explicitTags, ...parsedTags])];
+  }, [explicitTags, parsedTags]);
+
+  const filteredAutoTags = useMemo(() => {
+    if (!showAuto) return [];
+    return allAppTags.filter(t =>
+      t.toLowerCase().includes(autoQuery.toLowerCase())
+    );
+  }, [showAuto, autoQuery, allAppTags]);
+
+  const autoResizeTextarea = useCallback(() => {
     const el = textareaRef.current;
     if (el) {
       el.style.height = 'auto';
       el.style.height = el.scrollHeight + 'px';
     }
-  };
+  }, []);
+
+  useEffect(() => { autoResizeTextarea(); }, [content, autoResizeTextarea]);
 
   useEffect(() => {
-    if (editMode) {
-      autoResizeTextarea();
+    if (showTagInput && tagInputRef.current) tagInputRef.current.focus();
+  }, [showTagInput]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    if (showMenu) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMenu]);
+
+  useEffect(() => {
+    if (!showAuto) return;
+    const handleClick = (e: MouseEvent) => {
+      if (autoRef.current && !autoRef.current.contains(e.target as Node) &&
+          textareaRef.current && !textareaRef.current.contains(e.target as Node)) {
+        setShowAuto(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showAuto]);
+
+  const checkAutocomplete = useCallback((el: HTMLTextAreaElement) => {
+    const pos = el.selectionStart;
+    const textBefore = el.value.slice(0, pos);
+    const match = textBefore.match(/(?:^|\s)(#(\w*))$/);
+
+    if (match) {
+      setAutoQuery(match[2]);
+      setShowAuto(true);
+      autoTriggerPosRef.current = pos - match[1].length;
+      const cursorPos = getCursorPixelPos(el);
+      if (cursorPos) setAutoPos(cursorPos);
+    } else {
+      setShowAuto(false);
     }
-  }, [editMode]);
+  }, []);
 
-  const startEditing = () => {
-    setEditingContent(entry.content);
-    setEditingTitle(entry.title);
-    setEditingTags(entry.tags || []);
-    setEditMode(true);
-    setShowMenu(false);
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const onInput = () => checkAutocomplete(el);
+    el.addEventListener('input', onInput);
+    return () => el.removeEventListener('input', onInput);
+  }, [checkAutocomplete]);
+
+  const save = useCallback(async () => {
+    const isoDate = entryDate ? `${entryDate}T00:00:00.000Z` : undefined;
+
+    if (isNew && !hasCreatedRef.current && (title.trim() || content.trim() || allTags.length > 0)) {
+      hasCreatedRef.current = true;
+      setSaveStatus('saving');
+      try {
+        await onCreate!(title || 'Untitled', content, allTags, isoDate);
+      } catch {
+        hasCreatedRef.current = false;
+        setSaveStatus('error');
+      }
+      return;
+    }
+
+    const trimmedTitle = title.trim();
+    const trimmedContent = content.trim();
+    if (
+      trimmedTitle !== entry.title ||
+      trimmedContent !== entry.content ||
+      JSON.stringify(allTags) !== JSON.stringify(entry.tags) ||
+      (isoDate && isoDate !== entry.created_at)
+    ) {
+      setSaveStatus('saving');
+      try {
+        await onUpdate!({ title: trimmedTitle || 'Untitled', content: trimmedContent, tags: allTags, created_at: isoDate });
+        setSaveStatus('saved');
+        if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
+        saveStatusTimerRef.current = setTimeout(() => setSaveStatus(null), 2500);
+      } catch {
+        setSaveStatus('error');
+      }
+    }
+  }, [isNew, title, content, allTags, entryDate, entry, onCreate, onUpdate]);
+
+  const handleBlur = useCallback(() => { save(); }, [save]);
+
+  useEffect(() => {
+    if (isNew) return;
+    const timer = setTimeout(() => save(), 4000);
+    return () => clearTimeout(timer);
+  }, [title, content, allTags, isNew, save]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => { save(); };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [save]);
+
+  useEffect(() => {
+    return () => { if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current); };
+  }, []);
+
+  const handleBack = () => { save(); onBack(); };
+
+  const removeTag = (tag: string) => {
+    setExplicitTags(prev => prev.filter(t => t !== tag));
+    setContent(prev => stripHashTag(prev, tag));
   };
 
-  const saveEdit = () => {
-    onUpdate({
-      content: editingContent,
-      title: editingTitle,
-      tags: editingTags,
+  const addTagDirect = (name: string) => {
+    const t = name.trim();
+    if (t && !allTags.includes(t)) {
+      setExplicitTags(prev => [...prev, t]);
+    }
+    setShowTagInput(false);
+    setTagInputValue('');
+  };
+
+  const selectAutoTag = (tag: string) => {
+    const pos = textareaRef.current?.selectionStart ?? content.length;
+    const from = autoTriggerPosRef.current;
+    const needSpace = pos < content.length && content.charAt(pos) !== ' ';
+    const suffix = needSpace ? ' ' : '';
+    const newContent = content.slice(0, from) + `#${tag}${suffix}` + content.slice(pos);
+    setContent(newContent);
+    setShowAuto(false);
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) {
+        el.focus();
+        const newPos = from + tag.length + 1 + suffix.length;
+        el.setSelectionRange(newPos, newPos);
+      }
     });
-    setEditMode(false);
   };
 
-  const cancelEdit = () => {
-    setEditMode(false);
+  const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showAuto) {
+      if (e.key === 'Escape') {
+        setShowAuto(false);
+        e.preventDefault();
+      } else if (e.key === 'Enter') {
+        if (filteredAutoTags.length > 0) {
+          selectAutoTag(filteredAutoTags[0]);
+        } else if (autoQuery) {
+          selectAutoTag(autoQuery);
+        }
+        e.preventDefault();
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+      }
+    }
   };
 
   const copyToClipboard = () => {
-    const text = `${entry.title}\n\n${entry.content}`;
-    navigator.clipboard.writeText(text).then(() => {
-      alert('Copied to clipboard!');
-      setShowMenu(false);
-    });
+    navigator.clipboard.writeText(`${entry.title}\n\n${entry.content}`);
+    setShowMenu(false);
   };
 
   const shareEntry = () => {
     const text = `${entry.title}\n\n${entry.content}`;
     if (navigator.share) {
-      navigator.share({ title: entry.title, text: text });
+      navigator.share({ title: entry.title, text });
     } else {
       copyToClipboard();
     }
     setShowMenu(false);
   };
 
-  const handleDelete = () => {
-    if (window.confirm('Delete this entry?')) {
-      onDelete();
-      setShowMenu(false);
-    }
-  };
-
-  const handleClick = (e: React.MouseEvent) => {
-    if (editMode) return;
-    const target = e.target as HTMLElement;
-    if (target.closest('button, a, input, textarea, [role="button"]')) return;
-    const direction = getClickDirection(e);
-    if (direction) onPageClick?.(direction);
-  };
+  const handleDeleteClick = () => { setShowDeleteConfirm(true); setShowMenu(false); };
+  const handleConfirmDelete = () => { onDelete(); setShowDeleteConfirm(false); };
 
   return (
-    <div
-      className={`card overflow-hidden ${!editMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
-      style={{
-        minHeight: 'calc(100vh - 12rem)',
-        touchAction: 'none',
-        transform: `translateX(${
-          isFlipping ? (dragOffset > 0 ? '100%' : '-100%') : dragOffset * 0.5
-        }px) rotateY(${
-          isFlipping ? (dragOffset > 0 ? '180deg' : '-180deg') : dragOffset * 0.15
-        }deg)`,
-        transition: isFlipping ? 'transform 0.4s ease, opacity 0.4s ease' : 'none',
-        opacity: Math.max(0.3, 1 - Math.abs(dragOffset) * 0.002),
-        transformOrigin: dragOffset > 0 ? 'left center' : 'right center',
-      }}
-      onClick={!editMode ? handleClick : undefined}
-      onMouseDown={!editMode ? onDragStart : undefined}
-      onMouseMove={!editMode ? onDragMove : undefined}
-      onMouseUp={!editMode ? onDragEnd : undefined}
-      onMouseLeave={!editMode ? onDragEnd : undefined}
-      onTouchStart={!editMode ? onDragStart : undefined}
-      onTouchMove={!editMode ? onDragMove : undefined}
-      onTouchEnd={!editMode ? onDragEnd : undefined}
-    >
-      <div className="p-8 md:p-12" style={{ minHeight: 'calc(100vh - 12rem)' }}>
-        <div className="mb-6 flex justify-between items-start">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-muted">
-              {entry.date}
-            </p>
-            {editMode ? (
-              <input
-                type="text"
-                value={editingTitle}
-                onChange={(e) => setEditingTitle(e.target.value)}
-                className={`text-2xl ${getFontClass(font)} font-bold text-body mt-2 w-full bg-transparent border-b border-default focus:outline-none`}
-                style={{ direction: detectRTL(editingTitle) ? 'rtl' : 'ltr' }}
-              />
-            ) : (
-              <h2
-                className={`text-2xl ${getFontClass(font)} font-bold text-body mt-2`}
-                style={{ direction: detectRTL(entry.title) ? 'rtl' : 'ltr' }}
-              >
-                {entry.title || 'Untitled'}
-              </h2>
-            )}
-            <div className="mt-3">
-              <TagInput
-                tags={editMode ? editingTags : entry.tags}
-                editable={editMode}
-                onTagsChange={editMode ? setEditingTags : undefined}
-              />
-            </div>
-          </div>
-          {!editMode && (
-            <EntryMenu
-              isOpen={showMenu}
-              onToggle={() => setShowMenu(!showMenu)}
-              onEdit={startEditing}
-              onCopy={copyToClipboard}
-              onShare={shareEntry}
-              onChat={onChat}
-              onDelete={handleDelete}
-            />
-          )}
-          {editMode && (
-            <div className="flex gap-2 ml-4">
-              <button
-                onClick={saveEdit}
-                className="btn-primary p-2 rounded-lg"
-              >
-                <Save className="w-5 h-5" />
-              </button>
-              <button
-                onClick={cancelEdit}
-                className={`p-2 rounded-lg hover:bg-accent-tint`}
-              >
-                <X className="w-5 h-5 text-body" />
-              </button>
-            </div>
-          )}
-        </div>
+    <div className="w-full max-w-2xl mx-auto relative flex flex-col flex-1">
+      <div
+        className="sticky top-0 z-20 pt-4 pb-2 px-6 md:px-8"
+        style={{ background: 'var(--bg-elevated)' }}
+      >
+        <div className="flex items-start justify-between h-8">
+          <button
+            onClick={handleBack}
+            className="p-1 rounded-md text-muted/50 hover:text-muted transition-colors"
+            aria-label="Back to journal"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
 
-        <div className="mb-4" style={{ minHeight: 'calc(100vh - 24rem)' }}>
-          {editMode ? (
-            <textarea
-              ref={textareaRef}
-              value={editingContent}
-              onChange={(e) => {
-                setEditingContent(e.target.value);
-                autoResizeTextarea();
-              }}
-              className={`w-full ${getFontClass(font)} ${getFontSizeClass(fontSize)} leading-relaxed resize-none focus:outline-none text-body`}
-              style={{
-                background: 'transparent',
-                minHeight: 'calc(100vh - 24rem)',
-                overflow: 'hidden',
-                unicodeBidi: 'plaintext',
-              } as React.CSSProperties}
-            />
-          ) : (
-            <div
-              className={`${getFontClass(font)} ${getFontSizeClass(fontSize)} leading-relaxed whitespace-pre-line text-body`}
-            >
-              {renderTextWithLineDirection(entry.content)}
+          {!isNew && (
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-1 rounded-md text-muted/50 hover:text-muted transition-colors"
+                aria-label="Entry options"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+
+              {showMenu && (
+                <div className="absolute right-0 mt-2 min-w-[12rem] rounded-lg shadow-card-lg z-20 card py-1">
+                  <button onClick={() => { copyToClipboard(); setShowMenu(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-accent-tint transition-all">
+                    <Copy className="w-4 h-4" />Copy
+                  </button>
+                  <button onClick={() => { shareEntry(); setShowMenu(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-accent-tint transition-all">
+                    <Share2 className="w-4 h-4" />Share
+                  </button>
+                  <button onClick={() => { onChat(); setShowMenu(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-accent-tint transition-all">
+                    <MessageCircle className="w-4 h-4" />Chat
+                  </button>
+                  <div className="h-px bg-border-default my-2" />
+                  <button onClick={handleDeleteClick}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all">
+                    <Trash2 className="w-4 h-4" />Delete
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      <div
+        className="flex items-center gap-3 px-6 md:px-8"
+        style={{ background: 'var(--bg-elevated)' }}
+      >
+        {isEditingDate ? (
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={entryDate}
+            onChange={(e) => {
+              setEntryDate(e.target.value);
+              setIsEditingDate(false);
+            }}
+            onBlur={() => setIsEditingDate(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setIsEditingDate(false);
+            }}
+            className="text-xs text-muted/50 input-field px-1 py-0.5 rounded w-auto"
+            autoFocus
+          />
+        ) : (
+          <button
+            onClick={() => setIsEditingDate(true)}
+            className="text-xs text-muted/50 hover:text-muted transition-colors text-left"
+          >
+            {formattedDate}
+          </button>
+        )}
+        <SaveIndicator status={saveStatus} />
+      </div>
+
+      <div
+        className="flex flex-col flex-1 px-6 md:px-8 pt-4 pb-12"
+        style={{ background: 'var(--bg-elevated)' }}
+      >
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={handleBlur}
+          placeholder="Title..."
+          className={`w-full text-3xl md:text-4xl ${getFontClass(font)} font-bold text-body bg-transparent border-none focus:outline-none p-0 mb-4`}
+          style={{ direction: detectRTL(title) ? 'rtl' : 'ltr' }}
+          autoFocus={isNew}
+        />
+
+        <div className="flex flex-wrap items-center gap-1.5 mb-6 min-h-[1.5rem]">
+          {allTags.map((tag, i) => (
+            <span key={i}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-accent-tint/50 text-accent-tint group"
+            >
+              #{tag}
+              <button onClick={() => removeTag(tag)}
+                className="opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+          {!showTagInput && (
+            <button onClick={() => setShowTagInput(true)}
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs text-muted/30 hover:text-muted hover:bg-accent-tint/30 transition-colors">
+              <Plus className="w-3 h-3" />
+            </button>
+          )}
+          {showTagInput && (
+            <input
+              ref={tagInputRef}
+              type="text"
+              value={tagInputValue}
+              onChange={(e) => setTagInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { addTagDirect(tagInputValue); e.preventDefault(); }
+                if (e.key === 'Escape') { setShowTagInput(false); setTagInputValue(''); }
+              }}
+              onBlur={() => addTagDirect(tagInputValue)}
+              placeholder="Tag"
+              className="px-2 py-0.5 rounded text-xs input-field w-20"
+            />
+          )}
+        </div>
+
+        <div className="relative flex-1 flex">
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(e) => {
+              setContent(e.target.value);
+              autoResizeTextarea();
+            }}
+            onKeyDown={handleTextareaKeyDown}
+            onBlur={handleBlur}
+            placeholder={isNew ? 'Begin writing your story...' : 'Begin writing...'}
+            className={`w-full flex-1 ${getFontClass(font)} ${getFontSizeClass(fontSize)} leading-relaxed resize-none focus:outline-none text-body placeholder:text-muted/40`}
+            style={{
+              background: 'transparent',
+              minHeight: '8rem',
+              overflow: 'hidden',
+              unicodeBidi: 'plaintext',
+            } as React.CSSProperties}
+          />
+
+          {showAuto && (
+            <div
+              ref={autoRef}
+              className="fixed z-50 card py-1 shadow-elevated min-w-[10rem] max-h-48 overflow-y-auto"
+              style={{ top: autoPos.top + 'px', left: autoPos.left + 'px' }}
+            >
+              {filteredAutoTags.length > 0 ? (
+                filteredAutoTags.map(tag => (
+                  <button key={tag}
+                    onMouseDown={(e) => { e.preventDefault(); selectAutoTag(tag); }}
+                    className="w-full text-left px-3 py-1.5 text-sm text-body hover:bg-accent-tint transition-colors"
+                  >
+                    #{tag}
+                  </button>
+                ))
+              ) : autoQuery ? (
+                <button
+                  onMouseDown={(e) => { e.preventDefault(); selectAutoTag(autoQuery); }}
+                  className="w-full text-left px-3 py-1.5 text-sm text-muted hover:bg-accent-tint transition-colors"
+                >
+                  Create "#{autoQuery}"
+                </button>
+              ) : (
+                <div className="px-3 py-2 text-xs text-muted">No tags yet</div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete Entry"
+        message="Are you sure you want to delete this entry? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 };

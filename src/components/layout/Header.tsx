@@ -39,11 +39,11 @@ export const Header: React.FC<HeaderProps> = ({
         </h1>
       </div>
 
-      {(activeView === 'journal' || activeView === 'chat') && onNavigationClick && (
+      {activeView === 'chat' && onNavigationClick && (
         <button
           onClick={onNavigationClick}
           className="p-2 rounded-lg hover:bg-accent-tint"
-          title={activeView === 'journal' ? 'Journal Navigation' : 'Chat History'}
+          title="Chat History"
         >
           <List className="w-6 h-6 text-body" />
         </button>

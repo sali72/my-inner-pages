@@ -11,12 +11,6 @@ export interface JournalEntry {
 
 export type ViewType = 'journal' | 'mirror' | 'chat' | 'settings';
 
-export interface PageFlipState {
-  dragStart: number | null;
-  dragOffset: number;
-  isFlipping: boolean;
-}
-
 export type Mode = 'light' | 'dark' | 'system';
 export type Accent = 'sage' | 'dusk' | 'amber' | 'slate' | 'blush' | 'ink' | 'sand' | 'moss';
 

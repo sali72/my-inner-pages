@@ -41,13 +41,13 @@ export const useJournalEntries = () => {
 
   const createMutation = useMutation({
     mutationFn: (entry: Omit<JournalEntry, 'id'>) =>
-      api.post('/journals', { title: entry.title, content: entry.content, tags: entry.tags }, journalResponseSchema),
+      api.post('/journals', { title: entry.title, content: entry.content, tags: entry.tags, created_at: entry.created_at }, journalResponseSchema),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, title, content, tags }: Partial<JournalEntry> & { id: number | string }) =>
-      api.put(`/journals/${id}`, { title, content, tags }),
+    mutationFn: ({ id, title, content, tags, created_at }: Partial<JournalEntry> & { id: number | string }) =>
+      api.put(`/journals/${id}`, { title, content, tags, created_at }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 

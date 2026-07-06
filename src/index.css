@@ -2,6 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  overflow-y: scroll;
+}
+
+/* Style native form controls to use theme accent instead of browser blue */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+  filter: invert(0.3);
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.8;
+}
+
+/* Suppress browser default blue focus outlines on custom-styled form elements */
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none !important;
+}
+
+select option {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
 /* ============================================================
    UI Font — applies everywhere, never overridden
    ============================================================ */

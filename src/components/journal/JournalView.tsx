@@ -1,117 +1,175 @@
-import React from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Edit2 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
+import { JournalTimeline } from './JournalTimeline';
 import { JournalPage } from './JournalPage';
-import { NewEntryPage } from './NewEntryPage';
-import { JournalNavigationSidebar } from './JournalNavigationSidebar';
+
+type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc';
 
 interface JournalViewProps {
   entries: JournalEntry[];
-  currentPageIndex: number;
   font: FontStyle;
   fontSize: ContentFontSize;
-  dragOffset: number;
-  isFlipping: boolean;
-  navigationSidebarOpen: boolean;
-  onDragStart: (e: React.MouseEvent | React.TouchEvent) => void;
-  onDragMove: (e: React.MouseEvent | React.TouchEvent) => void;
-  onDragEnd: () => void;
   onUpdateEntry: (id: number | string, updates: Partial<JournalEntry>) => void;
   onDeleteEntry: (id: number | string) => void;
-  onSaveNewEntry: (title: string, content: string, tags: string[]) => void;
-  onGoToNewEntry: () => void;
-  onToggleNavigationSidebar: () => void;
-  onNavigateToEntry: (index: number) => void;
+  onSaveNewEntry: (title: string, content: string, tags: string[], created_at?: string) => Promise<number | string>;
   onStartChat: (entry: JournalEntry) => void;
 }
 
+const draftEntry: JournalEntry = {
+  id: 'new',
+  date: new Date().toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  }),
+  title: '',
+  content: '',
+  tags: [],
+};
+
 export const JournalView: React.FC<JournalViewProps> = ({
   entries,
-  currentPageIndex,
   font,
   fontSize,
-  dragOffset,
-  isFlipping,
-  navigationSidebarOpen,
-  onDragStart,
-  onDragMove,
-  onDragEnd,
   onUpdateEntry,
   onDeleteEntry,
   onSaveNewEntry,
-  onGoToNewEntry,
-  onToggleNavigationSidebar,
-  onNavigateToEntry,
   onStartChat,
 }) => {
-  const pages = [...entries, { id: 'new', date: 'Today', title: '', tags: [], content: '', isNew: true }];
-  const currentPage = pages[currentPageIndex];
+  const [selectedEntryId, setSelectedEntryId] = useState<number | string | null>(null);
+  const [isNewEntry, setIsNewEntry] = useState(false);
 
-  const handlePageClick = (direction: 'prev' | 'next') => {
-    const targetIndex = direction === 'prev' ? currentPageIndex - 1 : currentPageIndex + 1;
-    if (targetIndex >= 0 && targetIndex < pages.length) {
-      onNavigateToEntry(targetIndex);
-    }
-  };
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
+  const [showFilters, setShowFilters] = useState(false);
+
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    entries.forEach(entry => {
+      entry.tags?.forEach(tag => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [entries]);
+
+  const filteredEntries = useMemo(() => {
+    let filtered = entries.filter(entry => {
+      const matchesSearch = searchQuery === '' ||
+        entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        entry.content.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesTags = selectedTags.length === 0 ||
+        selectedTags.some(tag => entry.tags?.includes(tag));
+      return matchesSearch && matchesTags;
+    });
+
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc':
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        case 'date-asc':
+          return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+        case 'title-asc':
+          return a.title.localeCompare(b.title);
+        case 'title-desc':
+          return b.title.localeCompare(a.title);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [entries, searchQuery, selectedTags, sortBy]);
+
+  const currentEntry = useMemo(() => {
+    if (selectedEntryId === null) return null;
+    return entries.find(e => e.id === selectedEntryId) || null;
+  }, [entries, selectedEntryId]);
+
+  const handleSelectEntry = useCallback((id: number | string) => {
+    setSelectedEntryId(id);
+    setIsNewEntry(false);
+  }, []);
+
+  const handleNewEntry = useCallback(() => {
+    setSelectedEntryId('new');
+    setIsNewEntry(true);
+  }, []);
+
+  const handleBackToTimeline = useCallback(() => {
+    setSelectedEntryId(null);
+    setIsNewEntry(false);
+  }, []);
+
+  const handleCreateEntry = useCallback(async (title: string, content: string, tags: string[], created_at?: string) => {
+    const id = await onSaveNewEntry(title, content, tags, created_at);
+    setSelectedEntryId(id);
+    setIsNewEntry(false);
+    return id;
+  }, [onSaveNewEntry]);
+
+  const handleDeleteEntry = useCallback((id: number | string) => {
+    onDeleteEntry(id);
+    setSelectedEntryId(null);
+  }, [onDeleteEntry]);
+
+  const handleClearFilters = useCallback(() => {
+    setSearchQuery('');
+    setSelectedTags([]);
+  }, []);
+
+  const displayEntry = isNewEntry ? draftEntry : currentEntry;
+
+  if (displayEntry) {
+    return (
+      <div className="flex flex-col min-h-[calc(100vh-5rem)]">
+          <JournalPage
+            key={displayEntry.id}
+            entry={displayEntry}
+            font={font}
+            fontSize={fontSize}
+            isNew={isNewEntry}
+            allAppTags={allTags}
+            onUpdate={(updates) => onUpdateEntry(displayEntry.id, updates)}
+            onCreate={isNewEntry ? handleCreateEntry : undefined}
+            onDelete={() => handleDeleteEntry(displayEntry.id)}
+            onChat={() => onStartChat(displayEntry)}
+            onBack={handleBackToTimeline}
+          />
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div className="flex flex-col items-center px-4 pt-2 pb-6 relative min-h-[calc(100vh-5rem)]">
-        <div className="max-w-4xl w-full mx-auto" style={{ perspective: '1500px' }}>
-          {currentPage.isNew ? (
-            <NewEntryPage
-              font={font}
-              fontSize={fontSize}
-              dragOffset={dragOffset}
-              isFlipping={isFlipping}
-              onDragStart={onDragStart}
-              onDragMove={onDragMove}
-              onDragEnd={onDragEnd}
-              onSave={onSaveNewEntry}
-              onPageClick={handlePageClick}
-            />
-          ) : (
-            <JournalPage
-              entry={currentPage}
-              font={font}
-              fontSize={fontSize}
-              dragOffset={dragOffset}
-              isFlipping={isFlipping}
-              onDragStart={onDragStart}
-              onDragMove={onDragMove}
-              onDragEnd={onDragEnd}
-              onUpdate={(updates) => onUpdateEntry(currentPage.id, updates)}
-              onDelete={() => onDeleteEntry(currentPage.id)}
-              onChat={() => onStartChat(currentPage)}
-              onPageClick={handlePageClick}
-            />
-          )}
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted">
-              Page {currentPageIndex + 1} of {pages.length}
-            </p>
-          </div>
-        </div>
-
-        {currentPageIndex < pages.length - 1 && (
-          <button
-            onClick={onGoToNewEntry}
-            className={`fixed bottom-8 right-8 btn-primary px-6 py-3 rounded-full shadow-2xl hover:scale-110 transition-all flex items-center gap-2 z-30`}
-          >
-            <Edit2 className="w-5 h-5" />
-            <span>New Entry</span>
-          </button>
-        )}
-      </div>
-
-      <JournalNavigationSidebar
-        isOpen={navigationSidebarOpen}
-        entries={entries}
-        currentPageIndex={currentPageIndex}
-        onClose={onToggleNavigationSidebar}
-        onNavigateToEntry={onNavigateToEntry}
+    <div className="flex flex-col items-center px-4 pt-2 pb-20 relative min-h-[calc(100vh-5rem)]">
+      <JournalTimeline
+        entries={filteredEntries}
+        allTags={allTags}
+        font={font}
+        fontSize={fontSize}
+        searchQuery={searchQuery}
+        selectedTags={selectedTags}
+        sortBy={sortBy}
+        showFilters={showFilters}
+        onSearchChange={setSearchQuery}
+        onTagToggle={(tag) =>
+          setSelectedTags(prev =>
+            prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+          )
+        }
+        onSortByChange={setSortBy}
+        onFilterToggle={() => setShowFilters(prev => !prev)}
+        onClearFilters={handleClearFilters}
+        onSelectEntry={handleSelectEntry}
+        onNewEntry={handleNewEntry}
       />
-    </>
+      <button
+        onClick={handleNewEntry}
+        className="fixed bottom-6 right-6 btn-primary w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all z-30"
+        aria-label="New entry"
+      >
+        <Edit2 className="w-6 h-6" />
+      </button>
+    </div>
   );
 };
