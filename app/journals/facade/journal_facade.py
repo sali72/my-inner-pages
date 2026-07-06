@@ -1,4 +1,5 @@
 from typing import Optional
+from datetime import datetime
 from beanie import PydanticObjectId
 
 from app.ai.rumination import compute_rumination_index
@@ -22,7 +23,8 @@ class JournalFacade:
         user_id: str,
         title: str,
         content: str,
-        tags: Optional[list[str]] = None
+        tags: Optional[list[str]] = None,
+        created_at: Optional[datetime] = None,
     ) -> Journal:
         """
         Create a new journal entry for a user with business validation.
@@ -32,6 +34,7 @@ class JournalFacade:
             title: Journal title
             content: Journal content
             tags: Optional list of tags
+            created_at: Optional creation date override
             
         Returns:
             Created journal
@@ -39,7 +42,6 @@ class JournalFacade:
         Raises:
             ValueError: If validation fails
         """
-        # Business validation
         self._validate_title(title)
         self._validate_content(content)
         
@@ -55,6 +57,7 @@ class JournalFacade:
             content=content.strip(),
             tags=normalized_tags,
             rumination_index=rumination_index,
+            created_at=created_at,
         )
     
     async def get_journal(self, journal_id: str, user_id: str) -> Optional[Journal]:
@@ -111,7 +114,8 @@ class JournalFacade:
         user_id: str,
         title: Optional[str] = None,
         content: Optional[str] = None,
-        tags: Optional[list[str]] = None
+        tags: Optional[list[str]] = None,
+        created_at: Optional[datetime] = None,
     ) -> Optional[Journal]:
         """
         Update a journal entry for a specific user with business validation.
@@ -122,6 +126,7 @@ class JournalFacade:
             title: New title (optional)
             content: New content (optional)
             tags: New tags (optional)
+            created_at: Override creation date (optional)
             
         Returns:
             Updated journal or None if not found
@@ -154,6 +159,7 @@ class JournalFacade:
             content=content,
             tags=tags,
             rumination_index=rumination_index,
+            created_at=created_at,
         )
     
     async def delete_journal(self, journal_id: str, user_id: str) -> bool:
@@ -177,17 +183,11 @@ class JournalFacade:
     
     def _validate_title(self, title: str) -> None:
         """Validate journal title."""
-        if not title or not title.strip():
-            raise ValueError("Title cannot be empty")
-        
         if len(title) > self.config.max_title_length:
             raise ValueError(f"Title cannot exceed {self.config.max_title_length} characters")
     
     def _validate_content(self, content: str) -> None:
         """Validate journal content."""
-        if not content or not content.strip():
-            raise ValueError("Content cannot be empty")
-        
         if len(content) > self.config.max_content_length:
             raise ValueError(f"Content cannot exceed {self.config.max_content_length} characters")
     

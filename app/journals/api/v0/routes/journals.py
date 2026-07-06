@@ -47,7 +47,8 @@ async def create_journal(
             user_id=str(current_user.id),
             title=request.title,
             content=request.content,
-            tags=request.tags
+            tags=request.tags,
+            created_at=request.created_at,
         )
         background_tasks.add_task(trigger_update_if_needed, updater, str(current_user.id))
         return JournalResponse.from_document(journal)
@@ -143,7 +144,8 @@ async def update_journal(
             user_id=str(current_user.id),
             title=request.title,
             content=request.content,
-            tags=request.tags
+            tags=request.tags,
+            created_at=request.created_at,
         )
         
         if not journal:

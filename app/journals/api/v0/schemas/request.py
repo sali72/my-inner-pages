@@ -1,4 +1,5 @@
 from typing import Optional
+from datetime import datetime
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
@@ -15,9 +16,10 @@ class CreateJournalRequest(BaseModel):
         }
     )
     
-    title: str = Field(..., min_length=1, max_length=200, description="Journal title")
-    content: str = Field(..., min_length=1, max_length=50000, description="Journal content")
+    title: str = Field(..., max_length=200, description="Journal title")
+    content: str = Field(..., max_length=50000, description="Journal content")
     tags: Optional[list[str]] = Field(default=None, description="Optional tags for categorization")
+    created_at: Optional[datetime] = Field(default=None, description="Override creation date")
     
     @field_validator("title", "content")
     @classmethod
@@ -39,9 +41,10 @@ class UpdateJournalRequest(BaseModel):
         }
     )
     
-    title: Optional[str] = Field(None, min_length=1, max_length=200, description="Updated title")
-    content: Optional[str] = Field(None, min_length=1, max_length=50000, description="Updated content")
+    title: Optional[str] = Field(None, max_length=200, description="Updated title")
+    content: Optional[str] = Field(None, max_length=50000, description="Updated content")
     tags: Optional[list[str]] = Field(None, description="Updated tags")
+    created_at: Optional[datetime] = Field(default=None, description="Override creation date")
     
     @field_validator("title", "content")
     @classmethod

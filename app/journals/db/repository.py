@@ -26,6 +26,7 @@ class JournalRepository:
         content: str,
         tags: Optional[list[str]] = None,
         rumination_index: Optional[float] = None,
+        created_at: Optional[datetime] = None,
         session: Optional[AsyncIOMotorClientSession] = None
     ) -> Journal:
         """
@@ -37,6 +38,7 @@ class JournalRepository:
             content: Journal content
             tags: Optional list of tags
             rumination_index: Optional computed rumination signal (0-1)
+            created_at: Optional creation date override
             session: Optional MongoDB session (uses context if not provided)
             
         Returns:
@@ -57,6 +59,8 @@ class JournalRepository:
                 tags=tags or [],
                 rumination_index=rumination_index,
             )
+            if created_at is not None:
+                journal.created_at = created_at
             await journal.insert(session=session)
             logger.info("journal_created", journal_id=str(journal.id), user_id=user_id)
             return journal
@@ -165,6 +169,7 @@ class JournalRepository:
         content: Optional[str] = None,
         tags: Optional[list[str]] = None,
         rumination_index: Optional[float] = None,
+        created_at: Optional[datetime] = None,
         session: Optional[AsyncIOMotorClientSession] = None
     ) -> Optional[Journal]:
         """
@@ -177,6 +182,7 @@ class JournalRepository:
             content: New content (optional)
             tags: New tags (optional)
             rumination_index: Updated rumination signal (optional)
+            created_at: Override creation date (optional)
             session: Optional MongoDB session for transactions
             
         Returns:
@@ -200,6 +206,8 @@ class JournalRepository:
                 update_data["tags"] = tags
             if rumination_index is not None:
                 update_data["rumination_index"] = rumination_index
+            if created_at is not None:
+                update_data["created_at"] = created_at
             
             await journal.set(update_data, session=session)
             logger.info("journal_updated", journal_id=str(journal_id), user_id=user_id)
