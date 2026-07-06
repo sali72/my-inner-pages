@@ -77,7 +77,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <section>
         <h2 className="text-lg font-semibold text-primary mb-1">Appearance Mode</h2>
         <p className="text-sm text-secondary mb-3">Choose light, dark, or follow your system preference.</p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(['light', 'dark', 'system'] as Mode[]).map((m) => (
             <button
               key={m}
@@ -149,7 +149,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <p className="text-sm text-secondary mb-3">Font style and size for journal entries, reflections, and chat.</p>
 
         <label className="text-sm font-medium text-primary mb-2 block">Font Style</label>
-        <div className="grid grid-cols-3 gap-2 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
           {FONT_STYLES.map(({ value, label, preview }) => (
             <button
               key={value}
