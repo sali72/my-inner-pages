@@ -7,7 +7,7 @@ import { api, chatListResponseSchema } from '@utils/api';
 import type { ChatSummary } from '@/types/chat';
 
 const MAX_TEXTAREA_ROWS = 10;
-const LINE_HEIGHT = 20;
+const LINE_HEIGHT = 22;
 
 interface ChatViewProps {
   isDark: boolean;
@@ -97,18 +97,24 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
     }
   }, [isConnected, sendMessage, onInitialMessageSent]);
 
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-    userScrolledUp.current = !isAtBottom;
-    setShowScrollButton(!isAtBottom && messages.length > 0);
+  useEffect(() => {
+    const onScroll = () => {
+      const scrollHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.scrollY;
+      const clientHeight = window.innerHeight;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 80;
+      userScrolledUp.current = !isAtBottom;
+      setShowScrollButton(!isAtBottom && messages.length > 0);
+    };
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
   }, [messages.length]);
 
   const autoResize = useCallback(() => {
     const el = inputRef.current;
     if (!el) return;
-    el.style.height = 'auto';
     const maxHeight = MAX_TEXTAREA_ROWS * LINE_HEIGHT;
+    el.style.height = '0px';
     el.style.height = `${Math.max(LINE_HEIGHT, Math.min(el.scrollHeight, maxHeight))}px`;
     el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
   }, []);
@@ -201,11 +207,11 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
 
   return (
     <>
-      <div className="h-[calc(100vh-5rem)] px-4 pt-2 pb-0 flex flex-col">
-      <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col min-h-0">
-        <div className="flex-1 rounded-2xl bg-elevated border border-default overflow-hidden flex flex-col min-h-0">
+      <div className="px-4 pt-2 pb-28">
+        <div className="w-full max-w-4xl mx-auto">
+          <div className="rounded-2xl bg-elevated border border-default">
             {messages.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+              <div className="min-h-[calc(100dvh-12rem)] flex flex-col items-center justify-center p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mb-4 shadow-lg">
                   <MessageSquare className="w-8 h-8 text-white" />
                 </div>
@@ -226,184 +232,186 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
                 )}
               </div>
             ) : (
-              <div className="relative flex-1 min-h-0">
-                <div className="absolute inset-0 overflow-y-auto p-4 space-y-6 scrollbar-theme" onScroll={handleScroll}>
-                  {messages.map((msg, idx) => {
-                    const isLastUserMsg = idx === lastUserIdx;
-                    const isLastAssistant = idx === messages.length - 1 && msg.role === 'assistant' && lastUserIdx !== -1;
-                    return (
-                      <div
-                        key={msg.id}
-                        className={`group flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        {msg.role === 'user' ? (
-                          <div className={`flex flex-col items-end gap-1 ${editingId === msg.id ? 'max-w-full w-full' : 'max-w-[90%] sm:max-w-[85%]'}`}>
-                            {editingId === msg.id ? (
-                              <div className="rounded-2xl p-2 bg-accent w-full">
-                                <textarea
-                                  ref={editInputRef}
-                                  value={editContent}
-                                  onChange={(e) => setEditContent(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                      e.preventDefault();
-                                      editMessage(editContent);
-                                      setEditingId(null);
-                                      setEditContent('');
-                                    }
-                                    if (e.key === 'Escape') {
-                                      setEditingId(null);
-                                      setEditContent('');
-                                    }
+              <div className="p-4 space-y-6">
+                {messages.map((msg, idx) => {
+                  const isLastUserMsg = idx === lastUserIdx;
+                  const isLastAssistant = idx === messages.length - 1 && msg.role === 'assistant' && lastUserIdx !== -1;
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`group flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      {msg.role === 'user' ? (
+                        <div className={`flex flex-col items-end gap-1 ${editingId === msg.id ? 'max-w-full w-full' : 'max-w-[90%] sm:max-w-[85%]'}`}>
+                          {editingId === msg.id ? (
+                            <div className="rounded-2xl p-2 bg-accent w-full">
+                              <textarea
+                                ref={editInputRef}
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    editMessage(editContent);
+                                    setEditingId(null);
+                                    setEditContent('');
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setEditingId(null);
+                                    setEditContent('');
+                                  }
+                                }}
+                                className="w-full resize-none bg-transparent outline-none text-white placeholder:text-white/50 scrollbar-theme"
+                                autoFocus
+                              />
+                              <div className="flex gap-2 justify-end mt-2">
+                                <button
+                                  onClick={() => { setEditingId(null); setEditContent(''); }}
+                                  className="text-xs text-white/70 hover:text-white transition-colors px-2 py-1"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    editMessage(editContent);
+                                    setEditingId(null);
+                                    setEditContent('');
                                   }}
-                                  className="w-full resize-none bg-transparent outline-none text-white placeholder:text-white/50 scrollbar-theme"
-                                  autoFocus
-                                />
-                                <div className="flex gap-2 justify-end mt-2">
-                                  <button
-                                    onClick={() => { setEditingId(null); setEditContent(''); }}
-                                    className="text-xs text-white/70 hover:text-white transition-colors px-2 py-1"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      editMessage(editContent);
-                                      setEditingId(null);
-                                      setEditContent('');
-                                    }}
-                                    className="text-xs bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded transition-colors"
-                                  >
-                                    Save
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="rounded-2xl px-4 py-2.5 bg-accent text-white">
-                                <div className={`content-typography chat-typography !text-white [&_*]:!text-white whitespace-pre-wrap ${msg.content === '' ? 'animate-pulse' : ''} ${!expandedMessages.has(msg.id) && msg.content.length > COLLAPSE_THRESHOLD ? 'max-h-32 overflow-hidden' : ''}`}>
-                                  {msg.content || '▊'}
-                                </div>
-                                {msg.content.length > COLLAPSE_THRESHOLD && (
-                                  <button
-                                    onClick={() => toggleExpand(msg.id)}
-                                    className="flex items-center gap-1 text-xs text-white/70 hover:text-white transition-colors mt-1"
-                                  >
-                                    {expandedMessages.has(msg.id) ? <><ChevronUp className="w-3.5 h-3.5" /> Show less</> : <><ChevronDown className="w-3.5 h-3.5" /> Show more</>}
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                            <div className="flex items-center gap-0.5">
-                              {editingId !== msg.id && (
-                                <button
-                                  onClick={() => handleCopy(msg.id, msg.content)}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
+                                  className="text-xs bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded transition-colors"
                                 >
-                                  {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                  Save
                                 </button>
-                              )}
-                              {isLastUserMsg && !editingId && !isStreaming && (
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="rounded-2xl px-4 py-2.5 bg-accent text-white">
+                              <div className={`content-typography chat-typography !text-white [&_*]:!text-white whitespace-pre-wrap ${msg.content === '' ? 'animate-pulse' : ''} ${!expandedMessages.has(msg.id) && msg.content.length > COLLAPSE_THRESHOLD ? 'max-h-32 overflow-hidden' : ''}`}>
+                                {msg.content || '▊'}
+                              </div>
+                              {msg.content.length > COLLAPSE_THRESHOLD && (
                                 <button
-                                  onClick={() => { setEditingId(msg.id); setEditContent(msg.content); }}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
-                                  title="Edit"
+                                  onClick={() => toggleExpand(msg.id)}
+                                  className="flex items-center gap-1 text-xs text-white/70 hover:text-white transition-colors mt-1"
                                 >
-                                  <Pencil className="w-3.5 h-3.5" />
+                                  {expandedMessages.has(msg.id) ? <><ChevronUp className="w-3.5 h-3.5" /> Show less</> : <><ChevronDown className="w-3.5 h-3.5" /> Show more</>}
                                 </button>
                               )}
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-start gap-1 max-w-[90%] sm:max-w-[85%]">
-                            <div className="min-w-0">
-                              {msg.content ? (
-                                <MarkdownRenderer content={msg.content} isDark={isDark} />
-                              ) : (
-                                <p className="text-sm leading-relaxed animate-pulse">▊</p>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-0.5">
+                          )}
+                          <div className="flex items-center gap-0.5">
+                            {editingId !== msg.id && (
                               <button
                                 onClick={() => handleCopy(msg.id, msg.content)}
                                 className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
                               >
                                 {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                               </button>
-                              {isLastAssistant && !isStreaming && (
-                                <button
-                                  onClick={regenerate}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
-                                  title="Regenerate"
-                                >
-                                  <RotateCw className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
+                            )}
+                            {isLastUserMsg && !editingId && !isStreaming && (
+                              <button
+                                onClick={() => { setEditingId(msg.id); setEditContent(msg.content); }}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
+                                title="Edit"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
-                </div>
-                {showScrollButton && (
-                  <button
-                    onClick={scrollToBottom}
-                    className="absolute bottom-3 left-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-accent text-white shadow-lg hover:scale-110 transition-all flex items-center justify-center z-10"
-                    title="Scroll to bottom"
-                  >
-                    <ChevronDown className="w-5 h-5" />
-                  </button>
-                )}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-start gap-1 max-w-[90%] sm:max-w-[85%]">
+                          <div className="min-w-0">
+                            {msg.content ? (
+                              <MarkdownRenderer content={msg.content} isDark={isDark} />
+                            ) : (
+                              <p className="text-sm leading-relaxed animate-pulse">▊</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              onClick={() => handleCopy(msg.id, msg.content)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
+                            >
+                              {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                            {isLastAssistant && !isStreaming && (
+                              <button
+                                onClick={regenerate}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
+                                title="Regenerate"
+                              >
+                                <RotateCw className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
               </div>
             )}
+          </div>
+        </div>
+      </div>
 
-            <div className="p-3 shrink-0">
-              {error && (
-                <div className="mb-3 flex items-center gap-2 text-red-500 text-xs">
-                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="flex-1">{error}</span>
-                  <button
-                    onClick={reconnect}
-                    className="text-xs px-2 py-1 rounded bg-surface-hover text-muted hover:bg-accent-tint transition-colors"
-                  >
-                    Reconnect
-                  </button>
-                </div>
-              )}
-              <div className="flex gap-3 items-end bg-surface rounded-xl border border-default p-2">
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={isConnected ? 'Type a message...' : 'Connecting...'}
-                  disabled={!isConnected}
-                  className="flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none disabled:opacity-50 scrollbar-theme text-body placeholder:text-muted"
-                  style={{ lineHeight: `${LINE_HEIGHT}px`, maxHeight: `${MAX_TEXTAREA_ROWS * LINE_HEIGHT}px` }}
-                />
-                {isStreaming ? (
-                  <button
-                    onClick={stopStreaming}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-red-500 text-white hover:bg-red-600 transition-colors"
-                  >
-                    <Square className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleSend}
-                    disabled={!input.trim() || !isConnected}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 ${
-                      input.trim() && isConnected
-                        ? 'bg-accent text-white shadow-md hover:shadow-lg hover:scale-105'
-                        : 'bg-surface-hover text-muted'
-                    } disabled:cursor-not-allowed`}
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+      <div className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-base via-base/95 via-60% to-transparent pointer-events-none">
+        <div className="max-w-4xl mx-auto px-3 pointer-events-auto">
+          {showScrollButton && (
+            <div className="flex justify-center -translate-y-1">
+              <button
+                onClick={scrollToBottom}
+                className="w-9 h-9 rounded-full bg-accent text-white shadow-lg hover:scale-110 transition-all flex items-center justify-center"
+                title="Scroll to bottom"
+              >
+                <ChevronDown className="w-5 h-5" />
+              </button>
             </div>
+          )}
+          {error && (
+            <div className="mb-3 flex items-center gap-2 text-red-500 text-xs">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="flex-1">{error}</span>
+              <button
+                onClick={reconnect}
+                className="text-xs px-2 py-1 rounded bg-surface-hover text-muted hover:bg-accent-tint transition-colors"
+              >
+                Reconnect
+              </button>
+            </div>
+          )}
+          <div className="flex gap-3 items-end bg-surface rounded-xl border border-default p-2 shadow-lg">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={isConnected ? 'Type a message...' : 'Connecting...'}
+              disabled={!isConnected}
+              className="flex-1 resize-none bg-transparent px-2 py-3 text-sm outline-none disabled:opacity-50 scrollbar-theme text-body placeholder:text-muted"
+              style={{ lineHeight: `${LINE_HEIGHT}px`, maxHeight: `${MAX_TEXTAREA_ROWS * LINE_HEIGHT}px` }}
+            />
+            {isStreaming ? (
+              <button
+                onClick={stopStreaming}
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-red-500 text-white hover:bg-red-600 transition-colors"
+              >
+                <Square className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || !isConnected}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 ${
+                  input.trim() && isConnected
+                    ? 'bg-accent text-white shadow-md hover:shadow-lg hover:scale-105'
+                    : 'bg-surface-hover text-muted'
+                } disabled:cursor-not-allowed`}
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>
