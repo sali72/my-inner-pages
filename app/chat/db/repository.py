@@ -122,8 +122,6 @@ class ChatRepository:
                 role=role,
                 content_length=len(content),
             )
-            chat.messages.append(message)
-            chat.updated_at = datetime.utcnow()
             return chat
         except PyMongoError as e:
             logger.error(
