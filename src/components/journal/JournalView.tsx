@@ -10,6 +10,9 @@ interface JournalViewProps {
   entries: JournalEntry[];
   font: FontStyle;
   fontSize: ContentFontSize;
+  isLoadingMore: boolean;
+  hasMore: boolean;
+  onLoadMore: () => void;
   onUpdateEntry: (id: number | string, updates: Partial<JournalEntry>) => void;
   onDeleteEntry: (id: number | string) => void;
   onSaveNewEntry: (title: string, content: string, tags: string[], created_at?: string) => Promise<number | string>;
@@ -34,6 +37,9 @@ export const JournalView: React.FC<JournalViewProps> = ({
   entries,
   font,
   fontSize,
+  isLoadingMore,
+  hasMore,
+  onLoadMore,
   onUpdateEntry,
   onDeleteEntry,
   onSaveNewEntry,
@@ -166,6 +172,9 @@ export const JournalView: React.FC<JournalViewProps> = ({
         onNewEntry={handleNewEntry}
         onStartChat={onStartChat}
         onDeleteEntry={(id) => handleDeleteEntry(id)}
+        isLoadingMore={isLoadingMore}
+        hasMore={hasMore}
+        onLoadMore={onLoadMore}
       />
       <button
         onClick={handleNewEntry}

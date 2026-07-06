@@ -81,10 +81,7 @@ export type JournalResponse = z.infer<typeof journalResponseSchema>;
 
 export const journalListResponseSchema = z.object({
     items: z.array(journalResponseSchema),
-    total: z.number(),
-    page: z.number(),
-    page_size: z.number(),
-    total_pages: z.number(),
+    next_cursor: z.string().nullable(),
 });
 
 export type JournalListResponse = z.infer<typeof journalListResponseSchema>;

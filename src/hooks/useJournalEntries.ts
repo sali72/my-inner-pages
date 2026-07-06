@@ -1,9 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { JournalEntry } from '@/types';
 import { api, journalListResponseSchema, journalResponseSchema, type JournalResponse } from '@utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 const QUERY_KEY = ['journals'] as const;
+const PAGE_SIZE = 20;
 
 function mapEntry(item: JournalResponse): JournalEntry {
   return {
@@ -26,20 +27,23 @@ export const useJournalEntries = () => {
   const queryClient = useQueryClient();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
-  const { data, isLoading } = useQuery({
+  const query = useInfiniteQuery({
     queryKey: QUERY_KEY,
-    queryFn: async () => {
-      const response = await api.get('/journals', journalListResponseSchema);
-      return response.items
-        .map(mapEntry)
-        .sort(
-          (a, b) =>
-            new Date(a.created_at!).getTime() - new Date(b.created_at!).getTime(),
-        );
+    queryFn: async ({ pageParam }) => {
+      const url = pageParam
+        ? `/journals?page_size=${PAGE_SIZE}&cursor=${encodeURIComponent(pageParam)}`
+        : `/journals?page_size=${PAGE_SIZE}`;
+      const response = await api.get(url, journalListResponseSchema);
+      return response;
     },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
     enabled: isAuthenticated && !authLoading,
     staleTime: 30_000,
   });
+
+  const entries: JournalEntry[] = (query.data?.pages ?? [])
+    .flatMap(page => page.items.map(mapEntry));
 
   const createMutation = useMutation({
     mutationFn: (entry: Omit<JournalEntry, 'id'>) =>
@@ -72,8 +76,11 @@ export const useJournalEntries = () => {
   };
 
   return {
-    entries: data ?? [],
-    loading: isLoading,
+    entries,
+    loading: query.isLoading,
+    isLoadingMore: query.isFetchingNextPage,
+    hasMore: query.hasNextPage,
+    loadMore: query.fetchNextPage,
     addEntry,
     updateEntry,
     deleteEntry,

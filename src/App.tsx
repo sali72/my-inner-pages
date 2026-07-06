@@ -39,7 +39,7 @@ const AppInner: React.FC = () => {
     wasAuthenticated.current = isAuthenticated;
   }, [isAuthenticated, authLoading, syncFromRemote, resetToDefaults]);
 
-  const { entries, loading, addEntry, updateEntry, deleteEntry } = useJournalEntries();
+  const { entries, loading, isLoadingMore, hasMore, loadMore, addEntry, updateEntry, deleteEntry } = useJournalEntries();
 
   const handleSaveNewEntry = async (title: string, content: string, tags: string[], created_at?: string) => {
     const created = await addEntry({
@@ -119,6 +119,9 @@ const AppInner: React.FC = () => {
             entries={entries}
             font={fontStyle}
             fontSize={fontSize}
+            isLoadingMore={isLoadingMore}
+            hasMore={hasMore}
+            onLoadMore={loadMore}
             onUpdateEntry={updateEntry}
             onDeleteEntry={handleDeleteEntry}
             onSaveNewEntry={handleSaveNewEntry}

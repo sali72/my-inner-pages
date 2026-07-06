@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Calendar, Tag, Search, Filter, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Calendar, Tag, Search, Filter, X, Loader2 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { renderTextWithLineDirection } from '@utils/textDirection';
@@ -26,6 +26,9 @@ interface JournalTimelineProps {
   onNewEntry: () => void;
   onStartChat: (entry: JournalEntry) => void;
   onDeleteEntry: (id: number | string) => void;
+  isLoadingMore: boolean;
+  hasMore: boolean;
+  onLoadMore: () => void;
 }
 
 const MOOD_COLORS: Record<string, string> = {
@@ -63,10 +66,28 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
   onNewEntry,
   onStartChat,
   onDeleteEntry,
+  isLoadingMore,
+  hasMore,
+  onLoadMore,
 }) => {
   const hasActiveFilters = searchQuery || selectedTags.length > 0;
   const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
   const [entryToDelete, setEntryToDelete] = useState<JournalEntry | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!hasMore || isLoadingMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) onLoadMore();
+      },
+      { rootMargin: '400px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, onLoadMore]);
 
   const handleCopy = (entry: JournalEntry) => {
     navigator.clipboard.writeText(`${entry.title}\n\n${entry.content}`);
@@ -256,6 +277,14 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      <div ref={sentinelRef} className="h-4" />
+
+      {isLoadingMore && (
+        <div className="flex justify-center py-6">
+          <Loader2 className="w-5 h-5 animate-spin text-muted" />
         </div>
       )}
 
