@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
 
 
 class JournalResponse(BaseModel):
@@ -30,6 +30,12 @@ class JournalResponse(BaseModel):
     
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
+    
+    @field_serializer('created_at', 'updated_at')
+    def serialize_datetime(self, v: datetime) -> str:
+        if v.tzinfo is None:
+            return v.isoformat() + 'Z'
+        return v.isoformat()
     
     @classmethod
     def from_document(cls, journal) -> "JournalResponse":
