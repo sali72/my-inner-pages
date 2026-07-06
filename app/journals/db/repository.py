@@ -1,5 +1,8 @@
+import json
+import base64
 from datetime import datetime
 from typing import Optional
+from bson import ObjectId
 from beanie import PydanticObjectId
 from beanie.operators import In, Set
 from pymongo.errors import PyMongoError, DuplicateKeyError
@@ -101,31 +104,64 @@ class JournalRepository:
                 details={"journal_id": str(journal_id), "error": str(e)}
             )
     
+    def _decode_cursor(self, cursor: str) -> tuple[datetime, ObjectId]:
+        """Decode a cursor string into (created_at, doc_id) tuple."""
+        raw = base64.b64decode(cursor).decode()
+        data = json.loads(raw)
+        return datetime.fromisoformat(data["c"]), ObjectId(data["i"])
+
+    def _encode_cursor(self, created_at: datetime, doc_id: ObjectId) -> str:
+        """Encode a (created_at, doc_id) pair into a cursor string."""
+        raw = json.dumps({"c": created_at.isoformat(), "i": str(doc_id)})
+        return base64.b64encode(raw.encode()).decode()
+
     async def find_all_by_user(
         self,
         user_id: str,
-        skip: int = 0,
+        cursor: Optional[str] = None,
         limit: int = 20,
         session: Optional[AsyncIOMotorClientSession] = None
-    ) -> list[Journal]:
+    ) -> tuple[list[Journal], Optional[str]]:
         """
-        Find all journals for a specific user with pagination.
+        Find all journals for a specific user with cursor-based pagination.
         
         Args:
             user_id: User ID who owns the journals
-            skip: Number of documents to skip
+            cursor: Opaque cursor string from the previous page (None for first page)
             limit: Maximum number of documents to return
             session: Optional MongoDB session for transactions
             
         Returns:
-            List of journal documents
+            Tuple of (journals list, next cursor string or None if no more pages)
             
         Raises:
             RepositoryException: If database operation fails
         """
         try:
-            query = {"user_id": user_id}
-            return await self.model.find(query, session=session).sort("-created_at").skip(skip).limit(limit).to_list()
+            query: dict = {"user_id": user_id}
+            if cursor:
+                cursor_created_at, cursor_id = self._decode_cursor(cursor)
+                query["$or"] = [
+                    {"created_at": {"$lt": cursor_created_at}},
+                    {
+                        "created_at": cursor_created_at,
+                        "_id": {"$lt": cursor_id},
+                    },
+                ]
+            journals = await (
+                self.model.find(query, session=session)
+                .sort([("created_at", -1), ("_id", -1)])
+                .limit(limit + 1)
+                .to_list()
+            )
+            has_more = len(journals) > limit
+            if has_more:
+                journals = journals[:limit]
+            next_cursor = None
+            if has_more:
+                last = journals[-1]
+                next_cursor = self._encode_cursor(last.created_at, last.id)
+            return journals, next_cursor
         except PyMongoError as e:
             logger.error("journal_list_failed", error=str(e), user_id=user_id)
             raise RepositoryException(

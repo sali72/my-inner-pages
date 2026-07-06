@@ -52,7 +52,7 @@ class JournalResponse(BaseModel):
 
 
 class JournalListResponse(BaseModel):
-    """Response schema for paginated journal list."""
+    """Response schema for cursor-paginated journal list."""
     
     model_config = ConfigDict(
         json_schema_extra={
@@ -67,37 +67,26 @@ class JournalListResponse(BaseModel):
                         "updated_at": "2024-01-15T10:30:00Z"
                     }
                 ],
-                "total": 42,
-                "page": 1,
-                "page_size": 20,
-                "total_pages": 3
+                "next_cursor": "eyJjIjoiMjAyNC0wMS0xNVQxMDozMDowMCIsImkiOiI1MDdmMWY3N2JjZjg2Y2Q3OTk0MzkwMTEifQ=="
             }
         }
     )
     
     items: list[JournalResponse] = Field(..., description="List of journals")
-    total: int = Field(..., description="Total number of journals")
-    page: int = Field(..., description="Current page number")
-    page_size: int = Field(..., description="Items per page")
-    total_pages: int = Field(..., description="Total number of pages")
+    next_cursor: Optional[str] = Field(
+        default=None, description="Cursor for the next page (null if no more entries)"
+    )
     
     @classmethod
     def create(
         cls,
         journals: list,
-        total: int,
-        page: int,
-        page_size: int
+        next_cursor: Optional[str] = None,
     ) -> "JournalListResponse":
-        """Create paginated response from journals list."""
-        total_pages = (total + page_size - 1) // page_size if page_size > 0 else 0
-        
+        """Create cursor-paginated response from journals list."""
         return cls(
             items=[JournalResponse.from_document(j) for j in journals],
-            total=total,
-            page=page,
-            page_size=page_size,
-            total_pages=total_pages
+            next_cursor=next_cursor,
         )
 
 

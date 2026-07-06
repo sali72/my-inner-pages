@@ -26,8 +26,8 @@ class ChatService:
         self.config = config
 
     async def _is_ruminating(self, user_id: str) -> bool:
-        journals = await self.journal_repository.find_all_by_user(
-            user_id=user_id, skip=0, limit=1
+        journals, _ = await self.journal_repository.find_all_by_user(
+            user_id=user_id, limit=1
         )
         if not journals:
             return False

@@ -82,31 +82,28 @@ class JournalFacade:
     async def list_journals(
         self,
         user_id: str,
-        page: int = 1,
+        cursor: Optional[str] = None,
         page_size: int = 20
-    ) -> tuple[list[Journal], int]:
+    ) -> tuple[list[Journal], Optional[str]]:
         """
-        List journals for a specific user with pagination.
+        List journals for a specific user with cursor-based pagination.
         
         Args:
             user_id: User ID who owns the journals
-            page: Page number (1-indexed)
+            cursor: Opaque cursor from previous page (None for first page)
             page_size: Number of items per page
             
         Returns:
-            Tuple of (journals list, total count)
+            Tuple of (journals list, next cursor string or None if no more pages)
         """
-        # Validate and normalize pagination
-        page = max(1, page)
         page_size = min(page_size, self.config.max_page_size)
         page_size = max(1, page_size)
         
-        skip = (page - 1) * page_size
+        journals, next_cursor = await self.repository.find_all_by_user(
+            user_id, cursor=cursor, limit=page_size
+        )
         
-        journals = await self.repository.find_all_by_user(user_id, skip=skip, limit=page_size)
-        total = await self.repository.count_by_user(user_id)
-        
-        return journals, total
+        return journals, next_cursor
     
     async def update_journal(
         self,

@@ -70,9 +70,8 @@ class UserModelUpdater:
             user_model = UserModel(user_id=user_id)
             logger.info("user_model_created_new", user_id=user_id)
 
-        journals = await self.journal_repository.find_all_by_user(
+        journals, _ = await self.journal_repository.find_all_by_user(
             user_id=user_id,
-            skip=0,
             limit=self.config.max_journals_for_updater,
         )
 
@@ -115,9 +114,8 @@ class UserModelUpdater:
             raise
 
     async def _count_total_words(self, user_id: str) -> int:
-        journals = await self.journal_repository.find_all_by_user(
+        journals, _ = await self.journal_repository.find_all_by_user(
             user_id=user_id,
-            skip=0,
             limit=10000,
         )
         return sum(len(j.content.split()) for j in journals)

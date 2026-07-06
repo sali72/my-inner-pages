@@ -1,5 +1,5 @@
+from typing import Annotated, Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status, Query, Depends
-from typing import Annotated
 
 from app.journals.api.v0.schemas.request import CreateJournalRequest, UpdateJournalRequest
 from app.journals.api.v0.schemas.response import (
@@ -66,28 +66,26 @@ async def create_journal(
     dependencies=[Depends(get_db)]
 )
 async def list_journals(
-    page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     page_size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 20,
+    cursor: Annotated[Optional[str], Query(description="Opaque cursor from previous page")] = None,
     current_user: User = Depends(get_current_user),
     facade: JournalFacade = Depends(get_journal_facade)
 ) -> JournalListResponse:
     """
-    List journal entries for the authenticated user with pagination.
+    List journal entries for the authenticated user with cursor-based pagination.
     
-    - **page**: Page number (default: 1)
     - **page_size**: Items per page (default: 20, max: 100)
+    - **cursor**: Opaque cursor string from the previous page response (omit for first page)
     """
-    journals, total = await facade.list_journals(
+    journals, next_cursor = await facade.list_journals(
         user_id=str(current_user.id),
-        page=page,
+        cursor=cursor,
         page_size=page_size
     )
     
     return JournalListResponse.create(
         journals=journals,
-        total=total,
-        page=page,
-        page_size=page_size
+        next_cursor=next_cursor,
     )
 
 

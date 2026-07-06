@@ -31,12 +31,11 @@ class MemoryService:
 
         logger.info("fetching_journals", user_id=user_id, limit=limit)
 
-        journals = await self.journal_repository.find_all_by_user(
+        journals, _ = await self.journal_repository.find_all_by_user(
             user_id=user_id,
-            skip=0,
             limit=limit
         )
-
+        
         logger.info("journals_fetched", user_id=user_id, count=len(journals))
         return journals
 
