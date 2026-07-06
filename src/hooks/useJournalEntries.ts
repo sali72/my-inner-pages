@@ -11,10 +11,12 @@ function mapEntry(item: JournalResponse): JournalEntry {
     title: item.title,
     content: item.content,
     tags: item.tags,
-    date: new Date(item.created_at).toLocaleDateString('en-US', {
+    date: new Date(item.created_at).toLocaleString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
     }),
     created_at: item.created_at,
   };

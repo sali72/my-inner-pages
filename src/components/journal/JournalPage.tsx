@@ -112,16 +112,23 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
+      const hours = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      return `${y}-${m}-${day}T${hours}:${mins}`;
     }
-    return new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const day = now.getDate();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const mins = String(now.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${String(day).padStart(2, '0')}T${hours}:${mins}`;
   });
-  const [isEditingDate, setIsEditingDate] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   const formattedDate = useMemo(() => {
-    const d = new Date(entryDate + 'T12:00:00');
-    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const d = new Date(entryDate);
+    return d.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
   }, [entryDate]);
 
   const [showAuto, setShowAuto] = useState(false);
@@ -216,7 +223,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   }, [checkAutocomplete]);
 
   const save = useCallback(async () => {
-    const isoDate = entryDate ? `${entryDate}T00:00:00.000Z` : undefined;
+    const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
 
     if (isNew && !hasCreatedRef.current && (title.trim() || content.trim() || allTags.length > 0)) {
       hasCreatedRef.current = true;
@@ -232,11 +239,14 @@ export const JournalPage: React.FC<JournalPageProps> = ({
 
     const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
+    const dateChanged = isoDate
+      ? !entry.created_at || Math.abs(new Date(isoDate).getTime() - new Date(entry.created_at).getTime()) > 1000
+      : false;
     if (
       trimmedTitle !== entry.title ||
       trimmedContent !== entry.content ||
       JSON.stringify(allTags) !== JSON.stringify(entry.tags) ||
-      (isoDate && isoDate !== entry.created_at)
+      dateChanged
     ) {
       setSaveStatus('saving');
       try {
@@ -393,30 +403,20 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         className="flex items-center gap-3 px-6 md:px-8"
         style={{ background: 'var(--bg-elevated)' }}
       >
-        {isEditingDate ? (
-          <input
-            ref={dateInputRef}
-            type="date"
-            value={entryDate}
-            onChange={(e) => {
-              setEntryDate(e.target.value);
-              setIsEditingDate(false);
-            }}
-            onBlur={() => setIsEditingDate(false)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') setIsEditingDate(false);
-            }}
-            className="text-xs text-muted/50 input-field px-1 py-0.5 rounded w-auto"
-            autoFocus
-          />
-        ) : (
-          <button
-            onClick={() => setIsEditingDate(true)}
-            className="text-xs text-muted/50 hover:text-muted transition-colors text-left"
-          >
-            {formattedDate}
-          </button>
-        )}
+        <button
+          onClick={() => dateInputRef.current?.showPicker()}
+          className="text-xs text-muted/50 hover:text-muted transition-colors text-left"
+        >
+          {formattedDate}
+        </button>
+        <input
+          ref={dateInputRef}
+          type="datetime-local"
+          value={entryDate}
+          onChange={(e) => setEntryDate(e.target.value)}
+          className="absolute opacity-0 w-px h-px overflow-hidden"
+          tabIndex={-1}
+        />
         <SaveIndicator status={saveStatus} />
       </div>
 

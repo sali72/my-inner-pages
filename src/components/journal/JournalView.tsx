@@ -18,10 +18,12 @@ interface JournalViewProps {
 
 const draftEntry: JournalEntry = {
   id: 'new',
-  date: new Date().toLocaleDateString('en-US', {
+  date: new Date().toLocaleString('en-US', {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
   }),
   title: '',
   content: '',

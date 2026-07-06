@@ -44,8 +44,8 @@ const AppInner: React.FC = () => {
   const handleSaveNewEntry = async (title: string, content: string, tags: string[], created_at?: string) => {
     const created = await addEntry({
       date: created_at
-        ? new Date(created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-        : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        ? new Date(created_at).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+        : new Date().toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
       title,
       tags,
       content,
