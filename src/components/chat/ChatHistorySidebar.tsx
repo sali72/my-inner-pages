@@ -1,5 +1,5 @@
-import React from 'react';
-import { MessageSquare, Trash2, Plus } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { MessageSquare, Trash2, Plus, Search, X } from 'lucide-react';
 import type { ChatSummary } from '@/types/chat';
 
 interface ChatHistorySidebarProps {
@@ -21,6 +21,14 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     onDeleteChat,
     onNewChat,
 }) => {
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredChats = useMemo(() => {
+        if (!searchQuery.trim()) return chats;
+        const q = searchQuery.toLowerCase();
+        return chats.filter(chat => (chat.title || 'New chat').toLowerCase().includes(q));
+    }, [chats, searchQuery]);
+
     return (
         <>
             {isOpen && (
@@ -33,26 +41,46 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
             <aside
                 className={`fixed right-0 top-0 h-full w-80 bg-surface border-l border-default z-50 transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}
             >
-                <div className="h-16 px-4 border-b border-default flex items-center justify-between">
-                    <h2 className="text-xl font-serif font-bold text-body">
-                        Chat History
-                    </h2>
-                    <button
-                        onClick={onNewChat}
-                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
-                    >
-                        <Plus className="w-3.5 h-3.5" />
-                        New
-                    </button>
+                <div className="px-4 pt-4 pb-2 border-b border-default space-y-2">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-serif font-bold text-body">
+                            Chat History
+                        </h2>
+                        <button
+                            onClick={onNewChat}
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            New
+                        </button>
+                    </div>
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search chats..."
+                            className="w-full pl-8 pr-8 py-1.5 text-sm rounded-lg bg-surface-hover border border-default outline-none focus:border-accent transition-colors text-body placeholder:text-muted"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-body transition-colors"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto py-2 scrollbar-theme">
-                    {chats.length === 0 ? (
+                    {filteredChats.length === 0 ? (
                         <p className="text-sm text-center py-8 text-muted">
-                            No chats yet
+                            {searchQuery ? 'No matching chats' : 'No chats yet'}
                         </p>
                     ) : (
-                        chats.map(chat => (
+                        filteredChats.map(chat => (
                             <button
                                 key={chat.id}
                                 onClick={() => onSelectChat(chat.id)}
@@ -89,7 +117,7 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                 </div>
 
                 <div className="p-4 border-t border-default text-xs text-muted">
-                    {chats.length} chat{chats.length !== 1 ? 's' : ''}
+                    {filteredChats.length} of {chats.length} chat{chats.length !== 1 ? 's' : ''}
                 </div>
             </aside>
         </>

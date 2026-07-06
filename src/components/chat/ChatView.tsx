@@ -8,6 +8,7 @@ import type { ChatSummary } from '@/types/chat';
 
 const MAX_TEXTAREA_ROWS = 10;
 const LINE_HEIGHT = 22;
+const INPUT_VERTICAL_PADDING = 24;
 
 interface ChatViewProps {
   isDark: boolean;
@@ -48,6 +49,8 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
   const userScrolledUp = useRef(false);
   const processedMessageRef = useRef<string>('');
   const pendingMessageRef = useRef<string | null>(null);
+  const prevStreaming = useRef(isStreaming);
+  const titleRefreshed = useRef(false);
 
   const loadChatList = useCallback(async () => {
     try {
@@ -82,6 +85,21 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
   }, [chatId, loadChatList]);
 
   useEffect(() => {
+    if (!titleRefreshed.current && messages.length >= 2 && chatId) {
+      titleRefreshed.current = true;
+      const title = messages[0].content.replace(/\n/g, ' ').slice(0, 100).trim() || 'New chat';
+      setChatList(prev => prev.map(c => c.id === chatId ? { ...c, title } : c));
+    }
+  }, [messages.length, chatId]);
+
+  useEffect(() => {
+    if (prevStreaming.current && !isStreaming && messages.length > 0) {
+      loadChatList();
+    }
+    prevStreaming.current = isStreaming;
+  }, [isStreaming, messages.length, loadChatList]);
+
+  useEffect(() => {
     if (initialMessage && initialMessage !== processedMessageRef.current) {
       processedMessageRef.current = initialMessage;
       pendingMessageRef.current = initialMessage;
@@ -114,8 +132,9 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
     const el = inputRef.current;
     if (!el) return;
     const maxHeight = MAX_TEXTAREA_ROWS * LINE_HEIGHT;
+    const minHeight = LINE_HEIGHT + INPUT_VERTICAL_PADDING;
     el.style.height = '0px';
-    el.style.height = `${Math.max(LINE_HEIGHT, Math.min(el.scrollHeight, maxHeight))}px`;
+    el.style.height = `${Math.max(minHeight, Math.min(el.scrollHeight, maxHeight))}px`;
     el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
   }, []);
 
@@ -126,6 +145,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
   const handleSend = () => {
     const trimmed = input.trim();
     if (!trimmed || !isConnected || isStreaming) return;
+    userScrolledUp.current = false;
     sendMessage(trimmed);
     setInput('');
     inputRef.current?.focus();
@@ -201,17 +221,18 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
   };
 
   const handleNewChat = () => {
+    titleRefreshed.current = false;
     startNewChat();
     setTimeout(() => loadChatList(), 500);
   };
 
   return (
     <>
-      <div className="px-4 pt-2 pb-28">
+      <div className="px-4 pt-2 pb-0">
         <div className="w-full max-w-4xl mx-auto">
           <div className="rounded-2xl bg-elevated border border-default">
             {messages.length === 0 ? (
-              <div className="min-h-[calc(100dvh-12rem)] flex flex-col items-center justify-center p-8 text-center">
+              <div className="min-h-[calc(100dvh-6rem)] flex flex-col items-center justify-center p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mb-4 shadow-lg">
                   <MessageSquare className="w-8 h-8 text-white" />
                 </div>
@@ -232,7 +253,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
                 )}
               </div>
             ) : (
-              <div className="p-4 space-y-6">
+              <div className="p-4 space-y-6 pb-28 min-h-[calc(100dvh-6rem)]">
                 {messages.map((msg, idx) => {
                   const isLastUserMsg = idx === lastUserIdx;
                   const isLastAssistant = idx === messages.length - 1 && msg.role === 'assistant' && lastUserIdx !== -1;
@@ -356,7 +377,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-base via-base/95 via-60% to-transparent pointer-events-none">
+      <div className="fixed bottom-6 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-base via-base/95 via-60% to-transparent pointer-events-none">
         <div className="max-w-4xl mx-auto px-3 pointer-events-auto">
           {showScrollButton && (
             <div className="flex justify-center -translate-y-1">
@@ -390,7 +411,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
               placeholder={isConnected ? 'Type a message...' : 'Connecting...'}
               disabled={!isConnected}
               className="flex-1 resize-none bg-transparent px-2 py-3 text-sm outline-none disabled:opacity-50 scrollbar-theme text-body placeholder:text-muted"
-              style={{ lineHeight: `${LINE_HEIGHT}px`, maxHeight: `${MAX_TEXTAREA_ROWS * LINE_HEIGHT}px` }}
+              style={{ lineHeight: `${LINE_HEIGHT}px`, maxHeight: `${MAX_TEXTAREA_ROWS * LINE_HEIGHT}px`, height: `${LINE_HEIGHT + INPUT_VERTICAL_PADDING}px` }}
             />
             {isStreaming ? (
               <button
