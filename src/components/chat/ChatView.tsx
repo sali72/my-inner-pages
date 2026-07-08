@@ -15,9 +15,10 @@ interface ChatViewProps {
   initialMessage?: string | null;
   onInitialMessageSent?: () => void;
   chatHistoryOpen: boolean;
+  onToggleChatHistory: () => void;
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onInitialMessageSent, chatHistoryOpen }) => {
+export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onInitialMessageSent, chatHistoryOpen, onToggleChatHistory }) => {
   const {
     chatId,
     messages,
@@ -444,6 +445,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
         isOpen={chatHistoryOpen}
         chats={chatList}
         activeChatId={chatId}
+        onClose={onToggleChatHistory}
         onSelectChat={handleSelectChat}
         onDeleteChat={handleDeleteChat}
         onNewChat={handleNewChat}

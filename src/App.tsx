@@ -137,6 +137,7 @@ const AppInner: React.FC = () => {
             initialMessage={chatInitialMessage}
             onInitialMessageSent={() => setChatInitialMessage(null)}
             chatHistoryOpen={chatHistoryOpen}
+            onToggleChatHistory={() => setChatHistoryOpen(!chatHistoryOpen)}
           />
         </div>
 
