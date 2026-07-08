@@ -48,18 +48,34 @@ export const useJournalEntries = () => {
   const createMutation = useMutation({
     mutationFn: (entry: Omit<JournalEntry, 'id'>) =>
       api.post('/journals', { title: entry.title, content: entry.content, tags: entry.tags, created_at: entry.created_at }, journalResponseSchema),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+    onMutate: async (newEntry) => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEY });
+      const previousData = queryClient.getQueryData<typeof query.data>(QUERY_KEY);
+      return { previousData };
+    },
+    onError: (_err, _newEntry, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(QUERY_KEY, context.previousData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, title, content, tags, created_at }: Partial<JournalEntry> & { id: number | string }) =>
       api.put(`/journals/${id}`, { title, content, tags, created_at }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number | string) => api.delete(`/journals/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+    },
   });
 
   const addEntry = async (entry: Omit<JournalEntry, 'id'>) => {

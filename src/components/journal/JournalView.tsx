@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Edit2 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { JournalTimeline } from './JournalTimeline';
@@ -19,19 +19,22 @@ interface JournalViewProps {
   onStartChat: (entry: JournalEntry) => void;
 }
 
-const draftEntry: JournalEntry = {
-  id: 'new',
-  date: new Date().toLocaleString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }),
-  title: '',
-  content: '',
-  tags: [],
-};
+function makeDraftEntry(): JournalEntry {
+  const now = new Date();
+  return {
+    id: 'new',
+    date: now.toLocaleString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }),
+    title: '',
+    content: '',
+    tags: [],
+  };
+}
 
 export const JournalView: React.FC<JournalViewProps> = ({
   entries,
@@ -53,16 +56,23 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [showFilters, setShowFilters] = useState(false);
 
+  const navigatedAwayRef = useRef(false);
+  const localEntryRef = useRef<Map<string | number, JournalEntry>>(new Map());
+
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
     entries.forEach(entry => {
+      entry.tags?.forEach(tag => tagSet.add(tag));
+    });
+    localEntryRef.current.forEach(entry => {
       entry.tags?.forEach(tag => tagSet.add(tag));
     });
     return Array.from(tagSet).sort();
   }, [entries]);
 
   const filteredEntries = useMemo(() => {
-    let filtered = entries.filter(entry => {
+    const allEntries = [...localEntryRef.current.values(), ...entries];
+    let filtered = allEntries.filter(entry => {
       const matchesSearch = searchQuery === '' ||
         entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         entry.content.toLowerCase().includes(searchQuery.toLowerCase());
@@ -91,6 +101,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
   const currentEntry = useMemo(() => {
     if (selectedEntryId === null) return null;
+    const fromLocal = localEntryRef.current.get(selectedEntryId);
+    if (fromLocal) return fromLocal;
     return entries.find(e => e.id === selectedEntryId) || null;
   }, [entries, selectedEntryId]);
 
@@ -105,18 +117,31 @@ export const JournalView: React.FC<JournalViewProps> = ({
   }, []);
 
   const handleBackToTimeline = useCallback(() => {
+    navigatedAwayRef.current = true;
     setSelectedEntryId(null);
     setIsNewEntry(false);
   }, []);
 
   const handleCreateEntry = useCallback(async (title: string, content: string, tags: string[], created_at?: string) => {
     const id = await onSaveNewEntry(title, content, tags, created_at);
+    if (navigatedAwayRef.current) return id;
+    localEntryRef.current.set(id, {
+      id,
+      title,
+      content,
+      tags,
+      date: created_at
+        ? new Date(created_at).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+        : new Date().toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
+      created_at,
+    });
     setSelectedEntryId(id);
     setIsNewEntry(false);
     return id;
   }, [onSaveNewEntry]);
 
   const handleDeleteEntry = useCallback((id: number | string) => {
+    localEntryRef.current.delete(id);
     onDeleteEntry(id);
     setSelectedEntryId(null);
   }, [onDeleteEntry]);
@@ -126,18 +151,19 @@ export const JournalView: React.FC<JournalViewProps> = ({
     setSelectedTags([]);
   }, []);
 
-  const displayEntry = isNewEntry ? draftEntry : currentEntry;
+  const displayEntry = isNewEntry ? makeDraftEntry() : currentEntry;
 
   if (displayEntry) {
     return (
       <div className="flex flex-col min-h-[calc(100vh-5rem)]">
           <JournalPage
-            key={displayEntry.id}
+            key={isNewEntry ? 'new' : String(selectedEntryId)}
             entry={displayEntry}
             font={font}
             fontSize={fontSize}
             isNew={isNewEntry}
             allAppTags={allTags}
+            onUpdateById={onUpdateEntry}
             onUpdate={(updates) => onUpdateEntry(displayEntry.id, updates)}
             onCreate={isNewEntry ? handleCreateEntry : undefined}
             onDelete={() => handleDeleteEntry(displayEntry.id)}

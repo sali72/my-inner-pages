@@ -15,6 +15,7 @@ interface JournalPageProps {
   isNew?: boolean;
   allAppTags?: string[];
   onUpdate?: (updates: Partial<JournalEntry>) => void;
+  onUpdateById?: (id: string | number, updates: Partial<JournalEntry>) => Promise<void>;
   onCreate?: (title: string, content: string, tags: string[], created_at?: string) => Promise<number | string>;
   onDelete: () => void;
   onChat: () => void;
@@ -92,6 +93,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   isNew = false,
   allAppTags = [],
   onUpdate,
+  onUpdateById,
   onCreate,
   onDelete,
   onChat,
@@ -142,6 +144,8 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const tagInputRef = useRef<HTMLInputElement>(null);
   const saveStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasCreatedRef = useRef(false);
+  const entryIdRef = useRef<string | number | null>(null);
+  const creationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const fromContent = parseHashTags(entry.content || '');
@@ -222,16 +226,38 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     return () => el.removeEventListener('input', onInput);
   }, [checkAutocomplete]);
 
+  const clearSaveStatus = useCallback(() => {
+    if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
+    saveStatusTimerRef.current = setTimeout(() => setSaveStatus(null), 1000);
+  }, []);
+
+  const isRealId = (v: string | number | null): v is string | number => {
+    return v !== null && v !== 'pending';
+  };
+
   const save = useCallback(async () => {
     const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
 
-    if (isNew && !hasCreatedRef.current && (title.trim() || content.trim() || allTags.length > 0)) {
-      hasCreatedRef.current = true;
+    if (isNew && !isRealId(entryIdRef.current) && (title.trim() || content.trim() || allTags.length > 0)) {
+      entryIdRef.current = 'pending';
       setSaveStatus('saving');
       try {
-        await onCreate!(title, content, allTags, isoDate);
+        const id = await onCreate!(title, content, allTags, isoDate);
+        entryIdRef.current = id;
       } catch {
-        hasCreatedRef.current = false;
+        entryIdRef.current = null;
+        setSaveStatus('error');
+      }
+      return;
+    }
+
+    if (isNew && isRealId(entryIdRef.current)) {
+      setSaveStatus('saving');
+      try {
+        await onUpdateById!(entryIdRef.current, { title: title.trim(), content: content.trim(), tags: allTags, created_at: isoDate });
+        setSaveStatus('saved');
+        clearSaveStatus();
+      } catch {
         setSaveStatus('error');
       }
       return;
@@ -254,20 +280,30 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       try {
         await onUpdate!({ title: trimmedTitle, content: trimmedContent, tags: allTags, created_at: isoDate });
         setSaveStatus('saved');
-        if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
-        saveStatusTimerRef.current = setTimeout(() => setSaveStatus(null), 2500);
+        clearSaveStatus();
       } catch {
         setSaveStatus('error');
       }
     }
-  }, [isNew, title, content, allTags, entryDate, entry, onCreate, onUpdate]);
+  }, [isNew, title, content, allTags, entryDate, entry, onCreate, onUpdate, onUpdateById, clearSaveStatus]);
 
   const handleBlur = useCallback(() => { save(); }, [save]);
 
   useEffect(() => {
     if (isNew) return;
-    const timer = setTimeout(() => save(), 4000);
+    const timer = setTimeout(() => save(), 1500);
     return () => clearTimeout(timer);
+  }, [title, content, allTags, isNew, save]);
+
+  useEffect(() => {
+    if (!isNew || entryIdRef.current !== null) return;
+    if (title.trim() || content.trim() || allTags.length > 0) {
+      if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
+      creationTimerRef.current = setTimeout(() => save(), 600);
+    }
+    return () => {
+      if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
+    };
   }, [title, content, allTags, isNew, save]);
 
   useEffect(() => {
@@ -277,10 +313,16 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   }, [save]);
 
   useEffect(() => {
-    return () => { if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current); };
+    return () => {
+      if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
+      if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
+    };
   }, []);
 
-  const handleBack = () => { save(); onBack(); };
+  const handleBack = useCallback(async () => {
+    await save();
+    onBack();
+  }, [save, onBack]);
 
   const removeTag = (tag: string) => {
     setExplicitTags(prev => prev.filter(t => t !== tag));
