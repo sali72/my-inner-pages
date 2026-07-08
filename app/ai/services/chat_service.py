@@ -1,7 +1,7 @@
 from collections.abc import AsyncGenerator
 
 from app.ai.config import AIModuleConfig
-from app.ai.integrations.openrouter_client import LLMClient
+from app.ai.integrations.base import LLMClient
 from app.ai.prompts.chat import build_system_prompt as format_system_prompt
 from app.ai.prompts.chat import format_conversation_prompt
 from app.ai.rumination import RUMINATION_THRESHOLD

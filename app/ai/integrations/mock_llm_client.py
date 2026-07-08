@@ -2,7 +2,7 @@ import json
 from collections.abc import AsyncGenerator
 from typing import Optional
 
-from app.ai.integrations.openrouter_client import LLMClient
+from app.ai.integrations.base import LLMClient
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)

@@ -3,13 +3,12 @@ from functools import lru_cache
 from fastapi import Depends
 
 from app.ai.config import AIModuleConfig
+from app.ai.integrations.base import LLMClient
 from app.ai.integrations.mock_llm_client import MockLLMClient
-from app.ai.integrations.openrouter_client import LLMClient, OpenRouterClient
+from app.ai.integrations.litellm_client import LiteLLMClient
 from app.ai.services.chat_service import ChatService
 from app.ai.services.mirror_service import MirrorService
 from app.ai.ws.manager import ConnectionManager
-from app.core.config import Settings
-from app.core.deps.settings import get_settings
 from app.journals.deps import get_journal_repository
 from app.journals.db.repository import JournalRepository
 from app.memory.deps import get_memory_service
@@ -22,26 +21,16 @@ def get_ai_config() -> AIModuleConfig:
 
 
 def get_llm_client(
-    settings: Settings = Depends(get_settings),
     config: AIModuleConfig = Depends(get_ai_config)
 ) -> LLMClient:
-    """
-    Get LLM client configured via AIModuleConfig.
-    
-    Returns MockLLMClient if use_mock_llm is True,
-    otherwise returns OpenRouterClient with fallback chain.
-    """
     if config.use_mock_llm:
         return MockLLMClient()
-    
-    return OpenRouterClient(
-        api_key=config.openrouter_api_key,
-        model=config.llm_model,
-        fallback_models=config.llm_fallback_models,
-        base_url=config.llm_base_url,
+
+    return LiteLLMClient(
+        providers_path=config.llm_providers_path,
         max_tokens=config.llm_max_tokens,
         temperature=config.llm_temperature,
-        app_name=settings.app_name
+        timeout=config.llm_timeout,
     )
 
 

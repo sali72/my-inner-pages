@@ -29,10 +29,8 @@ def get_memory_service(
 
 def _get_llm_client():
     from app.ai.deps import get_llm_client as _ai_get_llm_client
-    from app.core.deps.settings import get_settings
     from app.ai.config import AIModuleConfig
     return _ai_get_llm_client(
-        settings=get_settings(),
         config=AIModuleConfig(),
     )
 

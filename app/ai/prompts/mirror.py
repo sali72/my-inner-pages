@@ -1,8 +1,3 @@
-from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-
-
-# System prompts for each reflection mode
 SYSTEM_PROMPTS = {
     "emotional": (
         "You are a compassionate reflection companion for a journaling app. "
@@ -37,46 +32,29 @@ SYSTEM_PROMPTS = {
     )
 }
 
+USER_PROMPT_WITH_JOURNALS = (
+    "Here are the user's recent journal entries:\n\n"
+    "{context}\n\n"
+    "Based on these entries, provide a brief {mode} reflection. "
+    "Focus on patterns you notice and insights that might help them understand themselves better. "
+    "Be warm, compassionate, and encouraging. Keep it personal and specific to their writing."
+)
 
-# User prompt templates
-USER_PROMPT_WITH_JOURNALS = """Here are the user's recent journal entries:
-
-{context}
-
-Based on these entries, provide a brief {mode} reflection. Focus on patterns you notice and insights that might help them understand themselves better. Be warm, compassionate, and encouraging. Keep it personal and specific to their writing."""
-
-USER_PROMPT_NO_JOURNALS = """The user hasn't written any journal entries yet. Provide a gentle, welcoming {mode} reflection that encourages them to start journaling and explains how this mirror will help them understand themselves better."""
+USER_PROMPT_NO_JOURNALS = (
+    "The user hasn't written any journal entries yet. "
+    "Provide a gentle, welcoming {mode} reflection that encourages them to start journaling "
+    "and explains how this mirror will help them understand themselves better."
+)
 
 
 def get_system_prompt(mode: str) -> str:
-    """Get system prompt for a reflection mode."""
     return SYSTEM_PROMPTS.get(mode, SYSTEM_PROMPTS["emotional"])
 
 
-def create_reflection_prompt(mode: str, has_journals: bool = True) -> ChatPromptTemplate:
-    """
-    Create a LangChain prompt template for mirror reflections.
-    
-    Args:
-        mode: Reflection mode (emotional, cognitive, behavioral, relational)
-        has_journals: Whether user has journal entries
-        
-    Returns:
-        ChatPromptTemplate configured for the mode
-    """
+def create_reflection_prompt(mode: str, has_journals: bool = True) -> tuple[str, str]:
     system_prompt = get_system_prompt(mode)
-    
     if has_journals:
         user_template = USER_PROMPT_WITH_JOURNALS
     else:
         user_template = USER_PROMPT_NO_JOURNALS
-    
-    return ChatPromptTemplate.from_messages([
-        SystemMessagePromptTemplate.from_template(system_prompt),
-        HumanMessagePromptTemplate.from_template(user_template)
-    ])
-
-
-def get_output_parser() -> StrOutputParser:
-    """Get output parser for reflection responses."""
-    return StrOutputParser()
+    return system_prompt, user_template

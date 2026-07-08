@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from app.ai.integrations.openrouter_client import LLMClient
+from app.ai.integrations.base import LLMClient
 from app.core.logging import get_logger
 from app.journals.db.models import Journal
 from app.journals.db.repository import JournalRepository

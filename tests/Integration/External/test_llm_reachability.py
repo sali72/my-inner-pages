@@ -1,6 +1,6 @@
-import os
+import json
+from pathlib import Path
 
-import httpx
 import pytest
 
 from app.ai.config import AIModuleConfig
@@ -12,45 +12,87 @@ def ai_config() -> AIModuleConfig:
 
 
 @pytest.mark.asyncio
-async def test_llm_base_url_dns_resolves(ai_config: AIModuleConfig):
-    import socket
-    from urllib.parse import urlparse
+async def test_llm_providers_file_exists(ai_config: AIModuleConfig):
+    path = Path(ai_config.llm_providers_path)
+    if not path.is_absolute():
+        import os
+        path = Path(os.getcwd()) / path
 
-    hostname = urlparse(ai_config.llm_base_url).hostname
-    assert hostname is not None, "Could not extract hostname from llm_base_url"
-
-    try:
-        socket.getaddrinfo(hostname, 443)
-    except socket.gaierror:
-        pytest.fail(f"DNS resolution failed for {hostname}")
+    assert path.exists(), (
+        f"LLM providers config not found at {path}. "
+        f"Create it or set LLM_PROVIDERS_PATH to the correct path."
+    )
 
 
 @pytest.mark.asyncio
-async def test_llm_models_endpoint_reachable(ai_config: AIModuleConfig):
+async def test_llm_providers_file_valid_json(ai_config: AIModuleConfig):
+    path = Path(ai_config.llm_providers_path)
+    if not path.is_absolute():
+        import os
+        path = Path(os.getcwd()) / path
+
+    if not path.exists():
+        pytest.skip("LLM providers config file not found")
+
+    with open(path) as f:
+        providers = json.load(f)
+
+    assert isinstance(providers, list), "providers config must be a JSON array"
+    assert len(providers) > 0, "providers config must have at least one entry"
+
+    for i, p in enumerate(providers):
+        assert "model_name" in p, f"Provider {i} missing 'model_name'"
+        assert "litellm_params" in p, f"Provider {i} missing 'litellm_params'"
+        assert "model" in p["litellm_params"], f"Provider {i} missing 'litellm_params.model'"
+
+
+@pytest.mark.asyncio
+async def test_llm_provider_reachable(ai_config: AIModuleConfig):
     if ai_config.use_mock_llm:
         pytest.skip("USE_MOCK_LLM is enabled — no external LLM provider configured")
 
-    if not ai_config.openrouter_api_key:
-        pytest.skip("No OPENROUTER_API_KEY set — skipping reachability check")
+    path = Path(ai_config.llm_providers_path)
+    if not path.is_absolute():
+        import os
+        path = Path(os.getcwd()) / path
 
-    url = f"{ai_config.llm_base_url.rstrip('/')}/models"
-    headers = {"Authorization": f"Bearer {ai_config.openrouter_api_key}"}
+    if not path.exists():
+        pytest.skip("LLM providers config file not found")
 
-    async with httpx.AsyncClient(timeout=10) as client:
-        response = await client.get(url, headers=headers)
+    with open(path) as f:
+        providers = json.load(f)
 
-    assert response.status_code == 200, (
-        f"LLM provider at {ai_config.llm_base_url} returned "
-        f"{response.status_code}. Expected 200."
-    )
+    import httpx
 
+    tested_any = False
+    for p in providers:
+        params = p.get("litellm_params", {})
+        api_base = params.get("api_base")
+        api_key_ref = params.get("api_key", "")
 
-@pytest.mark.asyncio
-async def test_llm_config_has_api_key_when_not_mock(ai_config: AIModuleConfig):
-    if ai_config.use_mock_llm:
-        pytest.skip("USE_MOCK_LLM is enabled — no API key required")
+        if not api_base:
+            continue
 
-    assert ai_config.openrouter_api_key, (
-        "OPENROUTER_API_KEY is not set but USE_MOCK_LLM is disabled. "
-        "Either set the API key or enable USE_MOCK_LLM=true."
-    )
+        api_key = ""
+        if api_key_ref.startswith("os.environ/"):
+            import os
+            env_var = api_key_ref.split("/", 1)[1]
+            api_key = os.environ.get(env_var, "")
+
+        if not api_key:
+            continue
+
+        url = f"{api_base.rstrip('/')}/models"
+        headers = {"Authorization": f"Bearer {api_key}"}
+
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(url, headers=headers)
+
+        assert response.status_code == 200, (
+            f"Provider at {api_base} returned {response.status_code}. Expected 200."
+        )
+        tested_any = True
+        break
+
+    if not tested_any:
+        pytest.skip("No provider with api_base and valid API key found")
