@@ -15,8 +15,8 @@ AI-powered private journaling app. Backend: FastAPI + MongoDB. Frontend: React +
 - `frontend/` — React SPA → see `frontend/AGENTS.md`
 
 ## General conventions
+- **Simplicity first:** prefer the most maintainable solution, avoid unnecessary complexity
 - Commit messages: imperative mood, scope-prefixed (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`)
-- Squash-merge PRs to `main`
 - Never commit `.env` files, secrets, or credentials
 - Lockfiles (`package-lock.json`, `uv.lock`) committed on dependency changes
 - Keep `AGENTS.md` files updated alongside code changes in the same PR
