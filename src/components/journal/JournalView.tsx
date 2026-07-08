@@ -107,11 +107,13 @@ export const JournalView: React.FC<JournalViewProps> = ({
   }, [entries, selectedEntryId]);
 
   const handleSelectEntry = useCallback((id: number | string) => {
+    navigatedAwayRef.current = false;
     setSelectedEntryId(id);
     setIsNewEntry(false);
   }, []);
 
   const handleNewEntry = useCallback(() => {
+    navigatedAwayRef.current = false;
     setSelectedEntryId('new');
     setIsNewEntry(true);
   }, []);
@@ -151,7 +153,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
     setSelectedTags([]);
   }, []);
 
-  const displayEntry = isNewEntry ? makeDraftEntry() : currentEntry;
+  const draftEntry = useMemo(() => makeDraftEntry(), [isNewEntry]);
+  const displayEntry = isNewEntry ? draftEntry : currentEntry;
 
   if (displayEntry) {
     return (

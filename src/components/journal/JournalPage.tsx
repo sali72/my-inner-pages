@@ -49,6 +49,10 @@ function stripHashTag(text: string, tag: string): string {
   return text.replace(new RegExp(`#${tag}\\b`, 'g'), '').replace(/\s+/g, ' ').trim();
 }
 
+function isRealId(v: string | number | null): v is string | number {
+  return v !== null && v !== 'pending';
+}
+
 function getCursorPixelPos(textarea: HTMLTextAreaElement): { top: number; left: number } | null {
   const mirror = document.createElement('div');
   const style = window.getComputedStyle(textarea);
@@ -143,7 +147,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const autoRef = useRef<HTMLDivElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const saveStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasCreatedRef = useRef(false);
   const entryIdRef = useRef<string | number | null>(null);
   const creationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -231,10 +234,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     saveStatusTimerRef.current = setTimeout(() => setSaveStatus(null), 1000);
   }, []);
 
-  const isRealId = (v: string | number | null): v is string | number => {
-    return v !== null && v !== 'pending';
-  };
-
   const save = useCallback(async () => {
     const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
 
@@ -286,8 +285,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       }
     }
   }, [isNew, title, content, allTags, entryDate, entry, onCreate, onUpdate, onUpdateById, clearSaveStatus]);
-
-  const handleBlur = useCallback(() => { save(); }, [save]);
 
   useEffect(() => {
     if (isNew) return;
@@ -472,7 +469,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          onBlur={handleBlur}
+          onBlur={() => save()}
           placeholder="Title..."
           className={`w-full text-3xl md:text-4xl ${getFontClass(font)} font-bold text-body bg-transparent border-none focus:outline-none p-0 mb-4`}
           style={{ direction: detectRTL(title) ? 'rtl' : 'ltr' }}
@@ -523,7 +520,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
               autoResizeTextarea();
             }}
             onKeyDown={handleTextareaKeyDown}
-            onBlur={handleBlur}
+            onBlur={() => save()}
             placeholder={isNew ? 'Begin writing your story...' : 'Begin writing...'}
             className={`w-full flex-1 ${getFontClass(font)} ${getFontSizeClass(fontSize)} leading-relaxed resize-none focus:outline-none text-body placeholder:text-muted/40`}
             style={{
