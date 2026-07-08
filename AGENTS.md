@@ -21,6 +21,9 @@ React 18 SPA with TypeScript, Vite, Tailwind CSS, TanStack Query, Playwright.
 - **State:** AuthContext (global auth), ThemeContext (preferences), TanStack React Query (server data), local state for ephemeral UI
 - **Barrel exports:** each component directory has `index.ts`
 
+## UX principles
+- **Mobile-first:** design for phone screens first, then enhance for desktop
+
 ## Key conventions
 - **Imports:** path aliases over relative; external first, local second
 - **Components:** arrow functions, destructured inline props
