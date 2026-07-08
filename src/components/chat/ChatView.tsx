@@ -15,10 +15,9 @@ interface ChatViewProps {
   initialMessage?: string | null;
   onInitialMessageSent?: () => void;
   chatHistoryOpen: boolean;
-  onToggleChatHistory: () => void;
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onInitialMessageSent, chatHistoryOpen, onToggleChatHistory }) => {
+export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onInitialMessageSent, chatHistoryOpen }) => {
   const {
     chatId,
     messages,
@@ -227,7 +226,8 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
   };
 
   return (
-    <>
+    <div className="flex min-h-[calc(100dvh-4rem)]">
+      <div className="flex-1 min-w-0">
       <div className="px-4 pt-2 pb-0">
         <div className="w-full max-w-4xl mx-auto">
           <div className="rounded-2xl bg-elevated border border-default">
@@ -377,7 +377,9 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
         </div>
       </div>
 
-      <div className="fixed bottom-6 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-base via-base/95 via-60% to-transparent pointer-events-none">
+      <div className="fixed bottom-6 left-0 px-4 pb-4 pt-4 bg-gradient-to-t from-base via-base/95 via-60% to-transparent pointer-events-none"
+        style={{ right: chatHistoryOpen ? 320 : 0 }}
+      >
         <div className="max-w-4xl mx-auto px-3 pointer-events-auto">
           {showScrollButton && (
             <div className="flex justify-center -translate-y-1">
@@ -436,16 +438,16 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
           </div>
         </div>
       </div>
+      </div>
 
-    <ChatHistorySidebar
-      isOpen={chatHistoryOpen}
-      chats={chatList}
-      activeChatId={chatId}
-      onClose={onToggleChatHistory}
-      onSelectChat={handleSelectChat}
-      onDeleteChat={handleDeleteChat}
-      onNewChat={handleNewChat}
-    />
-    </>
+      <ChatHistorySidebar
+        isOpen={chatHistoryOpen}
+        chats={chatList}
+        activeChatId={chatId}
+        onSelectChat={handleSelectChat}
+        onDeleteChat={handleDeleteChat}
+        onNewChat={handleNewChat}
+      />
+    </div>
   );
 };

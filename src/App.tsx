@@ -109,7 +109,7 @@ const AppInner: React.FC = () => {
         onViewChange={setActiveView}
       />
 
-      <main className="pt-16 min-h-screen pb-4 scrollbar-theme">
+      <main className="pt-16 scrollbar-theme">
         {activeView === 'journal' && loading ? (
           <div className="flex items-center justify-center min-h-[600px]">
             <p className="text-secondary text-lg">Loading journals...</p>
@@ -137,7 +137,6 @@ const AppInner: React.FC = () => {
             initialMessage={chatInitialMessage}
             onInitialMessageSent={() => setChatInitialMessage(null)}
             chatHistoryOpen={chatHistoryOpen}
-            onToggleChatHistory={() => setChatHistoryOpen(!chatHistoryOpen)}
           />
         </div>
 

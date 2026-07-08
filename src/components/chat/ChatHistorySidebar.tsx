@@ -6,7 +6,6 @@ interface ChatHistorySidebarProps {
     isOpen: boolean;
     chats: ChatSummary[];
     activeChatId: string | null;
-    onClose: () => void;
     onSelectChat: (chatId: string) => void;
     onDeleteChat: (e: React.MouseEvent, chatId: string) => void;
     onNewChat: () => void;
@@ -16,7 +15,6 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     isOpen,
     chats,
     activeChatId,
-    onClose,
     onSelectChat,
     onDeleteChat,
     onNewChat,
@@ -30,17 +28,10 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     }, [chats, searchQuery]);
 
     return (
-        <>
-            {isOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
-                    onClick={onClose}
-                />
-            )}
-
-            <aside
-                className={`fixed right-0 top-0 h-full w-80 bg-surface border-l border-default z-50 transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}
-            >
+        <aside
+            className={`${isOpen ? 'w-80 border-l' : 'w-0'} overflow-hidden transition-all duration-300 border-default flex-shrink-0 self-start sticky top-16 h-[calc(100dvh-4rem)]`}
+        >
+            <div className="w-80 h-full flex flex-col bg-surface">
                 <div className="px-4 pt-4 pb-2 border-b border-default space-y-2">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-serif font-bold text-body">
@@ -119,7 +110,7 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                 <div className="p-4 border-t border-default text-xs text-muted">
                     {filteredChats.length} of {chats.length} chat{chats.length !== 1 ? 's' : ''}
                 </div>
-            </aside>
-        </>
+            </div>
+        </aside>
     );
 };
