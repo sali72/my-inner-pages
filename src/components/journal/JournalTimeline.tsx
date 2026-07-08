@@ -236,7 +236,7 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
                 <h2
                   className={`text-xl ${getFontClass(font)} font-bold text-body mb-2`}
                 >
-                  {entry.title || 'Untitled'}
+                  {entry.title}
                 </h2>
 
                 {entry.tags && entry.tags.length > 0 && (
@@ -291,7 +291,7 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
       <ConfirmModal
         isOpen={entryToDelete !== null}
         title="Delete Entry"
-        message={`Are you sure you want to delete "${entryToDelete?.title || 'Untitled'}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete "${entryToDelete?.title || 'this entry'}"? This action cannot be undone.`}
         confirmLabel="Delete"
         variant="danger"
         onConfirm={handleConfirmDelete}

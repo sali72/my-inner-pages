@@ -229,7 +229,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       hasCreatedRef.current = true;
       setSaveStatus('saving');
       try {
-        await onCreate!(title || 'Untitled', content, allTags, isoDate);
+        await onCreate!(title, content, allTags, isoDate);
       } catch {
         hasCreatedRef.current = false;
         setSaveStatus('error');
@@ -250,7 +250,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     ) {
       setSaveStatus('saving');
       try {
-        await onUpdate!({ title: trimmedTitle || 'Untitled', content: trimmedContent, tags: allTags, created_at: isoDate });
+        await onUpdate!({ title: trimmedTitle, content: trimmedContent, tags: allTags, created_at: isoDate });
         setSaveStatus('saved');
         if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
         saveStatusTimerRef.current = setTimeout(() => setSaveStatus(null), 2500);
