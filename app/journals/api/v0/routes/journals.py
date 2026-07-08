@@ -38,7 +38,7 @@ async def create_journal(
     """
     Create a new journal entry for the authenticated user.
     
-    - **title**: Journal title (required, max 200 chars)
+    - **title**: Journal title (optional, max 200 chars)
     - **content**: Journal content (required, max 50000 chars)
     - **tags**: Optional list of tags for categorization
     """

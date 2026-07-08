@@ -8,7 +8,7 @@ class Journal(Document):
     """Journal document model for MongoDB."""
     
     user_id: str = Field(..., description="User ID who owns this journal")
-    title: str = Field(..., max_length=200)
+    title: Optional[str] = Field(default=None, max_length=200)
     content: str = Field(..., max_length=50000)
     tags: list[str] = Field(default_factory=list)
     rumination_index: Optional[float] = Field(

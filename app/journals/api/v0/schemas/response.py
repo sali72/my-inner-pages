@@ -21,7 +21,7 @@ class JournalResponse(BaseModel):
     )
     
     id: str = Field(..., description="Journal ID")
-    title: str = Field(..., description="Journal title")
+    title: str = Field(default="", description="Journal title")
     content: str = Field(..., description="Journal content")
     tags: list[str] = Field(default_factory=list, description="Journal tags")
     rumination_index: Optional[float] = Field(

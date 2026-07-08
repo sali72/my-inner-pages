@@ -16,16 +16,16 @@ class CreateJournalRequest(BaseModel):
         }
     )
     
-    title: str = Field(..., max_length=200, description="Journal title")
+    title: Optional[str] = Field(default=None, max_length=200, description="Journal title")
     content: str = Field(..., max_length=50000, description="Journal content")
     tags: Optional[list[str]] = Field(default=None, description="Optional tags for categorization")
     created_at: Optional[datetime] = Field(default=None, description="Override creation date")
     
     @field_validator("title", "content")
     @classmethod
-    def strip_whitespace(cls, v: str) -> str:
+    def strip_whitespace(cls, v: Optional[str]) -> Optional[str]:
         """Strip leading/trailing whitespace."""
-        return v.strip()
+        return v.strip() if v else v
 
 
 class UpdateJournalRequest(BaseModel):

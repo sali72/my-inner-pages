@@ -21,7 +21,7 @@ class JournalFacade:
     async def create_journal(
         self,
         user_id: str,
-        title: str,
+        title: Optional[str],
         content: str,
         tags: Optional[list[str]] = None,
         created_at: Optional[datetime] = None,
@@ -31,7 +31,7 @@ class JournalFacade:
         
         Args:
             user_id: User ID who owns this journal
-            title: Journal title
+            title: Journal title (optional, None allowed)
             content: Journal content
             tags: Optional list of tags
             created_at: Optional creation date override
@@ -42,7 +42,8 @@ class JournalFacade:
         Raises:
             ValueError: If validation fails
         """
-        self._validate_title(title)
+        if title is not None:
+            self._validate_title(title)
         self._validate_content(content)
         
         # Normalize tags
@@ -53,7 +54,7 @@ class JournalFacade:
         
         return await self.repository.create(
             user_id=user_id,
-            title=title.strip(),
+            title=title.strip() if title else title,
             content=content.strip(),
             tags=normalized_tags,
             rumination_index=rumination_index,
