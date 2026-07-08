@@ -237,6 +237,8 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       return;
     }
 
+    if (isNew) return;
+
     const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
     const dateChanged = isoDate
