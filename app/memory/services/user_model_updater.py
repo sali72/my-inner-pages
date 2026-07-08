@@ -161,6 +161,9 @@ class UserModelUpdater:
             existing.activeThemes = data["activeThemes"]
 
         if "conversationGuidelines" in data:
-            existing.conversationGuidelines = data["conversationGuidelines"]
+            raw = data["conversationGuidelines"]
+            if isinstance(raw, str):
+                raw = [raw]
+            existing.conversationGuidelines = raw
 
         return existing
