@@ -11,13 +11,13 @@ React 18 SPA with TypeScript, Vite, Tailwind CSS, TanStack Query, Playwright.
 
 ## Non-obvious tooling
 - Path aliases: import via `@/`, `@components/`, `@hooks/`, etc.
-- No routing library — single-page app with conditional rendering on `activeView`
+- No routing library — single-page app with conditional rendering on `activeView`. It is synchronized with the HTML5 history state (`popstate`) in `App.tsx` to enable browser/mobile back-button navigation and prevent accidental app exits.
 - Zod v4 for API response validation (in `utils/api.ts`)
 - ChatView always mounted (CSS `hidden` class) — preserves WebSocket connection
 
 ## Architecture
 - **Feature-based components:** `auth/`, `journal/`, `chat/`, `mirror/`, `settings/`, `landing/`, `layout/`, `common/`
-- **No router:** `App.tsx` renders active view based on `activeView` state
+- **No router:** `App.tsx` renders active view based on `activeView` state, which is bound to browser history state.
 - **State:** AuthContext (global auth), ThemeContext (preferences), TanStack React Query (server data), local state for ephemeral UI
 - **Offline/Sync:** `offlineStorage.ts` persists unsynced changes to `localStorage` during offline/network drops, overlaying them in `JournalView` via `localEntryRef` to prevent data loss. `App.tsx` triggers background syncing when online, on focus, or every 30s.
 - **Barrel exports:** each component directory has `index.ts`

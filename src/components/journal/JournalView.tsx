@@ -18,6 +18,8 @@ interface JournalViewProps {
   onDeleteEntry: (id: number | string) => void;
   onSaveNewEntry: (title: string, content: string, tags: string[], created_at?: string) => Promise<number | string>;
   onStartChat: (entry: JournalEntry) => void;
+  selectedEntryId: number | string | null;
+  onSelectEntry: (id: number | string | null, action?: 'push' | 'replace') => void;
 }
 
 function makeDraftEntry(): JournalEntry {
@@ -64,10 +66,21 @@ export const JournalView: React.FC<JournalViewProps> = ({
   onDeleteEntry,
   onSaveNewEntry,
   onStartChat,
+  selectedEntryId,
+  onSelectEntry,
 }) => {
-  const [selectedEntryId, setSelectedEntryId] = useState<number | string | null>(null);
-  const [isNewEntry, setIsNewEntry] = useState(false);
+  const isNewEntry = selectedEntryId === 'new';
   const [editorSessionKey, setEditorSessionKey] = useState<string>('');
+
+  React.useEffect(() => {
+    if (selectedEntryId !== null) {
+      if (selectedEntryId === 'new') {
+        setEditorSessionKey(`new-${Date.now()}`);
+      } else {
+        setEditorSessionKey(String(selectedEntryId));
+      }
+    }
+  }, [selectedEntryId]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -157,23 +170,18 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
   const handleSelectEntry = useCallback((id: number | string) => {
     navigatedAwayRef.current = false;
-    setSelectedEntryId(id);
-    setIsNewEntry(false);
-    setEditorSessionKey(String(id));
-  }, []);
+    onSelectEntry(id);
+  }, [onSelectEntry]);
 
   const handleNewEntry = useCallback(() => {
     navigatedAwayRef.current = false;
-    setSelectedEntryId('new');
-    setIsNewEntry(true);
-    setEditorSessionKey(`new-${Date.now()}`);
-  }, []);
+    onSelectEntry('new');
+  }, [onSelectEntry]);
 
   const handleBackToTimeline = useCallback(() => {
     navigatedAwayRef.current = true;
-    setSelectedEntryId(null);
-    setIsNewEntry(false);
-  }, []);
+    onSelectEntry(null);
+  }, [onSelectEntry]);
 
   const handleCreateEntry = useCallback(async (title: string, content: string, tags: string[], created_at?: string) => {
     const id = await onSaveNewEntry(title, content, tags, created_at);
@@ -188,10 +196,9 @@ export const JournalView: React.FC<JournalViewProps> = ({
         : new Date().toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
       created_at,
     });
-    setSelectedEntryId(id);
-    setIsNewEntry(false);
+    onSelectEntry(id, 'replace');
     return id;
-  }, [onSaveNewEntry]);
+  }, [onSaveNewEntry, onSelectEntry]);
 
   const handleUpdateEntry = useCallback(async (id: number | string, updates: Partial<JournalEntry>) => {
     const local = localEntryRef.current.get(id);
@@ -209,8 +216,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const handleDeleteEntry = useCallback((id: number | string) => {
     localEntryRef.current.delete(id);
     onDeleteEntry(id);
-    setSelectedEntryId(null);
-  }, [onDeleteEntry]);
+    onSelectEntry(null);
+  }, [onDeleteEntry, onSelectEntry]);
 
   const handleClearFilters = useCallback(() => {
     setSearchQuery('');
