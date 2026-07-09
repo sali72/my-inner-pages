@@ -11,6 +11,24 @@ import { MirrorView } from '@components/mirror';
 import { ChatView } from '@components/chat';
 import { SettingsView } from '@components/settings';
 
+const getNavStateFromURL = (): {
+  showAuth: boolean;
+  activeView: ViewType;
+  selectedEntryId: string | null;
+  selectedChatId: string | null;
+} => {
+  const params = new URLSearchParams(window.location.search);
+  const showAuth = params.get('auth') === 'true';
+  const viewParam = params.get('view');
+  const activeView: ViewType =
+    viewParam === 'mirror' || viewParam === 'chat' || viewParam === 'settings'
+      ? viewParam
+      : 'journal';
+  const selectedEntryId = params.get('entry');
+  const selectedChatId = params.get('chat');
+  return { showAuth, activeView, selectedEntryId, selectedChatId };
+};
+
 const AppInner: React.FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { mode, accent, fontStyle, fontSize, resolvedMode,
@@ -20,6 +38,7 @@ const AppInner: React.FC = () => {
   const [chatHistoryOpen, setChatHistoryOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState<number | string | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [chatInitialMessage, setChatInitialMessage] = useState<string | null>(null);
   const isDark = resolvedMode === 'dark';
   const wasAuthenticated = useRef(isAuthenticated);
@@ -30,16 +49,36 @@ const AppInner: React.FC = () => {
       showAuth: boolean;
       activeView: ViewType;
       selectedEntryId: number | string | null;
+      selectedChatId: string | null;
     }>,
     action: 'push' | 'replace' = 'push'
   ) => {
     const nextShowAuth = nextState.showAuth !== undefined ? nextState.showAuth : showAuth;
     const nextActiveView = nextState.activeView !== undefined ? nextState.activeView : activeView;
     const nextSelectedEntryId = nextState.selectedEntryId !== undefined ? nextState.selectedEntryId : selectedEntryId;
+    const nextSelectedChatId = nextState.selectedChatId !== undefined ? nextState.selectedChatId : selectedChatId;
 
     if (nextState.showAuth !== undefined) setShowAuth(nextState.showAuth);
     if (nextState.activeView !== undefined) setActiveView(nextState.activeView);
     if (nextState.selectedEntryId !== undefined) setSelectedEntryId(nextState.selectedEntryId);
+    if (nextState.selectedChatId !== undefined) setSelectedChatId(nextState.selectedChatId);
+
+    // Build the query params URL
+    const params = new URLSearchParams();
+    if (nextShowAuth) {
+      params.set('auth', 'true');
+    }
+    if (nextActiveView !== 'journal') {
+      params.set('view', nextActiveView);
+    }
+    if (nextSelectedEntryId !== null) {
+      params.set('entry', String(nextSelectedEntryId));
+    }
+    if (nextSelectedChatId !== null) {
+      params.set('chat', nextSelectedChatId);
+    }
+    const searchStr = params.toString();
+    const nextURL = searchStr ? `?${searchStr}` : '/';
 
     const currentIndex = window.history.state?.index !== undefined ? window.history.state.index : 1;
     const nextIndex = action === 'push' ? currentIndex + 1 : currentIndex;
@@ -50,12 +89,13 @@ const AppInner: React.FC = () => {
       showAuth: nextShowAuth,
       activeView: nextActiveView,
       selectedEntryId: nextSelectedEntryId,
+      selectedChatId: nextSelectedChatId,
     };
 
     if (action === 'push') {
-      window.history.pushState(statePayload, '');
+      window.history.pushState(statePayload, '', nextURL);
     } else {
-      window.history.replaceState(statePayload, '');
+      window.history.replaceState(statePayload, '', nextURL);
     }
   };
 
@@ -73,9 +113,14 @@ const AppInner: React.FC = () => {
         if (state.showAuth !== undefined) setShowAuth(state.showAuth);
         if (state.activeView !== undefined) setActiveView(state.activeView);
         if (state.selectedEntryId !== undefined) setSelectedEntryId(state.selectedEntryId);
+        if (state.selectedChatId !== undefined) setSelectedChatId(state.selectedChatId);
       } else {
-        // Fallback for empty/external history entries
-        window.history.forward();
+        // Fallback: parse state directly from URL
+        const parsed = getNavStateFromURL();
+        setShowAuth(parsed.showAuth);
+        setActiveView(parsed.activeView);
+        setSelectedEntryId(parsed.selectedEntryId);
+        setSelectedChatId(parsed.selectedChatId);
       }
     };
 
@@ -93,23 +138,40 @@ const AppInner: React.FC = () => {
     }
     wasAuthenticated.current = isAuthenticated;
 
-    const initialView = 'journal';
-    const initialSelectedEntryId = null;
-    const initialShowAuth = false;
+    // Load initial states from URL parameters
+    const initialNav = getNavStateFromURL();
 
     const payload = {
       isApp: true,
-      showAuth: initialShowAuth,
-      activeView: initialView,
-      selectedEntryId: initialSelectedEntryId,
+      showAuth: initialNav.showAuth,
+      activeView: initialNav.activeView,
+      selectedEntryId: initialNav.selectedEntryId,
+      selectedChatId: initialNav.selectedChatId,
     };
 
-    window.history.replaceState({ ...payload, index: 0 }, '', '/');
-    window.history.pushState({ ...payload, index: 1 }, '', '/');
+    const params = new URLSearchParams();
+    if (initialNav.showAuth) {
+      params.set('auth', 'true');
+    }
+    if (initialNav.activeView !== 'journal') {
+      params.set('view', initialNav.activeView);
+    }
+    if (initialNav.selectedEntryId !== null) {
+      params.set('entry', String(initialNav.selectedEntryId));
+    }
+    if (initialNav.selectedChatId !== null) {
+      params.set('chat', initialNav.selectedChatId);
+    }
+    const searchStr = params.toString();
+    const currentURL = searchStr ? `?${searchStr}` : '/';
 
-    setShowAuth(initialShowAuth);
-    setActiveView(initialView);
-    setSelectedEntryId(null);
+    window.history.replaceState({ ...payload, index: 0 }, '', currentURL);
+    window.history.pushState({ ...payload, index: 1 }, '', currentURL);
+
+    setShowAuth(initialNav.showAuth);
+    setActiveView(initialNav.activeView);
+    setSelectedEntryId(initialNav.selectedEntryId);
+    setSelectedChatId(initialNav.selectedChatId);
   }, [isAuthenticated, authLoading, syncFromRemote, resetToDefaults]);
 
   const { entries, loading, isLoadingMore, hasMore, loadMore, addEntry, updateEntry, deleteEntry, syncUnsyncedEntries } = useJournalEntries();
@@ -161,7 +223,7 @@ const AppInner: React.FC = () => {
     setChatInitialMessage(
       `I'd like to discuss my journal entry "${entry.title}". Here's what I wrote:\n\n${entry.content}`
     );
-    updateNavigationState({ activeView: 'chat', selectedEntryId: null });
+    updateNavigationState({ activeView: 'chat', selectedEntryId: null, selectedChatId: 'new' });
   };
 
   const handleDeleteEntry = async (id: number | string) => {
@@ -243,6 +305,8 @@ const AppInner: React.FC = () => {
             onInitialMessageSent={() => setChatInitialMessage(null)}
             chatHistoryOpen={chatHistoryOpen}
             onToggleChatHistory={() => setChatHistoryOpen(!chatHistoryOpen)}
+            selectedChatId={selectedChatId}
+            onSelectChat={(id, action) => updateNavigationState({ selectedChatId: id }, action)}
           />
         </div>
 

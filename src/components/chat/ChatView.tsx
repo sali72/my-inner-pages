@@ -16,9 +16,19 @@ interface ChatViewProps {
   onInitialMessageSent?: () => void;
   chatHistoryOpen: boolean;
   onToggleChatHistory: () => void;
+  selectedChatId: string | null;
+  onSelectChat: (id: string | null, action?: 'push' | 'replace') => void;
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onInitialMessageSent, chatHistoryOpen, onToggleChatHistory }) => {
+export const ChatView: React.FC<ChatViewProps> = ({
+  isDark,
+  initialMessage,
+  onInitialMessageSent,
+  chatHistoryOpen,
+  onToggleChatHistory,
+  selectedChatId,
+  onSelectChat,
+}) => {
   const {
     chatId,
     messages,
@@ -34,6 +44,26 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
     startNewChat,
     loadChat,
   } = useChatWebSocket();
+
+  // Load target chat or start new chat based on selectedChatId prop (URL parameter)
+  useEffect(() => {
+    if (selectedChatId === 'new') {
+      if (chatId !== null) {
+        startNewChat();
+      }
+    } else if (selectedChatId !== null) {
+      if (chatId !== selectedChatId) {
+        loadChat(selectedChatId);
+      }
+    }
+  }, [selectedChatId, chatId, loadChat, startNewChat]);
+
+  // Sync new chat creation back to parent/URL
+  useEffect(() => {
+    if (chatId && (selectedChatId === 'new' || selectedChatId === null)) {
+      onSelectChat(chatId, 'replace');
+    }
+  }, [chatId, selectedChatId, onSelectChat]);
   const [input, setInput] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -204,7 +234,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
   }, [messages]);
 
   const handleSelectChat = (id: string) => {
-    loadChat(id);
+    onSelectChat(id);
   };
 
   const handleDeleteChat = async (e: React.MouseEvent, id: string) => {
@@ -213,7 +243,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
       await api.delete(`/chats/${id}`);
       setChatList(prev => prev.filter(c => c.id !== id));
       if (chatId === id) {
-        startNewChat();
+        onSelectChat('new');
       }
     } catch {
       // silently fail
@@ -222,7 +252,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ isDark, initialMessage, onIn
 
   const handleNewChat = () => {
     titleRefreshed.current = false;
-    startNewChat();
+    onSelectChat('new');
     setTimeout(() => loadChatList(), 500);
   };
 
