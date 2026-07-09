@@ -39,7 +39,37 @@ const AppInner: React.FC = () => {
     wasAuthenticated.current = isAuthenticated;
   }, [isAuthenticated, authLoading, syncFromRemote, resetToDefaults]);
 
-  const { entries, loading, isLoadingMore, hasMore, loadMore, addEntry, updateEntry, deleteEntry } = useJournalEntries();
+  const { entries, loading, isLoadingMore, hasMore, loadMore, addEntry, updateEntry, deleteEntry, syncUnsyncedEntries } = useJournalEntries();
+
+  // Background sync for unsynced changes when online, on window focus, or periodically
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Initial sync attempt
+    syncUnsyncedEntries();
+
+    const handleOnline = () => {
+      syncUnsyncedEntries();
+    };
+    const handleFocus = () => {
+      syncUnsyncedEntries();
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('focus', handleFocus);
+
+    const interval = setInterval(() => {
+      if (navigator.onLine) {
+        syncUnsyncedEntries();
+      }
+    }, 30000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
+  }, [isAuthenticated, syncUnsyncedEntries]);
 
   const handleSaveNewEntry = async (title: string, content: string, tags: string[], created_at?: string) => {
     const created = await addEntry({

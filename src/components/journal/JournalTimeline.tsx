@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, Tag, Search, Filter, X, Loader2 } from 'lucide-react';
+import { Calendar, Tag, Search, Filter, X, Loader2, CloudOff } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
+import { isEntryUnsynced } from '@utils/offlineStorage';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { renderTextWithLineDirection } from '@utils/textDirection';
 import { EntryMenu } from './EntryMenu';
@@ -227,10 +228,16 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
                 onClick={() => onSelectEntry(entry.id)}
                 className="w-full text-left card p-6 hover:shadow-elevated transition-all hover:-translate-y-0.5"
               >
-                <div className="flex items-center gap-2 text-sm text-muted mb-2">
+                <div className="flex items-center gap-2 text-sm text-muted mb-2 w-full">
                   {getMoodDot(entry.mood)}
                   <Calendar className="w-3.5 h-3.5" />
-                  {entry.date}
+                  <span>{entry.date}</span>
+                  {isEntryUnsynced(entry.id) && (
+                    <span className="flex items-center gap-1 text-xs text-amber-500 ml-auto" title="Unsynced changes (Saved locally)">
+                      <CloudOff className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Unsynced</span>
+                    </span>
+                  )}
                 </div>
 
                 <h2

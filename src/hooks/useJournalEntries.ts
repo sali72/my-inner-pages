@@ -2,6 +2,8 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { JournalEntry } from '@/types';
 import { api, journalListResponseSchema, journalResponseSchema, type JournalResponse } from '@utils/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCallback } from 'react';
+import { getUnsyncedEntries, removeUnsyncedEntry } from '@utils/offlineStorage';
 
 const QUERY_KEY = ['journals'] as const;
 const PAGE_SIZE = 20;
@@ -91,6 +93,29 @@ export const useJournalEntries = () => {
     await deleteMutation.mutateAsync(id);
   };
 
+  const syncUnsyncedEntries = useCallback(async () => {
+    const unsynced = getUnsyncedEntries();
+    const ids = Object.keys(unsynced);
+    if (ids.length === 0) return;
+
+    for (const id of ids) {
+      const entry = unsynced[id];
+      try {
+        await updateMutation.mutateAsync({
+          id,
+          title: entry.title,
+          content: entry.content,
+          tags: entry.tags,
+          created_at: entry.created_at,
+        });
+        removeUnsyncedEntry(id);
+      } catch (error) {
+        console.error(`Failed to sync entry ${id}:`, error);
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+  }, [updateMutation, queryClient]);
+
   return {
     entries,
     loading: query.isLoading,
@@ -100,6 +125,7 @@ export const useJournalEntries = () => {
     addEntry,
     updateEntry,
     deleteEntry,
+    syncUnsyncedEntries,
     refreshEntries: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   };
 };

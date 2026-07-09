@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   ArrowLeft, Copy, Share2, Plus, X,
-  MessageCircle, Trash2, MoreVertical, Check, Loader2, AlertCircle
+  MessageCircle, Trash2, MoreVertical, Check, Loader2, AlertCircle, CloudOff
 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { detectRTL } from '@utils/textDirection';
 import { ConfirmModal } from './ConfirmModal';
+import { isEntryUnsynced, saveUnsyncedEntry, removeUnsyncedEntry } from '@utils/offlineStorage';
 
 interface JournalPageProps {
   entry: JournalEntry;
@@ -22,7 +23,7 @@ interface JournalPageProps {
   onBack: () => void;
 }
 
-type SaveStatus = 'saving' | 'saved' | 'error' | null;
+type SaveStatus = 'saving' | 'saved' | 'error' | 'unsynced' | null;
 
 const SaveIndicator: React.FC<{ status: SaveStatus }> = ({ status }) => {
   if (!status) return null;
@@ -30,6 +31,7 @@ const SaveIndicator: React.FC<{ status: SaveStatus }> = ({ status }) => {
     saving: { icon: <Loader2 className="w-3 h-3 animate-spin" />, text: 'Saving...', cls: 'text-muted' },
     saved: { icon: <Check className="w-3 h-3" />, text: 'Saved', cls: 'text-green-500' },
     error: { icon: <AlertCircle className="w-3 h-3" />, text: 'Couldn\'t save', cls: 'text-red-500' },
+    unsynced: { icon: <CloudOff className="w-3 h-3" />, text: 'Unsynced (Saved locally)', cls: 'text-amber-500' },
   };
   const s = styles[status];
   return (
@@ -108,7 +110,9 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const [explicitTags, setExplicitTags] = useState<string[]>([]);
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>(() => {
+    return isEntryUnsynced(entry.id) ? 'unsynced' : null;
+  });
   const [showTagInput, setShowTagInput] = useState(false);
   const [tagInputValue, setTagInputValue] = useState('');
 
@@ -150,6 +154,11 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const entryIdRef = useRef<string | number | null>(null);
   const creationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const clearSaveStatus = useCallback(() => {
+    if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
+    saveStatusTimerRef.current = setTimeout(() => setSaveStatus(null), 1000);
+  }, []);
+
   useEffect(() => {
     const fromContent = parseHashTags(entry.content || '');
     const orphaned = (entry.tags || []).filter(t => !fromContent.includes(t));
@@ -182,6 +191,13 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   useEffect(() => {
     if (showTagInput && tagInputRef.current) tagInputRef.current.focus();
   }, [showTagInput]);
+
+  useEffect(() => {
+    if (saveStatus === 'unsynced' && !isEntryUnsynced(entry.id)) {
+      setSaveStatus('saved');
+      clearSaveStatus();
+    }
+  }, [entry.id, saveStatus, clearSaveStatus]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -229,10 +245,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     return () => el.removeEventListener('input', onInput);
   }, [checkAutocomplete]);
 
-  const clearSaveStatus = useCallback(() => {
-    if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
-    saveStatusTimerRef.current = setTimeout(() => setSaveStatus(null), 1000);
-  }, []);
+
 
   const save = useCallback(async () => {
     const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
@@ -256,8 +269,18 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         await onUpdateById!(entryIdRef.current, { title: title.trim(), content: content.trim(), tags: allTags, created_at: isoDate });
         setSaveStatus('saved');
         clearSaveStatus();
+        removeUnsyncedEntry(entryIdRef.current);
       } catch {
-        setSaveStatus('error');
+        const updatedEntry: JournalEntry = {
+          id: entryIdRef.current,
+          title: title.trim(),
+          content: content.trim(),
+          tags: allTags,
+          created_at: isoDate,
+          date: entryDate || new Date().toLocaleString(),
+        };
+        saveUnsyncedEntry(updatedEntry);
+        setSaveStatus('unsynced');
       }
       return;
     }
@@ -280,8 +303,18 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         await onUpdate!({ title: trimmedTitle, content: trimmedContent, tags: allTags, created_at: isoDate });
         setSaveStatus('saved');
         clearSaveStatus();
-      } catch {
-        setSaveStatus('error');
+        removeUnsyncedEntry(entry.id);
+      } catch (error) {
+        const updatedEntry: JournalEntry = {
+          ...entry,
+          title: trimmedTitle,
+          content: trimmedContent,
+          tags: allTags,
+          created_at: isoDate || entry.created_at,
+          date: entryDate || entry.date,
+        };
+        saveUnsyncedEntry(updatedEntry);
+        setSaveStatus('unsynced');
       }
     }
   }, [isNew, title, content, allTags, entryDate, entry, onCreate, onUpdate, onUpdateById, clearSaveStatus]);

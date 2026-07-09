@@ -3,6 +3,7 @@ import { Edit2 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { JournalTimeline } from './JournalTimeline';
 import { JournalPage } from './JournalPage';
+import { getUnsyncedEntries, removeUnsyncedEntry } from '@utils/offlineStorage';
 
 type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc';
 
@@ -74,7 +75,15 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const [showFilters, setShowFilters] = useState(false);
 
   const navigatedAwayRef = useRef(false);
-  const localEntryRef = useRef<Map<string | number, JournalEntry>>(new Map());
+  const localEntryRef = useRef<Map<string | number, JournalEntry>>(null as any);
+  if (!localEntryRef.current) {
+    const map = new Map<string | number, JournalEntry>();
+    const unsynced = getUnsyncedEntries();
+    Object.values(unsynced).forEach(entry => {
+      map.set(entry.id, entry);
+    });
+    localEntryRef.current = map;
+  }
 
   // Synchronize and prune localEntryRef entries when they are fully synced to backend entries
   useMemo(() => {
@@ -82,6 +91,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
       const localEntry = localEntryRef.current.get(backendEntry.id);
       if (localEntry && isEntrySynced(localEntry, backendEntry)) {
         localEntryRef.current.delete(backendEntry.id);
+        removeUnsyncedEntry(backendEntry.id);
       }
     });
   }, [entries]);
