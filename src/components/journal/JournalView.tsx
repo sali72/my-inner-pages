@@ -13,7 +13,7 @@ interface JournalViewProps {
   isLoadingMore: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
-  onUpdateEntry: (id: number | string, updates: Partial<JournalEntry>) => void;
+  onUpdateEntry: (id: number | string, updates: Partial<JournalEntry>) => Promise<void>;
   onDeleteEntry: (id: number | string) => void;
   onSaveNewEntry: (title: string, content: string, tags: string[], created_at?: string) => Promise<number | string>;
   onStartChat: (entry: JournalEntry) => void;
@@ -36,6 +36,22 @@ function makeDraftEntry(): JournalEntry {
   };
 }
 
+function isEntrySynced(local: JournalEntry, backend: JournalEntry): boolean {
+  const localTags = local.tags || [];
+  const backendTags = backend.tags || [];
+  const tagsMatch =
+    localTags.length === backendTags.length &&
+    localTags.every((t, i) => t === backendTags[i]);
+
+  return (
+    local.title.trim() === backend.title.trim() &&
+    local.content.trim() === backend.content.trim() &&
+    tagsMatch &&
+    (local.created_at || null) === (backend.created_at || null) &&
+    (local.mood || null) === (backend.mood || null)
+  );
+}
+
 export const JournalView: React.FC<JournalViewProps> = ({
   entries,
   font,
@@ -50,6 +66,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
 }) => {
   const [selectedEntryId, setSelectedEntryId] = useState<number | string | null>(null);
   const [isNewEntry, setIsNewEntry] = useState(false);
+  const [editorSessionKey, setEditorSessionKey] = useState<string>('');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -58,6 +75,16 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
   const navigatedAwayRef = useRef(false);
   const localEntryRef = useRef<Map<string | number, JournalEntry>>(new Map());
+
+  // Synchronize and prune localEntryRef entries when they are fully synced to backend entries
+  useMemo(() => {
+    entries.forEach(backendEntry => {
+      const localEntry = localEntryRef.current.get(backendEntry.id);
+      if (localEntry && isEntrySynced(localEntry, backendEntry)) {
+        localEntryRef.current.delete(backendEntry.id);
+      }
+    });
+  }, [entries]);
 
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
@@ -71,7 +98,19 @@ export const JournalView: React.FC<JournalViewProps> = ({
   }, [entries]);
 
   const filteredEntries = useMemo(() => {
-    const allEntries = [...localEntryRef.current.values(), ...entries];
+    const allEntriesMap = new Map<string | number, JournalEntry>();
+    
+    // Add all backend entries first
+    entries.forEach(entry => {
+      allEntriesMap.set(entry.id, entry);
+    });
+    
+    // Override with/add local entries containing unsynced modifications
+    localEntryRef.current.forEach(entry => {
+      allEntriesMap.set(entry.id, entry);
+    });
+
+    const allEntries = Array.from(allEntriesMap.values());
     let filtered = allEntries.filter(entry => {
       const matchesSearch = searchQuery === '' ||
         entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -110,12 +149,14 @@ export const JournalView: React.FC<JournalViewProps> = ({
     navigatedAwayRef.current = false;
     setSelectedEntryId(id);
     setIsNewEntry(false);
+    setEditorSessionKey(String(id));
   }, []);
 
   const handleNewEntry = useCallback(() => {
     navigatedAwayRef.current = false;
     setSelectedEntryId('new');
     setIsNewEntry(true);
+    setEditorSessionKey(`new-${Date.now()}`);
   }, []);
 
   const handleBackToTimeline = useCallback(() => {
@@ -142,6 +183,19 @@ export const JournalView: React.FC<JournalViewProps> = ({
     return id;
   }, [onSaveNewEntry]);
 
+  const handleUpdateEntry = useCallback(async (id: number | string, updates: Partial<JournalEntry>) => {
+    const local = localEntryRef.current.get(id);
+    const backend = entries.find(e => e.id === id);
+    const existing = local || backend;
+    if (existing) {
+      localEntryRef.current.set(id, {
+        ...existing,
+        ...updates,
+      });
+    }
+    await onUpdateEntry(id, updates);
+  }, [entries, onUpdateEntry]);
+
   const handleDeleteEntry = useCallback((id: number | string) => {
     localEntryRef.current.delete(id);
     onDeleteEntry(id);
@@ -160,14 +214,14 @@ export const JournalView: React.FC<JournalViewProps> = ({
     return (
       <div className="flex flex-col min-h-[calc(100vh-5rem)]">
           <JournalPage
-            key={isNewEntry ? 'new' : String(selectedEntryId)}
+            key={editorSessionKey}
             entry={displayEntry}
             font={font}
             fontSize={fontSize}
             isNew={isNewEntry}
             allAppTags={allTags}
-            onUpdateById={onUpdateEntry}
-            onUpdate={(updates) => onUpdateEntry(displayEntry.id, updates)}
+            onUpdateById={handleUpdateEntry}
+            onUpdate={(updates) => handleUpdateEntry(displayEntry.id, updates)}
             onCreate={isNewEntry ? handleCreateEntry : undefined}
             onDelete={() => handleDeleteEntry(displayEntry.id)}
             onChat={() => onStartChat(displayEntry)}

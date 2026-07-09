@@ -48,7 +48,7 @@ export const useJournalEntries = () => {
   const createMutation = useMutation({
     mutationFn: (entry: Omit<JournalEntry, 'id'>) =>
       api.post('/journals', { title: entry.title, content: entry.content, tags: entry.tags, created_at: entry.created_at }, journalResponseSchema),
-    onMutate: async (newEntry) => {
+    onMutate: async (_newEntry) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previousData = queryClient.getQueryData<typeof query.data>(QUERY_KEY);
       return { previousData };
