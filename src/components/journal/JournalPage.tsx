@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   ArrowLeft, Copy, Share2, Plus, X,
-  MessageCircle, Trash2, MoreVertical, Check, Loader2, AlertCircle, CloudOff
+  MessageCircle, Trash2, MoreVertical, AlertCircle, CloudOff
 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
@@ -26,14 +26,12 @@ interface JournalPageProps {
 type SaveStatus = 'saving' | 'saved' | 'error' | 'unsynced' | null;
 
 const SaveIndicator: React.FC<{ status: SaveStatus }> = ({ status }) => {
-  if (!status) return null;
+  if (!status || status === 'saving' || status === 'saved') return null;
   const styles = {
-    saving: { icon: <Loader2 className="w-3 h-3 animate-spin" />, text: 'Saving...', cls: 'text-muted' },
-    saved: { icon: <Check className="w-3 h-3" />, text: 'Saved', cls: 'text-green-500' },
     error: { icon: <AlertCircle className="w-3 h-3" />, text: 'Couldn\'t save', cls: 'text-red-500' },
     unsynced: { icon: <CloudOff className="w-3 h-3" />, text: 'Unsynced (Saved locally)', cls: 'text-amber-500' },
   };
-  const s = styles[status];
+  const s = styles[status as 'error' | 'unsynced'];
   return (
     <span className={`inline-flex items-center gap-1 text-xs transition-opacity ${s.cls}`}>
       {s.icon}{s.text}
