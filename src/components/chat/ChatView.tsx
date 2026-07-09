@@ -45,6 +45,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
     loadChat,
   } = useChatWebSocket();
 
+  const isLoadingHistory = selectedChatId !== null && selectedChatId !== 'new' && chatId !== selectedChatId;
+
   // Load target chat or start new chat based on selectedChatId prop (URL parameter)
   useEffect(() => {
     if (selectedChatId === 'new') {
@@ -262,7 +264,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
       <div className="px-4 pt-2 pb-0">
         <div className="w-full max-w-4xl mx-auto">
           <div className="rounded-2xl bg-elevated border border-default">
-            {messages.length === 0 ? (
+            {isLoadingHistory ? (
+              <div className="min-h-[calc(100dvh-6rem)] flex flex-col items-center justify-center p-8 text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-accent mb-4" />
+                <p className="text-sm text-muted">Loading chat history...</p>
+              </div>
+            ) : messages.length === 0 ? (
               <div className="min-h-[calc(100dvh-6rem)] flex flex-col items-center justify-center p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mb-4 shadow-lg">
                   <MessageSquare className="w-8 h-8 text-white" />
