@@ -48,24 +48,43 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const isLoadingHistory = selectedChatId !== null && selectedChatId !== 'new' && chatId !== selectedChatId;
 
   // Load target chat or start new chat based on selectedChatId prop (URL parameter)
+  const chatIdRef = useRef(chatId);
   useEffect(() => {
+    chatIdRef.current = chatId;
+  }, [chatId]);
+
+  useEffect(() => {
+    const currentChatId = chatIdRef.current;
     if (selectedChatId === 'new') {
-      if (chatId !== null) {
+      if (currentChatId !== null) {
         startNewChat();
       }
     } else if (selectedChatId !== null) {
-      if (chatId !== selectedChatId) {
+      if (currentChatId !== selectedChatId) {
         loadChat(selectedChatId);
       }
     }
-  }, [selectedChatId, chatId, loadChat, startNewChat]);
+  }, [selectedChatId, loadChat, startNewChat]);
 
   // Sync new chat creation back to parent/URL
+  const selectedChatIdRef = useRef(selectedChatId);
   useEffect(() => {
-    if (chatId && (selectedChatId === 'new' || selectedChatId === null)) {
-      onSelectChat(chatId, 'replace');
+    selectedChatIdRef.current = selectedChatId;
+  }, [selectedChatId]);
+
+  const onSelectChatRef = useRef(onSelectChat);
+  useEffect(() => {
+    onSelectChatRef.current = onSelectChat;
+  }, [onSelectChat]);
+
+  const prevChatIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const currentSelected = selectedChatIdRef.current;
+    if (chatId && chatId !== prevChatIdRef.current && (currentSelected === 'new' || currentSelected === null)) {
+      onSelectChatRef.current(chatId, 'replace');
     }
-  }, [chatId, selectedChatId, onSelectChat]);
+    prevChatIdRef.current = chatId;
+  }, [chatId]);
   const [input, setInput] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
