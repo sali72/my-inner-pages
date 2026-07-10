@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 from app.ai.integrations.litellm_client import LiteLLMClient
 
 
-@patch("app.ai.integrations.litellm_client.Router")
+@patch("litellm.Router")
 def test_litellm_client_initialization(mock_router, tmp_path):
     # Set environment variables
     os.environ["TEST_OPENROUTER_API_KEY"] = "test-openrouter-key"
