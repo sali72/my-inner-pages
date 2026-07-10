@@ -244,3 +244,43 @@ async def another_test_user(client: AsyncClient) -> dict:
         "user_id": login_data["user"]["id"],
         "access_token": login_data["access_token"]
     }
+
+
+@pytest_asyncio.fixture
+async def admin_user(client: AsyncClient) -> dict:
+    """Create an admin user for testing administrative routes."""
+    user_data = {
+        "email": "admin@example.com",
+        "password": "adminpassword123",
+        "confirm_password": "adminpassword123"
+    }
+    
+    response = await client.post(f"{AUTH_PREFIX}{AuthRoutes.REGISTER}", json=user_data)
+    assert response.status_code == 201
+    
+    user = await User.find_one({"email": user_data["email"]})
+    user.role = "admin"
+    await user.save()
+    
+    login_response = await client.post(
+        f"{AUTH_PREFIX}{AuthRoutes.LOGIN}",
+        json={"email": user_data["email"], "password": user_data["password"]}
+    )
+    assert login_response.status_code == 200
+    login_data = login_response.json()
+    
+    return {
+        "email": user_data["email"],
+        "password": user_data["password"],
+        "user_id": login_data["user"]["id"],
+        "access_token": login_data["access_token"]
+    }
+
+
+@pytest_asyncio.fixture
+async def admin_client(client: AsyncClient, admin_user: dict) -> AsyncClient:
+    """Create an authenticated HTTP client for an admin user."""
+    client.headers.update({
+        "Authorization": f"Bearer {admin_user['access_token']}"
+    })
+    return client
