@@ -8,8 +8,6 @@ from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()
 
-from litellm import Router
-
 from app.ai.integrations.base import LLMClient
 from app.core.logging import get_logger
 
@@ -29,6 +27,8 @@ class LiteLLMClient(LLMClient):
         self.default_max_tokens = max_tokens
         self.default_temperature = temperature
         self.timeout = timeout
+
+        from litellm import Router
 
         resolved_model_list = self._resolve_env_placeholders(model_list)
         if not resolved_model_list:

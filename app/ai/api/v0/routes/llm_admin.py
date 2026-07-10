@@ -5,7 +5,6 @@ import time
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 
-import litellm
 from app.ai.config import AIModuleConfig
 from app.ai.deps import get_ai_config, reload_llm_client, get_llm_provider_repository
 from app.ai.db.models import LLMProvider
@@ -208,6 +207,8 @@ async def _probe_provider(index: int, provider_dict: dict) -> ProviderTestResult
     if api_key and api_key.startswith("${") and api_key.endswith("}"):
         env_var_name = api_key[2:-1]
         api_key = os.getenv(env_var_name)
+
+    import litellm
 
     test_messages = [{"role": "user", "content": "Respond with the word 'pong' and nothing else."}]
     start_time = time.time()
