@@ -49,16 +49,19 @@ async def get_client() -> AsyncIOMotorClient:
         from app.auth.db.models import User
         from app.memory.db.models import UserModel
         from app.chat.db.models import Chat
+        from app.ai.db.models import LLMProvider
 
         logger.info("initializing_beanie", database=settings.database_name)
         await init_beanie(
             database=client[settings.database_name],
-            document_models=[Journal, User, UserModel, Chat]
+            document_models=[Journal, User, UserModel, Chat, LLMProvider]
         )
+        
         client._beanie_initialized = True
         logger.info("beanie_initialized")
 
     return client
+
 
 
 async def get_db() -> AsyncGenerator[AsyncIOMotorClientSession, None]:

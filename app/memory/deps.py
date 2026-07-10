@@ -27,10 +27,10 @@ def get_memory_service(
     )
 
 
-def _get_llm_client():
+async def _get_llm_client():
     from app.ai.deps import get_llm_client as _ai_get_llm_client
     from app.ai.config import AIModuleConfig
-    return _ai_get_llm_client(
+    return await _ai_get_llm_client(
         config=AIModuleConfig(),
     )
 

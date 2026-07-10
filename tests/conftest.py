@@ -88,10 +88,12 @@ async def test_db_client(test_settings: Settings) -> AsyncGenerator[AsyncIOMotor
     
     client = AsyncIOMotorClient(test_settings.mongo_url)
     
+    from app.ai.db.models import LLMProvider
+
     # Initialize Beanie with test database
     await init_beanie(
         database=client[test_settings.database_name],
-        document_models=[User, Journal, UserModel, Chat]
+        document_models=[User, Journal, UserModel, Chat, LLMProvider]
     )
     
     # Mark that Beanie is initialized to prevent re-initialization

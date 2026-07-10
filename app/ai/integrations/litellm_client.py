@@ -21,20 +21,21 @@ class LiteLLMClient(LLMClient):
 
     def __init__(
         self,
-        providers_path: str = "llm_providers.json",
+        model_list: list[dict],
         max_tokens: int = 500,
         temperature: float = 0.7,
         timeout: int = 30,
     ):
         self.default_max_tokens = max_tokens
         self.default_temperature = temperature
+        self.timeout = timeout
 
-        model_list = self._load_providers(providers_path)
-        if not model_list:
-            raise ValueError(f"No providers configured in {providers_path}")
+        resolved_model_list = self._resolve_env_placeholders(model_list)
+        if not resolved_model_list:
+            raise ValueError("No providers configured in the model list")
 
         self.router = Router(
-            model_list=model_list,
+            model_list=resolved_model_list,
             num_retries=2,
             timeout=timeout,
             retry_after=True,
@@ -42,29 +43,17 @@ class LiteLLMClient(LLMClient):
             enable_weighted_failover=True,
         )
 
-        provider_names = [d.get("litellm_params", {}).get("model", "?") for d in model_list]
+        provider_names = [d.get("litellm_params", {}).get("model", "?") for d in resolved_model_list]
         logger.info(
             "litellm_router_created",
             providers=provider_names,
-            total_deployments=len(model_list),
+            total_deployments=len(resolved_model_list),
         )
 
-    def _load_providers(self, providers_path: str) -> list[dict]:
-        path = Path(providers_path)
-        if not path.is_absolute():
-            path = Path(os.getcwd()) / path
-
-        if not path.exists():
-            logger.error("providers_file_not_found", path=str(path))
-            raise FileNotFoundError(f"LLM providers config not found: {path}")
-
-        with open(path) as f:
-            raw_content = f.read()
-
-        resolved_content = string.Template(raw_content).safe_substitute(os.environ)
-        providers = json.loads(resolved_content)
-        logger.info("providers_loaded", path=str(path), count=len(providers))
-        return providers
+    def _resolve_env_placeholders(self, model_list: list[dict]) -> list[dict]:
+        raw_json = json.dumps(model_list)
+        resolved_json = string.Template(raw_json).safe_substitute(os.environ)
+        return json.loads(resolved_json)
 
     def _build_messages(
         self,

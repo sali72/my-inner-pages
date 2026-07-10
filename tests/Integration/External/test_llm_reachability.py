@@ -1,9 +1,12 @@
+import os
+import string
 import json
-from pathlib import Path
-
 import pytest
+import httpx
 
 from app.ai.config import AIModuleConfig
+from app.ai.db.models import LLMProvider
+from app.ai.db.repository import LLMProviderRepository
 
 
 @pytest.fixture
@@ -12,65 +15,50 @@ def ai_config() -> AIModuleConfig:
 
 
 @pytest.mark.asyncio
-async def test_llm_providers_file_exists(ai_config: AIModuleConfig):
-    path = Path(ai_config.llm_providers_path)
-    if not path.is_absolute():
-        import os
-        path = Path(os.getcwd()) / path
-
-    assert path.exists(), (
-        f"LLM providers config not found at {path}. "
-        f"Create it or set LLM_PROVIDERS_PATH to the correct path."
-    )
+async def test_llm_providers_database_accessible(test_db_client):
+    """Test that we can access the LLMProvider collection in the database."""
+    # Ensure collection exists and count returns a valid number
+    count = await LLMProvider.find_all().count()
+    assert isinstance(count, int)
 
 
 @pytest.mark.asyncio
-async def test_llm_providers_file_valid_json(ai_config: AIModuleConfig):
-    path = Path(ai_config.llm_providers_path)
-    if not path.is_absolute():
-        import os
-        path = Path(os.getcwd()) / path
-
-    if not path.exists():
-        pytest.skip("LLM providers config file not found")
-
-    with open(path) as f:
-        providers = json.load(f)
-
-    assert isinstance(providers, list), "providers config must be a JSON array"
-    assert len(providers) > 0, "providers config must have at least one entry"
-
-    for i, p in enumerate(providers):
-        assert "model_name" in p, f"Provider {i} missing 'model_name'"
-        assert "litellm_params" in p, f"Provider {i} missing 'litellm_params'"
-        assert "model" in p["litellm_params"], f"Provider {i} missing 'litellm_params.model'"
-
-
-@pytest.mark.asyncio
-async def test_llm_provider_reachable(ai_config: AIModuleConfig):
+async def test_llm_provider_reachable(ai_config: AIModuleConfig, test_db_client):
+    """
+    Test that configured LLM providers are reachable.
+    Since tests run with fresh databases, we can seed a test provider for reachability checking if needed.
+    """
     if ai_config.use_mock_llm:
         pytest.skip("USE_MOCK_LLM is enabled — no external LLM provider configured")
 
-    path = Path(ai_config.llm_providers_path)
-    if not path.is_absolute():
-        import os
-        path = Path(os.getcwd()) / path
+    repository = LLMProviderRepository()
+    providers = await repository.get_all_providers()
 
-    if not path.exists():
-        pytest.skip("LLM providers config file not found")
-
-    with open(path) as f:
-        import string
-        content = string.Template(f.read()).safe_substitute(os.environ)
-        providers = json.loads(content)
-
-    import httpx
+    if not providers:
+        # Seed a dummy provider to test database lookup and reachability logic structure
+        dummy = LLMProvider(
+            model_name="default",
+            litellm_params={
+                "model": "openrouter/google/gemini-flash-1.5:free",
+                "api_base": "https://openrouter.ai/api/v1",
+                "api_key": "${OPENROUTER_API_KEY}"
+            },
+            order=1,
+            is_active=True
+        )
+        await dummy.insert()
+        providers = [dummy]
 
     tested_any = False
     for p in providers:
-        params = p.get("litellm_params", {})
-        api_base = params.get("api_base")
-        api_key = params.get("api_key", "")
+        params = p.litellm_params
+        api_base = params.api_base
+        api_key_template = params.api_key or ""
+        
+        # Resolve env var template if any
+        api_key = string.Template(api_key_template).safe_substitute(os.environ) if api_key_template else None
+        if api_key and api_key.startswith("${") and api_key.endswith("}"):
+            api_key = os.getenv(api_key[2:-1])
 
         if not api_base or not api_key:
             continue
@@ -88,4 +76,4 @@ async def test_llm_provider_reachable(ai_config: AIModuleConfig):
         break
 
     if not tested_any:
-        pytest.skip("No provider with api_base and valid API key found")
+        pytest.skip("No provider with api_base and valid API key found in database")

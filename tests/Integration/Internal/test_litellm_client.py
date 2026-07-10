@@ -12,7 +12,6 @@ def test_litellm_client_initialization(mock_router, tmp_path):
     # Set environment variables
     os.environ["TEST_OPENROUTER_API_KEY"] = "test-openrouter-key"
 
-    # Create temporary providers JSON file with shell-style variables
     providers_config = [
         {
             "model_name": "default",
@@ -24,12 +23,8 @@ def test_litellm_client_initialization(mock_router, tmp_path):
         }
     ]
 
-    providers_file = tmp_path / "test_providers.json"
-    with open(providers_file, "w") as f:
-        json.dump(providers_config, f)
-
-    # Initialize client
-    client = LiteLLMClient(providers_path=str(providers_file))
+    # Initialize client directly with model config list
+    client = LiteLLMClient(model_list=providers_config)
 
     # Assert Router was initialized with resolved api_key
     mock_router.assert_called_once()
