@@ -1,8 +1,12 @@
 import json
 import os
+import string
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Optional
+
+from dotenv import load_dotenv
+load_dotenv()
 
 from litellm import Router
 
@@ -35,6 +39,7 @@ class LiteLLMClient(LLMClient):
             timeout=timeout,
             retry_after=True,
             enable_pre_call_checks=True,
+            enable_weighted_failover=True,
         )
 
         provider_names = [d.get("litellm_params", {}).get("model", "?") for d in model_list]
@@ -54,8 +59,10 @@ class LiteLLMClient(LLMClient):
             raise FileNotFoundError(f"LLM providers config not found: {path}")
 
         with open(path) as f:
-            providers = json.load(f)
+            raw_content = f.read()
 
+        resolved_content = string.Template(raw_content).safe_substitute(os.environ)
+        providers = json.loads(resolved_content)
         logger.info("providers_loaded", path=str(path), count=len(providers))
         return providers
 

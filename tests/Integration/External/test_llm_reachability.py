@@ -60,7 +60,9 @@ async def test_llm_provider_reachable(ai_config: AIModuleConfig):
         pytest.skip("LLM providers config file not found")
 
     with open(path) as f:
-        providers = json.load(f)
+        import string
+        content = string.Template(f.read()).safe_substitute(os.environ)
+        providers = json.loads(content)
 
     import httpx
 
@@ -68,18 +70,9 @@ async def test_llm_provider_reachable(ai_config: AIModuleConfig):
     for p in providers:
         params = p.get("litellm_params", {})
         api_base = params.get("api_base")
-        api_key_ref = params.get("api_key", "")
+        api_key = params.get("api_key", "")
 
-        if not api_base:
-            continue
-
-        api_key = ""
-        if api_key_ref.startswith("os.environ/"):
-            import os
-            env_var = api_key_ref.split("/", 1)[1]
-            api_key = os.environ.get(env_var, "")
-
-        if not api_key:
+        if not api_base or not api_key:
             continue
 
         url = f"{api_base.rstrip('/')}/models"
