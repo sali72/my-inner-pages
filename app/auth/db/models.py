@@ -19,6 +19,7 @@ class User(Document):
     hashed_password: str = Field(...)
     
     # User metadata
+    role: str = Field(default="user")
     is_active: bool = Field(default=True)
     is_verified: bool = Field(default=False)
     

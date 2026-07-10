@@ -11,7 +11,7 @@ from app.ai.deps import get_ai_config, reload_llm_client, get_llm_provider_repos
 from app.ai.db.models import LLMProvider
 from app.ai.db.repository import LLMProviderRepository
 from app.auth.db.models import User
-from app.core.deps.auth import get_current_user
+from app.core.deps.auth import get_current_admin_user
 from app.core.logging import get_logger
 
 # Import separated schemas
@@ -66,7 +66,7 @@ def is_key_obfuscated(key: Optional[str]) -> bool:
     summary="Get configured LLM providers from database with obfuscated keys",
 )
 async def get_providers(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     config: AIModuleConfig = Depends(get_ai_config),
     repository: LLMProviderRepository = Depends(get_llm_provider_repository),
 ):
@@ -106,7 +106,7 @@ async def get_providers(
 )
 async def update_providers(
     providers_list: List[ProviderConfigSchema],
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     config: AIModuleConfig = Depends(get_ai_config),
     repository: LLMProviderRepository = Depends(get_llm_provider_repository),
 ):
@@ -174,7 +174,7 @@ async def update_providers(
     summary="Force reload LLM configuration from database",
 )
 async def force_reload_providers(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     config: AIModuleConfig = Depends(get_ai_config),
     repository: LLMProviderRepository = Depends(get_llm_provider_repository),
 ):
@@ -263,7 +263,7 @@ async def _probe_provider(index: int, provider_dict: dict) -> ProviderTestResult
     summary="Test and diagnose all configured LLM providers in database",
 )
 async def test_providers(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     config: AIModuleConfig = Depends(get_ai_config),
     repository: LLMProviderRepository = Depends(get_llm_provider_repository),
 ):

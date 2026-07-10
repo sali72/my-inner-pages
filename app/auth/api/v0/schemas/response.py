@@ -29,6 +29,7 @@ class UserResponse(BaseModel):
     
     id: str = Field(..., description="User ID")
     email: str = Field(..., description="User email")
+    role: str = Field(..., description="User role")
     is_active: bool = Field(..., description="Whether user is active")
     is_verified: bool = Field(..., description="Whether email is verified")
     created_at: datetime = Field(..., description="Account creation timestamp")
@@ -49,6 +50,7 @@ class UserResponse(BaseModel):
         return cls(
             id=str(user.id),
             email=user.email,
+            role=user.role,
             is_active=user.is_active,
             is_verified=user.is_verified,
             created_at=user.created_at,
