@@ -113,9 +113,14 @@ jobs:
             gunzip -c /tmp/images.tar.gz | docker load
             rm -f /tmp/images.tar.gz
 
+            echo "=== Ensuring MongoDB is running ==="
+            docker compose -p my-inner-pages -f docker-compose.yml -f docker-compose.prod.yml up -d mongodb --no-build
+
+            echo "=== Ensuring Docker network exists ==="
+            docker network create my-inner-pages_app-network 2>/dev/null || true
+
             echo "=== Pre-deploy import smoke test ==="
-            timeout 30 docker run --rm --network my-inner-pages_app-network \
-              --env-file ./backend/.env \
+            timeout 30 docker run --rm --network none \
               my-inner-pages-backend:$SHA \
               python -c "
             import app.main
@@ -125,12 +130,6 @@ jobs:
               echo "The app module cannot be imported — aborting deploy."
               exit 1
             }
-
-            echo "=== Ensuring MongoDB is running ==="
-            docker compose -p my-inner-pages -f docker-compose.yml -f docker-compose.prod.yml up -d mongodb --no-build
-
-            echo "=== Ensuring Docker network exists ==="
-            docker network create my-inner-pages_app-network 2>/dev/null || true
 
             echo "=== Ensuring backend-upstream.conf exists ==="
             if [ ! -f /etc/nginx/conf.d/backend-upstream.conf ]; then
