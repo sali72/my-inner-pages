@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -35,8 +36,32 @@ async def lifespan(app: FastAPI):
         database=settings.database_name,
     )
 
-    # Initialize MongoDB client and Beanie (cached)
-    client = await get_client()
+    # Retry connecting to MongoDB with exponential backoff
+    max_retries = 10
+    base_delay = 2
+    last_exception = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            client = await get_client()
+            last_exception = None
+            break
+        except Exception as e:
+            last_exception = e
+            if attempt < max_retries:
+                delay = base_delay * (2 ** (attempt - 1))
+                logger.warning(
+                    "database_connection_retry",
+                    attempt=attempt,
+                    max_retries=max_retries,
+                    delay=delay,
+                    error=str(e),
+                )
+                print(f"⏳ Waiting for MongoDB (attempt {attempt}/{max_retries}, retrying in {delay}s)...")
+                await asyncio.sleep(delay)
+    if last_exception:
+        logger.error("database_connection_failed", error=str(last_exception))
+        print(f"✗ Failed to connect to MongoDB after {max_retries} attempts")
+        raise last_exception
 
     logger.info("database_connected", database=settings.database_name)
     print(f"✓ Connected to MongoDB: {settings.database_name}")
