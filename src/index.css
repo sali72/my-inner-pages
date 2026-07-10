@@ -220,3 +220,11 @@ html::-webkit-scrollbar-thumb { border-radius: 3px; background: var(--border-def
 .scrollbar-theme::-webkit-scrollbar { width: 6px; height: 6px; }
 .scrollbar-theme::-webkit-scrollbar-track { background: transparent; }
 .scrollbar-theme::-webkit-scrollbar-thumb { border-radius: 3px; background: var(--border-default); }
+
+/* ============================================================
+   Text selection — follows accent theme
+   ============================================================ */
+::selection {
+  background: var(--accent-tint);
+  color: var(--accent-tint-text);
+}
