@@ -16,8 +16,8 @@ React 18 SPA with TypeScript, Vite, Tailwind CSS, TanStack Query, Playwright.
 - ChatView always mounted (CSS `hidden` class) — preserves WebSocket connection
 
 ## Architecture
-- **Feature-based components:** `auth/`, `journal/`, `chat/`, `mirror/`, `settings/`, `landing/`, `layout/`, `common/`
-- **No router:** `App.tsx` renders active view based on query parameters parsed by the `useRouter` hook, making the URL the single source of truth.
+- **Feature-based components:** `auth/`, `journal/`, `chat/`, `mirror/`, `settings/`, `admin/`, `landing/`, `layout/`, `common/`
+- **No router:** `App.tsx` renders the active view (values: `journal`, `mirror`, `chat`, `settings`, `admin`) based on query parameters parsed by the `useRouter` hook, making the URL the single source of truth.
 - **State:** AuthContext (global auth), ThemeContext (preferences), TanStack React Query (server data), local state for ephemeral UI, useRouter (navigation)
 - **Offline/Sync:** `offlineStorage.ts` persists unsynced changes to `localStorage` during offline/network drops, overlaying them in `JournalView` via `localEntryRef` to prevent data loss. `App.tsx` triggers background syncing when online, on focus, or every 30s.
 - **Barrel exports:** each component directory has `index.ts`
