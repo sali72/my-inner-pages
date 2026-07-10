@@ -30,8 +30,10 @@ def get_memory_service(
 async def _get_llm_client():
     from app.ai.deps import get_llm_client as _ai_get_llm_client
     from app.ai.config import AIModuleConfig
+    from app.ai.db.repository import LLMProviderRepository
     return await _ai_get_llm_client(
         config=AIModuleConfig(),
+        repository=LLMProviderRepository(),
     )
 
 

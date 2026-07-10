@@ -22,6 +22,9 @@ def get_ai_config() -> AIModuleConfig:
 
 from app.ai.db.repository import LLMProviderRepository
 import json
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 
 def get_llm_provider_repository() -> LLMProviderRepository:
