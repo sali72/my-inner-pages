@@ -1,7 +1,6 @@
 name: Deploy to VPS
 
 on:
-  # Manual trigger only (recommended for safety)
   workflow_dispatch:
     inputs:
       environment:
@@ -12,130 +11,271 @@ on:
         options:
           - production
           - staging
-  
-  # Optional: Auto-deploy on push to main
-  # Uncomment if you want automatic deployment
-  # push:
-  #   branches:
-  #     - main
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || 'production' }}
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     environment: ${{ github.event.inputs.environment || 'production' }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          submodules: recursive  # Include submodules
-      
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Validate frontend
+        run: |
+          cd frontend
+          npm ci --silent
+          npx tsc --noEmit
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-      
+          if [ -n "${{ secrets.VPS_HOST_KEY }}" ]; then
+            echo "${{ secrets.VPS_HOST_KEY }}" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          fi
+
+      - name: Build images in CI
+        env:
+          VITE_API_URL: https://innerpages.ir/api/v0
+          VITE_WS_URL: wss://innerpages.ir/api/v0
+        run: |
+          SHA=${{ github.sha }}
+          echo "Building frontend image..."
+          docker build \
+            --build-arg VITE_API_URL=$VITE_API_URL \
+            --build-arg VITE_WS_URL=$VITE_WS_URL \
+            -t my-inner-pages-frontend:$SHA \
+            -t my-inner-pages-frontend \
+            ./frontend
+
+          echo "Building backend image..."
+          docker build \
+            -t my-inner-pages-backend:$SHA \
+            -t my-inner-pages-backend \
+            ./backend
+
+          echo "Saving images..."
+          docker save my-inner-pages-frontend:$SHA my-inner-pages-backend:$SHA | gzip > /tmp/images.tar.gz
+          ls -lh /tmp/images.tar.gz
+
+      - name: Upload images to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          echo "Uploading images to VPS..."
+          scp -i ~/.ssh/deploy_key -o ServerAliveInterval=60 \
+            /tmp/images.tar.gz $VPS_USER@$VPS_HOST:/tmp/images.tar.gz
+
       - name: Deploy to VPS
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
+          SHA=${{ github.sha }}
           ssh -i ~/.ssh/deploy_key -o ServerAliveInterval=60 -o ServerAliveCountMax=5 $VPS_USER@$VPS_HOST << ENDSSH
             set -e
-            
-            echo "📦 Navigating to deployment directory..."
+
             cd $DEPLOY_PATH
-            
-            echo "🔄 Pulling latest changes..."
+
+            echo "=== Checking disk space ==="
+            FREE_KB=\$(df --output=avail / | tail -1)
+            if [ "\$FREE_KB" -lt 2097152 ]; then
+              echo "Insufficient disk space (only \$((FREE_KB / 1024)) MB free, need at least 2048 MB)"
+              exit 1
+            fi
+            echo "Disk space: \$((FREE_KB / 1024)) MB free"
+
+            echo "=== Pulling latest changes ==="
             git pull origin main
             git submodule update --init --recursive
-            
-            echo "🔧 Checking nginx configuration..."
+
+            echo "=== Loading Docker images ==="
+            gunzip -c /tmp/images.tar.gz | docker load
+            rm -f /tmp/images.tar.gz
+
+            echo "=== Ensuring MongoDB is running ==="
+            docker compose -p my-inner-pages -f docker-compose.yml -f docker-compose.prod.yml up -d mongodb --no-build
+
+            echo "=== Ensuring Docker network exists ==="
+            docker network create my-inner-pages_app-network 2>/dev/null || true
+
+            echo "=== Ensuring backend-upstream.conf exists ==="
+            if [ ! -f /etc/nginx/conf.d/backend-upstream.conf ]; then
+              sudo cp nginx/backend-upstream.conf /etc/nginx/conf.d/backend-upstream.conf
+            fi
+
+            echo "=== Checking nginx configuration ==="
             if ! cmp -s nginx/nginx.conf /etc/nginx/nginx.conf || ! cmp -s nginx/innerpages.ir.conf /etc/nginx/conf.d/innerpages.ir.conf; then
-                echo "📝 Nginx config changed, updating..."
+                echo "Nginx config changed, updating..."
                 sudo cp nginx/nginx.conf /etc/nginx/nginx.conf
                 sudo cp nginx/innerpages.ir.conf /etc/nginx/conf.d/innerpages.ir.conf
                 sudo nginx -t && sudo systemctl reload nginx
             else
-                echo "✓ Nginx config unchanged, skipping"
+                echo "Nginx config unchanged, skipping"
             fi
-            
-            echo "🛑 Stopping containers..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml down || true
-            
-            echo "🧹 Cleaning up stale networks..."
-            docker network disconnect my-inner-pages_app-network journaling-backend 2>/dev/null || true
-            docker network disconnect my-inner-pages_app-network journaling-frontend 2>/dev/null || true
-            docker network disconnect my-inner-pages_app-network journaling-mongodb 2>/dev/null || true
-            docker network rm my-inner-pages_app-network 2>/dev/null || true
-            
-            echo "📝 Creating root .env file for docker-compose..."
-            echo "VITE_API_URL=https://innerpages.ir/api/v0" > .env
-            echo "VITE_WS_URL=wss://innerpages.ir/api/v0" >> .env
-            echo "VITE_ENV=production" >> .env
-            
-            echo "📊 Disk usage before build:"
+
+            echo "=== Cleaning up old-style containers (one-time migration) ==="
+            for old in journaling-frontend journaling-backend; do
+              if docker ps -q --filter name="\$old" | grep -q .; then
+                echo "Stopping old \$old container..."
+                docker stop "\$old"
+                docker rm "\$old"
+              fi
+            done
+
+            echo "=== Backend: blue/green deploy ==="
+            if docker ps -q --filter name=backend-blue | grep -q .; then
+              NEW_COLOR=green
+              NEW_PORT=8001
+              OLD_COLOR=blue
+            elif docker ps -q --filter name=backend-green | grep -q .; then
+              NEW_COLOR=blue
+              NEW_PORT=8000
+              OLD_COLOR=green
+            else
+              NEW_COLOR=blue
+              NEW_PORT=8000
+              OLD_COLOR=""
+            fi
+
+            echo "Deploying backend-\$NEW_COLOR on port \$NEW_PORT"
+
+            docker rm -f backend-\$NEW_COLOR 2>/dev/null || true
+
+            docker run -d \
+              --name backend-\$NEW_COLOR \
+              --network my-inner-pages_app-network \
+              --env-file ./backend/.env \
+              -p 127.0.0.1:\$NEW_PORT:8000 \
+              --restart unless-stopped \
+              -m 256m \
+              --cpus 0.5 \
+              my-inner-pages-backend:$SHA
+
+            echo "Health-checking new backend..."
+            HEALTHY=false
+            for i in \$(seq 1 15); do
+              if curl -sf http://localhost:\$NEW_PORT/health > /dev/null 2>&1; then
+                HEALTHY=true
+                echo "New backend is healthy! (attempt \$i)"
+                break
+              fi
+              echo "Waiting for new backend... (attempt \$i/15)"
+              sleep 2
+            done
+
+            if [ "\$HEALTHY" = false ]; then
+              echo "New backend failed health check, rolling back..."
+              docker stop backend-\$NEW_COLOR
+              docker rm backend-\$NEW_COLOR
+              exit 1
+            fi
+
+            echo "Switching nginx upstream to backend-\$NEW_COLOR (port \$NEW_PORT)..."
+            echo "upstream backend { server 127.0.0.1:\$NEW_PORT; keepalive 32; }" | sudo tee /etc/nginx/conf.d/backend-upstream.conf > /dev/null
+            sudo nginx -t && sudo systemctl reload nginx
+
+            echo "Draining in-flight requests (sleeping 10s)..."
+            sleep 10
+
+            if [ -n "\$OLD_COLOR" ]; then
+              echo "Stopping old backend-\$OLD_COLOR..."
+              docker stop backend-\$OLD_COLOR
+              docker rm backend-\$OLD_COLOR
+            fi
+
+            echo "=== Frontend: atomic deploy ==="
+            sudo mkdir -p /srv/frontend/releases
+            sudo chown $VPS_USER:$VPS_USER /srv/frontend
+            mkdir -p /srv/frontend/releases/$SHA
+
+            docker rm -f frontend-extract 2>/dev/null || true
+            docker create --name frontend-extract my-inner-pages-frontend:$SHA
+            docker cp frontend-extract:/usr/share/nginx/html/. /srv/frontend/releases/$SHA/
+            docker rm frontend-extract
+            chmod -R a+rX /srv/frontend/releases/$SHA/
+
+            tmp_link=/srv/frontend/current.tmp
+            ln -sfn /srv/frontend/releases/$SHA "\$tmp_link"
+            mv -T "\$tmp_link" /srv/frontend/current
+
+            echo "Frontend deployed at /srv/frontend/releases/$SHA"
+
+            echo "=== Cleaning up old frontend releases (keeping last 3) ==="
+            ls -dt /srv/frontend/releases/*/ 2>/dev/null | tail -n +4 | xargs -r rm -rf
+
+            echo "=== Disk usage before Docker cleanup ==="
             df -h / | tail -1
             docker system df
-            
-            echo "🏗️  Building containers (15 min timeout)..."
-            timeout 900 docker compose -f docker-compose.yml -f docker-compose.prod.yml build
-            
-            echo "🚀 Starting containers..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-            
-            echo "🧹 Cleaning up Docker resources..."
-            echo "  → Removing unused images..."
-            docker image prune -af
-            echo "  → Removing stale build cache (older than 7 days)..."
-            docker builder prune -af --filter "until=168h"
-            echo "  → Removing stopped containers..."
+
+            echo "=== Pruning old backend/frontend images (keep last 2 each) ==="
+            for repo in my-inner-pages-backend my-inner-pages-frontend; do
+              docker images "\$repo" --format '{{.CreatedAt}}|{{.ID}}|{{.Tag}}' \
+                | grep -v '|latest' | grep -v '|<none>' \
+                | sort -r \
+                | tail -n +2 \
+                | cut -d'|' -f2 \
+                | sort -u \
+                | xargs -r docker rmi -f
+            done
+
+            echo "=== Cleaning up other Docker resources ==="
             docker container prune -f
-            echo "  → Removing orphan volumes..."
             docker volume prune -f
-            
-            echo "📊 Disk usage after cleanup:"
+
+            echo "=== Disk usage after cleanup ==="
             df -h / | tail -1
             docker system df
-            
-            echo "✅ Deployment complete!"
-            
-            echo "📊 Container status:"
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+
+            echo ""
+            echo "Deployment complete!"
           ENDSSH
-      
-      - name: Health check
+
+      - name: Cleanup temp files
+        if: always()
+        run: rm -f /tmp/images.tar.gz
+
+      - name: End-to-end health check
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
-          echo "⏳ Waiting for services to start..."
-          
-          echo "🏥 Checking health directly on server (retrying up to 30s)..."
+          echo "Verifying end-to-end health through nginx..."
           ssh -i ~/.ssh/deploy_key -o ServerAliveInterval=60 -o ServerAliveCountMax=5 $VPS_USER@$VPS_HOST << ENDSSH
-            set -e
-            cd $DEPLOY_PATH
-            
-            # Retry health check with backoff (backend may still be starting)
             for i in \$(seq 1 15); do
               if curl -sf http://localhost/health > /dev/null 2>&1; then
-                echo "✅ Health check passed!"
+                echo "End-to-end health check passed!"
                 exit 0
               fi
-              echo "⏳ Waiting... (attempt \$i/15)"
+              echo "Waiting... (attempt \$i/15)"
               sleep 2
             done
-            
-            echo "❌ Health check failed after 15 attempts"
+
+            echo "End-to-end health check failed after 15 attempts"
             curl -v http://localhost/health 2>&1 || true
             exit 1
           ENDSSH
-      
+
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key
