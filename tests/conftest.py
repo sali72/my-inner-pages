@@ -99,11 +99,12 @@ async def test_db_client(test_settings: Settings) -> AsyncGenerator[AsyncIOMotor
     # Mark that Beanie is initialized to prevent re-initialization
     client._beanie_initialized = True
     
-    yield client
-    
-    # Cleanup: Drop the test database after test
-    await client.drop_database(test_settings.database_name)
-    client.close()
+    try:
+        yield client
+    finally:
+        # Cleanup: Drop the test database after test
+        await client.drop_database(test_settings.database_name)
+        client.close()
 
 
 @pytest_asyncio.fixture

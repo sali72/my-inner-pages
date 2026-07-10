@@ -12,7 +12,7 @@ from app.ai.api.v0.routes import llm_admin as llm_admin_router
 from app.auth.api.v0.routes import auth as auth_router
 from app.ai.api.v0.routes import chat as chat_router
 from app.chat.api.v0.routes import chat_rest as chat_rest_router
-from app.core.deps.database import get_client
+from app.core.deps.database import get_client, init_database
 from app.core.deps.settings import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.journals.api.v0.routes import journals as journals_router
@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
     last_exception = None
     for attempt in range(1, max_retries + 1):
         try:
-            client = await get_client()
+            client = await init_database()
             last_exception = None
             break
         except Exception as e:

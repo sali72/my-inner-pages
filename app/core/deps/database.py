@@ -33,38 +33,45 @@ def create_motor_client(settings: Settings) -> AsyncIOMotorClient:
     return AsyncIOMotorClient(settings.mongo_url)
 
 
-async def get_client() -> AsyncIOMotorClient:
+async def init_database() -> AsyncIOMotorClient:
     """
-    Get the MongoDB client and ensure Beanie is initialized.
-
-    Returns:
-        MongoDB client with Beanie initialized
+    Initialize database connection and Beanie models.
+    Should be called once during application startup.
     """
     settings = get_settings()
     client = create_motor_client(settings)
 
-    # Only initialize Beanie once per client
-    if not hasattr(client, "_beanie_initialized"):
-        from app.journals.db.models import Journal
-        from app.auth.db.models import User
-        from app.memory.db.models import UserModel
-        from app.chat.db.models import Chat
-        from app.ai.db.models import LLMProvider
+    from app.journals.db.models import Journal
+    from app.auth.db.models import User
+    from app.memory.db.models import UserModel
+    from app.chat.db.models import Chat
+    from app.ai.db.models import LLMProvider
 
-        logger.info("initializing_beanie", database=settings.database_name)
-        await init_beanie(
-            database=client[settings.database_name],
-            document_models=[Journal, User, UserModel, Chat, LLMProvider]
-        )
-        
-        client._beanie_initialized = True
-        logger.info("beanie_initialized")
+    logger.info("initializing_beanie", database=settings.database_name)
+    await init_beanie(
+        database=client[settings.database_name],
+        document_models=[Journal, User, UserModel, Chat, LLMProvider]
+    )
+    logger.info("beanie_initialized")
 
     return client
 
 
+async def get_client() -> AsyncIOMotorClient:
+    """
+    Get the cached MongoDB client.
+    
+    Returns:
+        MongoDB client
+    """
+    settings = get_settings()
+    return create_motor_client(settings)
 
-async def get_db() -> AsyncGenerator[AsyncIOMotorClientSession, None]:
+
+
+from fastapi import Depends
+
+async def get_db(client: AsyncIOMotorClient = Depends(get_client)) -> AsyncGenerator[AsyncIOMotorClientSession, None]:
     """
     Dependency that yields a new MongoDB session for each request.
 
@@ -80,7 +87,6 @@ async def get_db() -> AsyncGenerator[AsyncIOMotorClientSession, None]:
     Yields:
         MongoDB session for the current request
     """
-    client = await get_client()
     async with await client.start_session() as session:
         # Store the session in the context variable
         set_current_session(session)

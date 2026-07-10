@@ -128,7 +128,10 @@ class AuthFacade:
         """
         try:
             obj_id = PydanticObjectId(user_id)
-        except Exception:
+        except Exception as e:
+            print("VERIFY TOKEN ERROR:", str(e))
+            import traceback
+            traceback.print_exc()
             return None
 
         return await self.repository.find_by_id(obj_id)
@@ -165,7 +168,10 @@ class AuthFacade:
                 user_cache.set(cache_key, user, ttl=300)  # 5 minutes
 
             return user
-        except Exception:
+        except Exception as e:
+            print("VERIFY TOKEN ERROR:", str(e))
+            import traceback
+            traceback.print_exc()
             return None
 
     async def update_preferences(self, user_id: str, preferences: dict) -> User:
@@ -184,7 +190,10 @@ class AuthFacade:
         """
         try:
             obj_id = PydanticObjectId(user_id)
-        except Exception:
+        except Exception as e:
+            print("VERIFY TOKEN ERROR:", str(e))
+            import traceback
+            traceback.print_exc()
             raise ValueError("Invalid user ID")
 
         user = await self.repository.find_by_id(obj_id)
