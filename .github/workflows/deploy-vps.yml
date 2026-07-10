@@ -159,6 +159,7 @@ jobs:
             fi
 
             echo "Deploying backend-\$NEW_COLOR on port \$NEW_PORT"
+            echo "MONGO_URL from env file: \$(grep ^MONGO_URL ./backend/.env | head -1)"
 
             docker rm -f backend-\$NEW_COLOR 2>/dev/null || true
 
@@ -186,6 +187,9 @@ jobs:
 
             if [ "\$HEALTHY" = false ]; then
               echo "New backend failed health check, rolling back..."
+              echo "--- Container logs ---"
+              docker logs backend-\$NEW_COLOR 2>&1 || true
+              echo "--- End of logs ---"
               docker stop backend-\$NEW_COLOR
               docker rm backend-\$NEW_COLOR
               exit 1
