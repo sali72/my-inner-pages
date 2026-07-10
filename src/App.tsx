@@ -14,7 +14,7 @@ import { AdminView } from '@components/admin';
 import { useRouter } from '@hooks/useRouter';
 
 const AppInner: React.FC = () => {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { mode, accent, fontStyle, fontSize, resolvedMode,
     setMode, setAccent, setFontStyle, setFontSize, syncFromRemote, resetToDefaults } = useTheme();
   
@@ -238,7 +238,16 @@ const AppInner: React.FC = () => {
           />
         )}
 
-        {activeView === 'admin' && <AdminView />}
+        {activeView === 'admin' && (
+          user?.role === 'admin' ? (
+            <AdminView />
+          ) : (
+            <div className="flex flex-col items-center justify-center min-h-[600px] gap-4">
+              <p className="text-red-500 font-bold text-xl">Access Denied</p>
+              <p className="text-secondary">Administrator privileges required to view this page.</p>
+            </div>
+          )
+        )}
       </main>
     </div>
   );

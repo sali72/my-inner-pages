@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookOpen, Sparkles, MessageCircle, Settings, Cpu } from 'lucide-react';
 import { ViewType } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -23,10 +24,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose,
   onViewChange,
 }) => {
+  const { user } = useAuth();
+
   const handleViewClick = (view: ViewType) => {
     onViewChange(view);
     onClose();
   };
+
+  const filteredMenuItems = MENU_ITEMS.filter(item => 
+    item.view !== 'admin' || user?.role === 'admin'
+  );
 
   return (
     <>
@@ -53,7 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <nav className="space-y-2">
-          {MENU_ITEMS.map(({ view, icon: Icon, label }) => (
+          {filteredMenuItems.map(({ view, icon: Icon, label }) => (
             <button
               key={view}
               onClick={() => handleViewClick(view)}

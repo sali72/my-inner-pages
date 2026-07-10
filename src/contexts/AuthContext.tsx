@@ -7,6 +7,7 @@ export interface User {
   id: string;
   email: string;
   emailVerified: boolean;
+  role: string;
 }
 
 export interface AuthContextType {
@@ -52,6 +53,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             id: userData.id,
             email: userData.email,
             emailVerified: userData.is_verified || false,
+            role: userData.role || 'user',
           });
           setIsAuthenticated(true);
         } else {
@@ -95,6 +97,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       id: userData.id,
       email: userData.email,
       emailVerified: userData.is_verified || false,
+      role: userData.role || 'user',
     };
     
     setUser(newUser);
