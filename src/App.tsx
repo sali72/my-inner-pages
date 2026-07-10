@@ -10,6 +10,7 @@ import { JournalView } from '@components/journal';
 import { MirrorView } from '@components/mirror';
 import { ChatView } from '@components/chat';
 import { SettingsView } from '@components/settings';
+import { AdminView } from '@components/admin';
 import { useRouter } from '@hooks/useRouter';
 
 const AppInner: React.FC = () => {
@@ -54,7 +55,7 @@ const AppInner: React.FC = () => {
     const hasAuthParam = params.get('auth') === 'true';
     const viewParam = params.get('view');
     const activeViewParam: ViewType =
-      viewParam === 'mirror' || viewParam === 'chat' || viewParam === 'settings'
+      viewParam === 'mirror' || viewParam === 'chat' || viewParam === 'settings' || viewParam === 'admin'
         ? viewParam
         : 'journal';
     const entryParam = params.get('entry');
@@ -236,6 +237,8 @@ const AppInner: React.FC = () => {
             onFontSizeChange={setFontSize}
           />
         )}
+
+        {activeView === 'admin' && <AdminView />}
       </main>
     </div>
   );
