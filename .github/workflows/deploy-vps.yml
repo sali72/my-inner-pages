@@ -122,10 +122,7 @@ jobs:
             echo "=== Pre-deploy import smoke test ==="
             timeout 30 docker run --rm --network none \
               my-inner-pages-backend:$SHA \
-              python -c "
-            import app.main
-            print('import ok')
-            " 2>&1 || {
+              python -c "import app.main; print('import ok')" 2>&1 || {
               echo "Backend image import test failed (timeout or error)"
               echo "The app module cannot be imported — aborting deploy."
               exit 1
