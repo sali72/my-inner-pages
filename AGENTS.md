@@ -33,8 +33,10 @@ Python 3.11+ FastAPI server with MongoDB/Beanie, LangChain AI, JWT auth.
 ## AI-specific notes
 - `USE_MOCK_LLM=true` in `.env` for offline dev — avoids API costs
 - Test suite auto-enables mock LLM via conftest fixture overrides
-- LLM client selected via `get_llm_client()` dependency in `ai/deps.py`
-- Provider configuration in `llm_providers.json` supports environment variables in keys or parameters using the shell-style format `"${ENV_VAR_NAME}"` (e.g. `"api_key": "${OPENROUTER_API_KEY}"`), which are dynamically resolved at runtime.
+- LLM client selected via `get_llm_client()` dependency in `ai/deps.py`. It queries active model configs from MongoDB asynchronously and caches the client singleton via `@lru_cache` based on the serialized configuration hashes.
+- If no providers are configured in the database, the client automatically falls back to `MockLLMClient` to prevent system crashes.
+- Configurations are stored in MongoDB via the `LLMProvider` Beanie Document and retrieved using the `LLMProviderRepository` in `ai/db/repository.py`.
+- API keys in the database configuration support environment variable placeholders using the shell-style format `"${ENV_VAR_NAME}"` (e.g. `"api_key": "${OPENROUTER_API_KEY}"`), which are dynamically resolved at runtime. Obfuscation logic in routes prevents exposure of actual keys.
 
 ## Boundaries
 - Do NOT commit `.env` files or real API keys
@@ -51,3 +53,4 @@ Python 3.11+ FastAPI server with MongoDB/Beanie, LangChain AI, JWT auth.
 - `docs/features/rate-limiting.md` — rate limiter design
 - `docs/features/chat.md` — chat service internals
 - `docs/features/user-model.md` — user model extraction pipeline
+- `docs/features/llm-providers.md` — database LLM configuration & failover routing
