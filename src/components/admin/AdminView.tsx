@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Play, 
   Plus, 
   Trash2, 
   Save, 
@@ -30,6 +29,7 @@ interface ProviderConfig {
   model_name: string;
   litellm_params: LiteLLMParams;
   order?: number;
+  is_active: boolean;
 }
 
 interface ProviderTestResult {
@@ -52,7 +52,6 @@ export const AdminView: React.FC = () => {
   const [testResults, setTestResults] = useState<Record<string, ProviderTestResult>>({});
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   // Form state for adding a new provider
@@ -130,9 +129,6 @@ export const AdminView: React.FC = () => {
 
   const handleSaveConfig = async (updatedList = providers) => {
     try {
-      setSaving(true);
-      
-      // Re-assign order based on list index
       const payload = updatedList.map((p, idx) => ({
         ...p,
         order: idx + 1
@@ -144,8 +140,6 @@ export const AdminView: React.FC = () => {
     } catch (error) {
       console.error('Failed to save configuration:', error);
       showStatus('error', 'Failed to save configuration.');
-    } finally {
-      setSaving(false);
     }
   };
 
