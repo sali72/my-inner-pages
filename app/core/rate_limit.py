@@ -82,28 +82,18 @@ rate_limiter = RateLimiter()
 
 def check_rate_limit(
     request: Request,
-    max_requests: int = 5,
-    window_seconds: int = 60,
-    _env: str = "",
 ):
-    import os
-    if _env == "":
-        _env = os.getenv("ENVIRONMENT", "development")
-    if _env == "development":
+    from app.core.deps.settings import get_settings
+
+    settings = get_settings()
+    max_requests = settings.rate_limit_max_requests
+    window_seconds = settings.rate_limit_window_seconds
+
+    if not settings.is_production:
         max_requests = 100
-    """
-    Dependency to check rate limit.
-    
-    Args:
-        request: FastAPI request
-        max_requests: Maximum requests allowed
-        window_seconds: Time window in seconds
-        
-    Raises:
-        HTTPException: If rate limit exceeded
-    """
+
     client_ip = request.client.host if request.client else "unknown"
-    
+
     if not rate_limiter.check_rate_limit(client_ip, max_requests, window_seconds):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

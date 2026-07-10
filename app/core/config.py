@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     app_name: str = "My Inner Pages"
     app_version: str = "0.1.0"
     
+    # Rate Limiting Configuration
+    rate_limit_max_requests: int = 5
+    rate_limit_window_seconds: int = 60
+
     # JWT Configuration
     jwt_secret_key: str = "dev-secret-key-change-in-production"
     
