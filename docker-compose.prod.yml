@@ -17,6 +17,11 @@ services:
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 0.5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     ports:
@@ -24,6 +29,11 @@ services:
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   mongodb:
     ports:
@@ -32,3 +42,8 @@ services:
     mem_limit: 200m
     mem_reservation: 100m
     cpus: 0.5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

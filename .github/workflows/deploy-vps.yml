@@ -78,14 +78,29 @@ jobs:
             echo "VITE_WS_URL=wss://innerpages.ir/api/v0" >> .env
             echo "VITE_ENV=production" >> .env
             
+            echo "📊 Disk usage before build:"
+            df -h / | tail -1
+            docker system df
+            
             echo "🏗️  Building containers (15 min timeout)..."
             timeout 900 docker compose -f docker-compose.yml -f docker-compose.prod.yml build
             
             echo "🚀 Starting containers..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
             
-            echo "🧹 Cleaning up old images..."
-            docker image prune -af --filter "until=24h"
+            echo "🧹 Cleaning up Docker resources..."
+            echo "  → Removing unused images..."
+            docker image prune -af
+            echo "  → Removing stale build cache (older than 7 days)..."
+            docker builder prune -af --filter "until=168h"
+            echo "  → Removing stopped containers..."
+            docker container prune -f
+            echo "  → Removing orphan volumes..."
+            docker volume prune -f
+            
+            echo "📊 Disk usage after cleanup:"
+            df -h / | tail -1
+            docker system df
             
             echo "✅ Deployment complete!"
             
@@ -100,17 +115,25 @@ jobs:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
           echo "⏳ Waiting for services to start..."
-          sleep 20
           
-          echo "🏥 Checking health directly on server..."
+          echo "🏥 Checking health directly on server (retrying up to 30s)..."
           ssh -i ~/.ssh/deploy_key -o ServerAliveInterval=60 -o ServerAliveCountMax=5 $VPS_USER@$VPS_HOST << ENDSSH
             set -e
             cd $DEPLOY_PATH
             
-            # Check via localhost (bypasses Cloudflare)
-            curl -f http://localhost/health || exit 1
+            # Retry health check with backoff (backend may still be starting)
+            for i in \$(seq 1 15); do
+              if curl -sf http://localhost/health > /dev/null 2>&1; then
+                echo "✅ Health check passed!"
+                exit 0
+              fi
+              echo "⏳ Waiting... (attempt \$i/15)"
+              sleep 2
+            done
             
-            echo "✅ Health check passed!"
+            echo "❌ Health check failed after 15 attempts"
+            curl -v http://localhost/health 2>&1 || true
+            exit 1
           ENDSSH
       
       - name: Cleanup SSH key
