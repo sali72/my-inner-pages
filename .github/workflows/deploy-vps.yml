@@ -95,7 +95,29 @@ jobs:
           ssh -i ~/.ssh/deploy_key -o ServerAliveInterval=60 -o ServerAliveCountMax=5 $VPS_USER@$VPS_HOST << ENDSSH
             set -e
 
+            # Always clean up Docker resources, even on failure
+            cleanup_docker() {
+              echo "=== Cleanup: removing stale Docker images ==="
+              rm -f /tmp/images.tar.gz
+              for repo in my-inner-pages-backend my-inner-pages-frontend; do
+                docker images "\$repo" --format '{{.CreatedAt}}|{{.ID}}|{{.Tag}}' \
+                  | grep -v '|latest' | grep -v '|<none>' \
+                  | sort -r \
+                  | tail -n +2 \
+                  | cut -d'|' -f2 \
+                  | sort -u \
+                  | xargs -r docker rmi -f 2>/dev/null
+              done
+              docker image prune -f 2>/dev/null || true
+              docker container prune -f 2>/dev/null || true
+              docker volume prune -f 2>/dev/null || true
+            }
+            trap cleanup_docker EXIT
+
             cd $DEPLOY_PATH
+
+            # Pre-cleanup: free disk space before checking
+            cleanup_docker
 
             echo "=== Checking disk space ==="
             FREE_KB=\$(df --output=avail / | tail -1)
@@ -236,29 +258,6 @@ jobs:
 
             echo "=== Cleaning up old frontend releases (keeping last 3) ==="
             ls -dt /srv/frontend/releases/*/ 2>/dev/null | tail -n +4 | xargs -r rm -rf
-
-            echo "=== Disk usage before Docker cleanup ==="
-            df -h / | tail -1
-            docker system df
-
-            echo "=== Pruning old backend/frontend images (keep last 2 each) ==="
-            for repo in my-inner-pages-backend my-inner-pages-frontend; do
-              docker images "\$repo" --format '{{.CreatedAt}}|{{.ID}}|{{.Tag}}' \
-                | grep -v '|latest' | grep -v '|<none>' \
-                | sort -r \
-                | tail -n +2 \
-                | cut -d'|' -f2 \
-                | sort -u \
-                | xargs -r docker rmi -f
-            done
-
-            echo "=== Cleaning up other Docker resources ==="
-            docker container prune -f
-            docker volume prune -f
-
-            echo "=== Disk usage after cleanup ==="
-            df -h / | tail -1
-            docker system df
 
             echo ""
             echo "Deployment complete!"
