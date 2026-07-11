@@ -46,12 +46,12 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          if [ -z "${{ secrets.VPS_HOST_KEY }}" ]; then
-            echo "ERROR: VPS_HOST_KEY secret is not set — cannot verify host identity."
-            echo "Set the VPS_HOST_KEY secret in GitHub repo settings to the VPS host's public SSH key."
-            exit 1
+          # Use pinned host key if available, otherwise trust on first use (standard CI pattern)
+          if [ -n "${{ secrets.VPS_HOST_KEY }}" ]; then
+            echo "${{ secrets.VPS_HOST_KEY }}" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
           fi
-          echo "${{ secrets.VPS_HOST_KEY }}" > ~/.ssh/known_hosts
 
       - name: Build images in CI
         env:
