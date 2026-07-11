@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Sun, Moon, Monitor, LogOut } from 'lucide-react';
 import { Mode, Accent, FontStyle, ContentFontSize } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { ConfirmModal } from '@components/journal';
 
 interface SettingsViewProps {
   mode: Mode;
@@ -62,147 +63,163 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onFontSizeChange,
 }) => {
   const { logout, user } = useAuth();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = async () => {
-    if (confirm('Are you sure you want to logout?')) {
-      await logout();
-    }
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
+    await logout();
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 pt-6">
-      <div className="card p-6 space-y-8">
+    <>
+      <div className="max-w-2xl mx-auto p-4 pt-6">
+        <div className="card p-6 space-y-8">
 
-      {/* Appearance Mode */}
-      <section>
-        <h2 className="text-lg font-semibold text-primary mb-1">Appearance Mode</h2>
-        <p className="text-sm text-secondary mb-3">Choose light, dark, or follow your system preference.</p>
-        <div className="flex flex-wrap gap-2">
-          {(['light', 'dark', 'system'] as Mode[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => onModeChange(m)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg border transition-all text-sm ${
-                mode === m
-                  ? 'bg-accent text-white border-accent'
-                  : 'bg-surface text-primary border-default hover:border-hover'
-              }`}
-            >
-              {MODE_ICONS[m]}
-              <span className="capitalize">{m}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Accent Color */}
-      <section>
-        <h2 className="text-lg font-semibold text-primary mb-1">Accent Color</h2>
-        <p className="text-sm text-secondary mb-3">Used for buttons, links, tags, and highlights.</p>
-        <div className="grid grid-cols-4 gap-3">
-          {ACCENTS.map(({ value, label, light }) => (
-            <button
-              key={value}
-              onClick={() => onAccentChange(value)}
-              className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                accent === value
-                  ? 'border-accent bg-accent-tint'
-                  : 'border-default hover:border-hover'
-              }`}
-            >
-              <span
-                className="w-8 h-8 rounded-full border border-white/20 shadow-sm"
-                style={{ background: light }}
-              />
-              <span className="text-xs text-secondary">{label}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Live Preview */}
-      <section className="card p-5">
-        <div className="content-typography">
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <span className="text-xs font-medium text-accent">{PREVIEW_TEXT.date}</span>
-              <h3 className="text-xl font-bold text-primary mt-0.5">{PREVIEW_TEXT.title}</h3>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {PREVIEW_TEXT.tags.map((tag) => (
-              <span
-                key={tag}
-                className="px-2.5 py-0.5 rounded-full text-xs bg-accent-tint text-accent-tint"
+        {/* Appearance Mode */}
+        <section>
+          <h2 className="text-lg font-semibold text-primary mb-1">Appearance Mode</h2>
+          <p className="text-sm text-secondary mb-3">Choose light, dark, or follow your system preference.</p>
+          <div className="flex flex-wrap gap-2">
+            {(['light', 'dark', 'system'] as Mode[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => onModeChange(m)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg border transition-all text-sm ${
+                  mode === m
+                    ? 'bg-accent text-white border-accent'
+                    : 'bg-surface text-primary border-default hover:border-hover'
+                }`}
               >
-                {tag}
-              </span>
+                {MODE_ICONS[m]}
+                <span className="capitalize">{m}</span>
+              </button>
             ))}
           </div>
-          <p className="text-primary leading-relaxed">{PREVIEW_TEXT.body}</p>
+        </section>
+
+        {/* Accent Color */}
+        <section>
+          <h2 className="text-lg font-semibold text-primary mb-1">Accent Color</h2>
+          <p className="text-sm text-secondary mb-3">Used for buttons, links, tags, and highlights.</p>
+          <div className="grid grid-cols-4 gap-3">
+            {ACCENTS.map(({ value, label, light }) => (
+              <button
+                key={value}
+                onClick={() => onAccentChange(value)}
+                className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                  accent === value
+                    ? 'border-accent bg-accent-tint'
+                    : 'border-default hover:border-hover'
+                }`}
+              >
+                <span
+                  className="w-8 h-8 rounded-full border border-white/20 shadow-sm"
+                  style={{ background: light }}
+                />
+                <span className="text-xs text-secondary">{label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Live Preview */}
+        <section className="card p-5">
+          <div className="content-typography">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <span className="text-xs font-medium text-accent">{PREVIEW_TEXT.date}</span>
+                <h3 className="text-xl font-bold text-primary mt-0.5">{PREVIEW_TEXT.title}</h3>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {PREVIEW_TEXT.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-2.5 py-0.5 rounded-full text-xs bg-accent-tint text-accent-tint"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <p className="text-primary leading-relaxed">{PREVIEW_TEXT.body}</p>
+          </div>
+        </section>
+
+        {/* Typography */}
+        <section>
+          <h2 className="text-lg font-semibold text-primary mb-1">Typography</h2>
+          <p className="text-sm text-secondary mb-3">Font style and size for journal entries, reflections, and chat.</p>
+
+          <label className="text-sm font-medium text-primary mb-2 block">Font Style</label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
+            {FONT_STYLES.map(({ value, label, preview }) => (
+              <button
+                key={value}
+                onClick={() => onFontStyleChange(value)}
+                className={`p-4 rounded-lg border-2 transition-all text-center ${
+                  fontStyle === value
+                    ? 'border-accent bg-accent-tint'
+                    : 'border-default hover:border-hover'
+                }`}
+              >
+                <p className="text-lg font-semibold text-primary" style={{ fontFamily: `var(--content-font)` }}>
+                  {preview}
+                </p>
+                <p className="text-xs text-secondary mt-1">{label}</p>
+              </button>
+            ))}
+          </div>
+
+          <label className="text-sm font-medium text-primary mb-2 block">Font Size</label>
+          <div className="flex gap-2">
+            {FONT_SIZES.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => onFontSizeChange(value)}
+                className={`flex-1 py-2.5 rounded-lg border-2 transition-all text-sm ${
+                  fontSize === value
+                    ? 'border-accent bg-accent-tint text-accent'
+                    : 'border-default text-primary hover:border-hover'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Account */}
+        <section>
+          <h2 className="text-lg font-semibold text-primary mb-1">Account</h2>
+          <div className="p-4 rounded-lg border border-default bg-surface mb-3">
+            <p className="text-sm text-secondary mb-1">Logged in as:</p>
+            <p className="font-medium text-primary">{user?.email}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full p-4 rounded-lg border-2 border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-all flex justify-between items-center"
+          >
+            <span className="font-medium">Logout</span>
+            <LogOut className="w-5 h-5" />
+          </button>
+        </section>
+
         </div>
-      </section>
-
-      {/* Typography */}
-      <section>
-        <h2 className="text-lg font-semibold text-primary mb-1">Typography</h2>
-        <p className="text-sm text-secondary mb-3">Font style and size for journal entries, reflections, and chat.</p>
-
-        <label className="text-sm font-medium text-primary mb-2 block">Font Style</label>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
-          {FONT_STYLES.map(({ value, label, preview }) => (
-            <button
-              key={value}
-              onClick={() => onFontStyleChange(value)}
-              className={`p-4 rounded-lg border-2 transition-all text-center ${
-                fontStyle === value
-                  ? 'border-accent bg-accent-tint'
-                  : 'border-default hover:border-hover'
-              }`}
-            >
-              <p className="text-lg font-semibold text-primary" style={{ fontFamily: `var(--content-font)` }}>
-                {preview}
-              </p>
-              <p className="text-xs text-secondary mt-1">{label}</p>
-            </button>
-          ))}
-        </div>
-
-        <label className="text-sm font-medium text-primary mb-2 block">Font Size</label>
-        <div className="flex gap-2">
-          {FONT_SIZES.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => onFontSizeChange(value)}
-              className={`flex-1 py-2.5 rounded-lg border-2 transition-all text-sm ${
-                fontSize === value
-                  ? 'border-accent bg-accent-tint text-accent'
-                  : 'border-default text-primary hover:border-hover'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Account */}
-      <section>
-        <h2 className="text-lg font-semibold text-primary mb-1">Account</h2>
-        <div className="p-4 rounded-lg border border-default bg-surface mb-3">
-          <p className="text-sm text-secondary mb-1">Logged in as:</p>
-          <p className="font-medium text-primary">{user?.email}</p>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="w-full p-4 rounded-lg border-2 border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-all flex justify-between items-center"
-        >
-          <span className="font-medium">Logout</span>
-          <LogOut className="w-5 h-5" />
-        </button>
-      </section>
-
       </div>
-    </div>
+
+      <ConfirmModal
+        isOpen={showLogoutModal}
+        title="Logout"
+        message="Are you sure you want to logout?"
+        confirmLabel="Logout"
+        variant="danger"
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
+    </>
   );
 };

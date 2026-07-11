@@ -6,7 +6,7 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { LandingPage } from '@components/landing';
 import { AuthContainer } from '@components/auth';
 import { Header, Sidebar } from '@components/layout';
-import { JournalView } from '@components/journal';
+import { JournalView, ConfirmModal } from '@components/journal';
 import { MirrorView } from '@components/mirror';
 import { ChatView } from '@components/chat';
 import { SettingsView } from '@components/settings';
@@ -24,6 +24,7 @@ const AppInner: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatHistoryOpen, setChatHistoryOpen] = useState(false);
   const [chatInitialMessage, setChatInitialMessage] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const isDark = resolvedMode === 'dark';
   const wasAuthenticated = useRef(isAuthenticated);
 
@@ -142,7 +143,7 @@ const AppInner: React.FC = () => {
       await deleteEntry(id);
     } catch (error) {
       console.error('Failed to delete entry:', error);
-      alert('Failed to delete journal entry. Please try again.');
+      setDeleteError('Failed to delete journal entry. Please try again.');
     }
   };
 
@@ -249,6 +250,14 @@ const AppInner: React.FC = () => {
           )
         )}
       </main>
+
+      <ConfirmModal
+        isOpen={deleteError !== null}
+        title="Error"
+        message={deleteError || ''}
+        confirmLabel="OK"
+        onConfirm={() => setDeleteError(null)}
+      />
     </div>
   );
 };
