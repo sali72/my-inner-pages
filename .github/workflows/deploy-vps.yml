@@ -120,7 +120,7 @@ jobs:
             docker network create my-inner-pages_app-network 2>/dev/null || true
 
             echo "=== Pre-deploy import smoke test ==="
-            timeout 30 docker run --rm --network none \
+            timeout 30 docker run --rm \
               my-inner-pages-backend:$SHA \
               python -c "import app.main; print('import ok')" 2>&1 || {
               echo "Backend image import test failed (timeout or error)"
