@@ -95,10 +95,9 @@ jobs:
           ssh -i ~/.ssh/deploy_key -o ServerAliveInterval=60 -o ServerAliveCountMax=5 $VPS_USER@$VPS_HOST << ENDSSH
             set -e
 
-            # Always clean up Docker resources, even on failure
-            cleanup_docker() {
+            # Cleanup Docker images (NOT the tar.gz — that's needed later)
+            cleanup_images() {
               echo "=== Cleanup: removing stale Docker images ==="
-              rm -f /tmp/images.tar.gz
               for repo in my-inner-pages-backend my-inner-pages-frontend; do
                 docker images "\$repo" --format '{{.CreatedAt}}|{{.ID}}|{{.Tag}}' \
                   | grep -v '|latest' | grep -v '|<none>' \
@@ -109,15 +108,21 @@ jobs:
                   | xargs -r docker rmi -f 2>/dev/null
               done
               docker image prune -f 2>/dev/null || true
+            }
+
+            # Full cleanup including the tar.gz (only on EXIT)
+            cleanup_all() {
+              rm -f /tmp/images.tar.gz
+              cleanup_images
               docker container prune -f 2>/dev/null || true
               docker volume prune -f 2>/dev/null || true
             }
-            trap cleanup_docker EXIT
+            trap cleanup_all EXIT
 
             cd $DEPLOY_PATH
 
-            # Pre-cleanup: free disk space before checking
-            cleanup_docker
+            # Free disk space before checking (don't remove tar.gz yet)
+            cleanup_images
 
             echo "=== Checking disk space ==="
             FREE_KB=\$(df --output=avail / | tail -1)
