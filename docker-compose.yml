@@ -54,6 +54,8 @@ services:
 
 volumes:
   mongodb_data:
+    labels:
+      keep: "true"
 
 networks:
   app-network:
