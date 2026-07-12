@@ -547,7 +547,8 @@ export const JournalPage: React.FC<JournalPageProps> = ({
             >
               #{tag}
               <button onClick={() => removeTag(tag)}
-                className="opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all">
+                aria-label={`Remove tag ${tag}`}
+                className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 hover:text-red-500 transition-all">
                 <X className="w-3 h-3" />
               </button>
             </span>

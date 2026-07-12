@@ -270,7 +270,7 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
               </button>
 
               <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
-                <div className={`${openMenuId === entry.id ? '' : 'invisible group-hover:visible'} transition-all`}>
+                <div className={`${openMenuId === entry.id ? '' : 'md:invisible md:group-hover:visible md:group-focus-within:visible'} transition-all`}>
                   <EntryMenu
                     isOpen={openMenuId === entry.id}
                     onToggle={() => setOpenMenuId(openMenuId === entry.id ? null : entry.id)}

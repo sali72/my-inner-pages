@@ -119,7 +119,8 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                                     </div>
                                     <button
                                         onClick={(e) => onDeleteChat(e, chat.id)}
-                                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 text-muted hover:text-red-500 transition-all shrink-0 mt-0.5"
+                                        aria-label={`Delete chat ${chat.title || 'New chat'}`}
+                                        className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 p-1 rounded hover:bg-red-500/10 text-muted hover:text-red-500 transition-all shrink-0 mt-0.5"
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
                                     </button>

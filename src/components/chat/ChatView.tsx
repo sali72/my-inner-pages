@@ -380,7 +380,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                             {editingId !== msg.id && (
                               <button
                                 onClick={() => handleCopy(msg.id, msg.content)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
+                                className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
                               >
                                 {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                               </button>
@@ -388,7 +388,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                             {isLastUserMsg && !editingId && !isStreaming && (
                               <button
                                 onClick={() => { setEditingId(msg.id); setEditContent(msg.content); }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
+                                className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
                                 title="Edit"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
@@ -408,14 +408,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
                           <div className="flex items-center gap-0.5">
                             <button
                               onClick={() => handleCopy(msg.id, msg.content)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
+                              className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
                             >
                               {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                             </button>
                             {isLastAssistant && !isStreaming && (
                               <button
                                 onClick={regenerate}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
+                                className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
                                 title="Regenerate"
                               >
                                 <RotateCw className="w-3.5 h-3.5" />
