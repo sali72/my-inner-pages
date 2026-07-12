@@ -75,10 +75,42 @@ async def chat_websocket(
 
     try:
         async for data in websocket.iter_json():
-            if data.get("type") != "message":
-                continue
+            msg_type = data.get("type")
 
-            user_msg = data["content"]
+            if msg_type == "edit":
+                # Truncate conversation at the given index, then process the
+                # new user content as a fresh continuation.  message_index is
+                # the 0-based position of the user message being edited —
+                # everything from that index onward (inclusive) is replaced.
+                user_msg = data["content"]
+                message_index = data.get("message_index")
+
+                if actual_chat_id is None:
+                    await connection_manager.send_json(websocket, {
+                        "type": "error",
+                        "content": "Cannot edit: no active chat",
+                    })
+                    continue
+
+                if message_index is not None and message_index >= 0:
+                    keep = min(message_index, len(running_history))
+                    running_history = running_history[:keep]
+                    try:
+                        await chat_persistence.truncate_messages(
+                            actual_chat_id, str(user.id), keep
+                        )
+                    except Exception:
+                        logger.exception(
+                            "ws_edit_truncate_failed",
+                            chat_id=actual_chat_id,
+                            keep=keep,
+                        )
+
+                # Fall through to normal message processing below
+            elif msg_type != "message":
+                continue
+            else:
+                user_msg = data["content"]
 
             if actual_chat_id is None:
                 chat = await chat_persistence.create_chat(str(user.id))

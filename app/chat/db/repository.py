@@ -134,6 +134,49 @@ class ChatRepository:
                 details={"chat_id": str(chat_id), "error": str(e)},
             )
 
+    async def truncate_messages(
+        self,
+        chat_id: PydanticObjectId,
+        user_id: str,
+        keep_count: int,
+        session: Optional[AsyncIOMotorClientSession] = None,
+    ) -> Optional[Chat]:
+        """Remove all messages beyond *keep_count* (i.e. keep the first N messages)."""
+        try:
+            if session is None:
+                session = get_current_session()
+
+            chat = await self.model.find_one(
+                {"_id": chat_id, "user_id": user_id}, session=session
+            )
+            if not chat:
+                return None
+
+            # $slice with a negative count keeps only the first N elements
+            await chat.update(
+                {"$set": {
+                    "messages": {"$slice": keep_count},
+                    "updated_at": datetime.utcnow(),
+                }},
+                session=session,
+            )
+            logger.info(
+                "chat_messages_truncated",
+                chat_id=str(chat_id),
+                kept=keep_count,
+            )
+            return chat
+        except PyMongoError as e:
+            logger.error(
+                "chat_truncate_failed",
+                error=str(e),
+                chat_id=str(chat_id),
+            )
+            raise RepositoryException(
+                f"Failed to truncate chat messages: {str(e)}",
+                details={"chat_id": str(chat_id), "error": str(e)},
+            )
+
     async def update_title(
         self,
         chat_id: PydanticObjectId,

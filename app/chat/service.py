@@ -114,6 +114,18 @@ class ChatPersistenceService:
         total = await self.repository.count_by_user(user_id)
         return chats, total
 
+    async def truncate_messages(
+        self,
+        chat_id: str,
+        user_id: str,
+        keep_count: int,
+    ) -> Chat:
+        obj_id = PydanticObjectId(chat_id)
+        chat = await self.repository.truncate_messages(obj_id, user_id, keep_count)
+        if not chat:
+            raise DocumentNotFoundException("Chat", chat_id)
+        return chat
+
     async def update_title(
         self,
         chat_id: str,
