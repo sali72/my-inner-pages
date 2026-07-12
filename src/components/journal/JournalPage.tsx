@@ -317,6 +317,39 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     }
   }, [isNew, title, content, allTags, entryDate, entry, onCreate, onUpdate, onUpdateById, clearSaveStatus]);
 
+  // Synchronously persist the current editor state to localStorage. Unlike save()
+  // (which is async and awaits the network), this completes during beforeunload
+  // so edits are never lost when the tab closes mid-autosave. The background
+  // sync in App.tsx flushes the local record to the backend later.
+  const persistLocally = useCallback(() => {
+    const id = isNew ? entryIdRef.current : entry.id;
+    if (!isRealId(id)) return;
+
+    const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
+    const trimmedTitle = title.trim();
+    const trimmedContent = content.trim();
+    const dateChanged = !isNew && isoDate
+      ? !entry.created_at || Math.abs(new Date(isoDate).getTime() - new Date(entry.created_at).getTime()) > 1000
+      : false;
+    const hasChanges = isNew
+      ? trimmedTitle !== '' || trimmedContent !== '' || allTags.length > 0
+      : trimmedTitle !== entry.title ||
+        trimmedContent !== entry.content ||
+        JSON.stringify(allTags) !== JSON.stringify(entry.tags) ||
+        dateChanged;
+    if (!hasChanges) return;
+
+    saveUnsyncedEntry({
+      ...(isNew ? {} : entry),
+      id,
+      title: trimmedTitle,
+      content: trimmedContent,
+      tags: allTags,
+      created_at: isoDate || entry.created_at,
+      date: entryDate || entry.date,
+    });
+  }, [isNew, title, content, allTags, entryDate, entry]);
+
   useEffect(() => {
     if (isNew) return;
     const timer = setTimeout(() => save(), 1500);
@@ -335,10 +368,10 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   }, [title, content, allTags, isNew, save]);
 
   useEffect(() => {
-    const handleBeforeUnload = () => { save(); };
+    const handleBeforeUnload = () => { persistLocally(); };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [save]);
+  }, [persistLocally]);
 
   useEffect(() => {
     return () => {
