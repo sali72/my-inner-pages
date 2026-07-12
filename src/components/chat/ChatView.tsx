@@ -330,7 +330,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
-                                    editMessage(editContent);
+                                    editMessage(editContent, lastUserIdx);
                                     setEditingId(null);
                                     setEditContent('');
                                   }
@@ -351,7 +351,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                                 </button>
                                 <button
                                   onClick={() => {
-                                    editMessage(editContent);
+                                    editMessage(editContent, lastUserIdx);
                                     setEditingId(null);
                                     setEditContent('');
                                   }}

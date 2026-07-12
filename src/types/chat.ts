@@ -15,7 +15,8 @@ export interface ChatSummary {
 }
 
 export type WSClientMessage =
-  | { type: 'message'; content: string };
+  | { type: 'message'; content: string }
+  | { type: 'edit'; content: string; message_index: number };
 
 export type WSServerMessage =
   | { type: 'context_loaded'; chat_id: string | null }

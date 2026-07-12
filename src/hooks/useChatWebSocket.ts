@@ -6,9 +6,10 @@ const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/api/v0';
 
 interface UseChatWebSocketReturn extends ChatState {
   sendMessage: (content: string) => void;
+  sendEdit: (content: string, messageIndex: number) => void;
   stopStreaming: () => void;
   regenerate: () => void;
-  editMessage: (content: string) => void;
+  editMessage: (content: string, messageIndex: number) => void;
   disconnect: () => void;
   reconnect: () => void;
   startNewChat: () => void;
@@ -221,25 +222,58 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     connect(chatIdRef.current);
   }, [cleanup, connect]);
 
-  const getLastUserContent = useCallback((): string | null => {
+  const getLastUserIndex = useCallback((): number => {
     const msgs = messagesRef.current;
     for (let i = msgs.length - 1; i >= 0; i--) {
-      if (msgs[i].role === 'user') {
-        return msgs[i].content;
-      }
+      if (msgs[i].role === 'user') return i;
     }
-    return null;
+    return -1;
+  }, []);
+
+  const sendEdit = useCallback((content: string, messageIndex: number) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+
+    // Truncate the UI message list at messageIndex, then append the new
+    // user message + streaming placeholder — exactly like sendMessage but
+    // with the history forked at the edit point.
+    const truncated = messagesRef.current.slice(0, messageIndex);
+
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content,
+      timestamp: Date.now(),
+    };
+    const placeholder: ChatMessage = {
+      id: 'streaming',
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+    };
+
+    setState(prev => ({
+      ...prev,
+      messages: [...truncated, userMsg, placeholder],
+      isStreaming: true,
+      error: null,
+    }));
+
+    currentAssistantMsg.current = '';
+
+    const msg: WSClientMessage = { type: 'edit', content, message_index: messageIndex };
+    wsRef.current.send(JSON.stringify(msg));
   }, []);
 
   const regenerate = useCallback(() => {
-    const lastContent = getLastUserContent();
-    if (!lastContent) return;
-    sendMessage(lastContent);
-  }, [getLastUserContent, sendMessage]);
+    const idx = getLastUserIndex();
+    if (idx < 0) return;
+    const content = messagesRef.current[idx].content;
+    sendEdit(content, idx);
+  }, [getLastUserIndex, sendEdit]);
 
-  const editMessage = useCallback((content: string) => {
-    sendMessage(content);
-  }, [sendMessage]);
+  const editMessage = useCallback((content: string, messageIndex: number) => {
+    sendEdit(content, messageIndex);
+  }, [sendEdit]);
 
   useEffect(() => {
     connect(null);
@@ -249,6 +283,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
   return {
     ...state,
     sendMessage,
+    sendEdit,
     stopStreaming,
     regenerate,
     editMessage,
