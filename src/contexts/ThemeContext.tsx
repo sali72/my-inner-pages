@@ -18,6 +18,7 @@ interface ThemeContextValue {
 }
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
+const LOCAL_KEY = 'my-inner-pages-theme';
 
 interface PersistedSettings {
   mode: Mode;
@@ -47,6 +48,20 @@ function validate(raw: Partial<PersistedSettings>): PersistedSettings {
   };
 }
 
+function readLocal(): PersistedSettings {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY);
+    if (raw) return validate(JSON.parse(raw));
+  } catch {}
+  return { ...DEFAULTS };
+}
+
+function writeLocal(settings: PersistedSettings) {
+  try {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(settings));
+  } catch {}
+}
+
 async function fetchRemote(): Promise<PersistedSettings | null> {
   const token = localStorage.getItem('authToken');
   if (!token) return null;
@@ -63,26 +78,52 @@ async function fetchRemote(): Promise<PersistedSettings | null> {
   return null;
 }
 
-async function saveRemote(settings: PersistedSettings) {
+async function saveRemote(settings: PersistedSettings): Promise<boolean> {
   const token = localStorage.getItem('authToken');
-  if (!token) return;
+  if (!token) return false;
   try {
-    await fetch(`${API_URL}/auth/me/preferences`, {
+    const res = await fetch(`${API_URL}/auth/me/preferences`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(settings),
     });
-  } catch {}
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [settings, setSettings] = useState<PersistedSettings>({ ...DEFAULTS });
+  // Hydrate synchronously from localStorage so reloads don't flash the default
+  // theme and logged-out users keep their preferences.
+  const [settings, setSettings] = useState<PersistedSettings>(() => readLocal());
   const [systemDark, setSystemDark] = useState(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches
   );
   const hydrated = useRef(false);
+
+  // Debounce + sequence remote writes: rapid changes (sage → dusk → amber) are
+  // coalesced into one PUT, and writes are chained in order so the last user
+  // action is always the last one to reach the server — no last-resolver-wins
+  // race that leaves server and UI out of sync.
+  const pendingSettingsRef = useRef<PersistedSettings | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveChainRef = useRef<Promise<boolean>>(Promise.resolve(true));
+
+  const scheduleRemoteSave = useCallback((s: PersistedSettings) => {
+    pendingSettingsRef.current = s;
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      const latest = pendingSettingsRef.current;
+      pendingSettingsRef.current = null;
+      if (!latest) return;
+      saveChainRef.current = saveChainRef.current
+        .then(() => saveRemote(latest))
+        .catch(() => false);
+    }, 400);
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -94,6 +135,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const syncFromRemote = useCallback(async () => {
     const remote = await fetchRemote();
     if (remote) {
+      writeLocal(remote);
       setSettings(remote);
     }
   }, []);
@@ -126,16 +168,26 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     root.style.colorScheme = resolvedMode;
   }, [settings, resolvedMode]);
 
+  // Apply CSS tokens whenever settings OR resolvedMode changes. This must run
+  // on OS dark/light toggle (resolvedMode flip) to swap the theme, but it does
+  // NOT trigger a remote save — that's handled by the persist effect below,
+  // which keys only on `settings` so toggling the OS theme doesn't spam
+  // identical PUTs.
   useEffect(() => {
     applyTokens();
+  }, [applyTokens]);
 
+  // Persist settings: always write locally (sync, durable), and schedule a
+  // debounced remote save. Skip the very first run so we don't overwrite the
+  // server record with the just-hydrated local value on mount.
+  useEffect(() => {
     if (!hydrated.current) {
       hydrated.current = true;
       return;
     }
-
-    saveRemote(settings);
-  }, [applyTokens, settings]);
+    writeLocal(settings);
+    scheduleRemoteSave(settings);
+  }, [settings, scheduleRemoteSave]);
 
   const setter = useCallback(<K extends keyof PersistedSettings>(
     key: K,

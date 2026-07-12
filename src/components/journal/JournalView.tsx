@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Edit2 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { JournalTimeline } from './JournalTimeline';
@@ -46,11 +46,22 @@ function isEntrySynced(local: JournalEntry, backend: JournalEntry): boolean {
     localTags.length === backendTags.length &&
     localTags.every((t, i) => t === backendTags[i]);
 
+  // Compare created_at as parsed timestamps with a 1s tolerance: the local
+  // value comes from toISOString() (ms precision) while the backend may
+  // return second precision or a reformatted string, so a strict string
+  // compare would leave the "Unsynced" badge stuck forever.
+  const localTs = local.created_at ? new Date(local.created_at).getTime() : NaN;
+  const backendTs = backend.created_at ? new Date(backend.created_at).getTime() : NaN;
+  const datesMatch =
+    (Number.isNaN(localTs) && Number.isNaN(backendTs)) ||
+    (!Number.isNaN(localTs) && !Number.isNaN(backendTs) &&
+      Math.abs(localTs - backendTs) <= 1000);
+
   return (
     local.title.trim() === backend.title.trim() &&
     local.content.trim() === backend.content.trim() &&
     tagsMatch &&
-    (local.created_at || null) === (backend.created_at || null) &&
+    datesMatch &&
     (local.mood || null) === (backend.mood || null)
   );
 }
@@ -98,8 +109,11 @@ export const JournalView: React.FC<JournalViewProps> = ({
     localEntryRef.current = map;
   }
 
-  // Synchronize and prune localEntryRef entries when they are fully synced to backend entries
-  useMemo(() => {
+  // Synchronize and prune localEntryRef entries when they are fully synced to
+  // backend entries. This mutates a ref and writes localStorage, so it must
+  // run as an effect (not during render) — otherwise it double-fires under
+  // StrictMode and violates React's render purity.
+  useEffect(() => {
     entries.forEach(backendEntry => {
       const localEntry = localEntryRef.current.get(backendEntry.id);
       if (localEntry && isEntrySynced(localEntry, backendEntry)) {
