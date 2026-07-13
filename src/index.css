@@ -228,3 +228,20 @@ html::-webkit-scrollbar-thumb { border-radius: 3px; background: var(--border-def
   background: var(--accent-tint);
   color: var(--accent-tint-text);
 }
+
+/* ============================================================
+   Tiptap Editor & Placeholder
+   ============================================================ */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--text-tertiary);
+  opacity: 0.4;
+  pointer-events: none;
+  height: 0;
+  position: absolute;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+

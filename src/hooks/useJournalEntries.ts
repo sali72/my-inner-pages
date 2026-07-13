@@ -93,7 +93,7 @@ export const useJournalEntries = () => {
     await deleteMutation.mutateAsync(id);
   };
 
-  const syncUnsyncedEntries = useCallback(async () => {
+  const syncUnsyncedEntries = useCallback(async (onIdMigrate?: (oldId: string | number, newId: string | number) => void) => {
     const unsynced = getUnsyncedEntries();
     const ids = Object.keys(unsynced);
     if (ids.length === 0) return;
@@ -101,14 +101,30 @@ export const useJournalEntries = () => {
     for (const id of ids) {
       const entry = unsynced[id];
       try {
-        await updateMutation.mutateAsync({
-          id,
-          title: entry.title,
-          content: entry.content,
-          tags: entry.tags,
-          created_at: entry.created_at,
-        });
-        removeUnsyncedEntry(id);
+        if (id.toString().startsWith('draft-')) {
+          // Create new entry on the backend
+          const created = await api.post('/journals', {
+            title: entry.title,
+            content: entry.content,
+            tags: entry.tags,
+            created_at: entry.created_at,
+          }, journalResponseSchema);
+          
+          removeUnsyncedEntry(id);
+          if (onIdMigrate) {
+            onIdMigrate(id, created.id);
+          }
+        } else {
+          // Update existing entry
+          await updateMutation.mutateAsync({
+            id,
+            title: entry.title,
+            content: entry.content,
+            tags: entry.tags,
+            created_at: entry.created_at,
+          });
+          removeUnsyncedEntry(id);
+        }
       } catch (error) {
         console.error(`Failed to sync entry ${id}:`, error);
       }

@@ -3,11 +3,18 @@ import {
   ArrowLeft, Copy, Share2, Plus, X,
   MessageCircle, Trash2, MoreVertical, AlertCircle, CloudOff, CheckCircle2, Loader2
 } from 'lucide-react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import { StarterKit } from '@tiptap/starter-kit';
+import { Collaboration } from '@tiptap/extension-collaboration';
+import { Placeholder } from '@tiptap/extension-placeholder';
+
+
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { detectRTL } from '@utils/textDirection';
 import { ConfirmModal } from './ConfirmModal';
 import { isEntryUnsynced, saveUnsyncedEntry, removeUnsyncedEntry } from '@utils/offlineStorage';
+import { useJournalDoc } from '@hooks/useJournalDoc';
 
 interface JournalPageProps {
   entry: JournalEntry;
@@ -51,48 +58,8 @@ function stripHashTag(text: string, tag: string): string {
   return text.replace(new RegExp(`#${tag}\\b`, 'g'), '').replace(/\s+/g, ' ').trim();
 }
 
-function isRealId(v: string | number | null): v is string | number {
-  return v !== null && v !== 'pending';
-}
-
-function getCursorPixelPos(textarea: HTMLTextAreaElement): { top: number; left: number } | null {
-  const mirror = document.createElement('div');
-  try {
-    const style = window.getComputedStyle(textarea);
-    const props = [
-      'font', 'fontSize', 'fontFamily', 'lineHeight', 'letterSpacing',
-      'padding', 'border', 'boxSizing',
-    ] as const;
-    const css = [
-      ...props.map(p => {
-        const k = p.replace(/([A-Z])/g, '-$1').toLowerCase();
-        return `${k}: ${style[p as unknown as number]}`;
-      }),
-      `width: ${textarea.clientWidth}px`,
-      'white-space: pre-wrap',
-      'word-wrap: break-word',
-      'overflow-wrap: break-word',
-      'position: absolute',
-      'top: -9999px',
-      'left: 0',
-      'visibility: hidden',
-    ].join('; ');
-    mirror.style.cssText = css;
-
-    const textBefore = textarea.value.slice(0, textarea.selectionStart);
-    mirror.appendChild(document.createTextNode(textBefore));
-
-    const marker = document.createElement('span');
-    marker.textContent = '|';
-    mirror.appendChild(marker);
-
-    document.body.appendChild(mirror);
-    const markerRect = marker.getBoundingClientRect();
-
-    return { top: markerRect.top, left: markerRect.left };
-  } finally {
-    if (mirror.parentNode) mirror.parentNode.removeChild(mirror);
-  }
+function isRealId(v: string | number | null): boolean {
+  return v !== null && v !== 'pending' && !v.toString().startsWith('draft-');
 }
 
 export const JournalPage: React.FC<JournalPageProps> = ({
@@ -150,18 +117,102 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const autoTriggerPosRef = useRef(0);
   const [autoActiveIndex, setAutoActiveIndex] = useState(0);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const autoRef = useRef<HTMLDivElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const saveStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const entryIdRef = useRef<string | number | null>(null);
+  const entryIdRef = useRef<string | number | null>(isNew ? null : entry.id);
   const creationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 1. Initialize Local-First Yjs Document & IndexedDB Persistence
+  const currentId = isNew ? (entryIdRef.current || entry.id) : entry.id;
+  const { ydoc, isLoaded } = useJournalDoc(currentId, entry.title);
 
   const clearSaveStatus = useCallback(() => {
     if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
     saveStatusTimerRef.current = setTimeout(() => setSaveStatus(null), 1000);
   }, []);
+
+  const checkAutocomplete = useCallback((ed: any) => {
+    const { from } = ed.state.selection;
+    const $from = ed.state.selection.$from;
+    const textBefore = $from.parent.textBetween(0, $from.parentOffset);
+    const match = textBefore.match(/(?:^|\s)(#(\w*))$/);
+
+    if (match) {
+      setAutoQuery(match[2]);
+      setShowAuto(true);
+      autoTriggerPosRef.current = from - match[1].length;
+      
+      const coords = ed.view.coordsAtPos(from);
+      setAutoPos({
+        top: coords.top + window.scrollY,
+        left: coords.left + window.scrollX,
+      });
+    } else {
+      setShowAuto(false);
+    }
+  }, []);
+
+  // 2. Initialize Tiptap Editor with Collaboration Support
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Collaboration.configure({
+        document: ydoc,
+        field: 'content',
+      }),
+      Placeholder.configure({
+        placeholder: isNew ? 'Begin writing your story...' : 'Begin writing...',
+      }),
+    ],
+    editorProps: {
+      attributes: {
+        class: 'focus:outline-none min-h-[8rem] leading-relaxed text-body placeholder:text-muted/40',
+        style: 'unicode-bidi: plaintext;',
+      },
+    },
+    onUpdate: ({ editor: ed }) => {
+      setContent(ed.getText());
+      checkAutocomplete(ed);
+    },
+    onSelectionUpdate: ({ editor: ed }) => {
+      checkAutocomplete(ed);
+    },
+  }, [ydoc]);
+
+  // Handle local database migration when a draft receives a real backend ID
+  useEffect(() => {
+    const handleIdMigrated = (e: Event) => {
+      const { oldId, newId } = (e as CustomEvent).detail;
+      const currentActiveId = isNew ? entryIdRef.current : entry.id;
+      if (currentActiveId === oldId) {
+        entryIdRef.current = newId;
+      }
+    };
+    window.addEventListener('journal:id-migrated', handleIdMigrated);
+    return () => window.removeEventListener('journal:id-migrated', handleIdMigrated);
+  }, [entry.id, isNew]);
+
+  // Populate Tiptap if the local document is uninitialized
+  useEffect(() => {
+    if (editor && isLoaded) {
+      const contentFragment = ydoc.getXmlFragment('content');
+      if (contentFragment.length === 0 && entry.content) {
+        editor.commands.setContent(entry.content);
+      }
+    }
+  }, [editor, isLoaded, entry.content, ydoc]);
+
+  // Handle loaded IndexedDB Title
+  useEffect(() => {
+    if (isLoaded) {
+      const localTitle = ydoc.getText('title').toString();
+      if (localTitle) {
+        setTitle(localTitle);
+      }
+    }
+  }, [isLoaded, ydoc]);
 
   useEffect(() => {
     const fromContent = parseHashTags(entry.content || '');
@@ -181,16 +232,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       t.toLowerCase().includes(autoQuery.toLowerCase())
     );
   }, [showAuto, autoQuery, allAppTags]);
-
-  const autoResizeTextarea = useCallback(() => {
-    const el = textareaRef.current;
-    if (el) {
-      el.style.height = 'auto';
-      el.style.height = el.scrollHeight + 'px';
-    }
-  }, []);
-
-  useEffect(() => { autoResizeTextarea(); }, [content, autoResizeTextarea]);
 
   useEffect(() => {
     if (showTagInput && tagInputRef.current) tagInputRef.current.focus();
@@ -217,66 +258,87 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     if (!showAuto) return;
     const handleClick = (e: MouseEvent) => {
       if (autoRef.current && !autoRef.current.contains(e.target as Node) &&
-          textareaRef.current && !textareaRef.current.contains(e.target as Node)) {
+          editor && !editor.view.dom.contains(e.target as Node)) {
         setShowAuto(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [showAuto]);
+  }, [showAuto, editor]);
 
-  const checkAutocomplete = useCallback((el: HTMLTextAreaElement) => {
-    const pos = el.selectionStart;
-    const textBefore = el.value.slice(0, pos);
-    const match = textBefore.match(/(?:^|\s)(#(\w*))$/);
-
-    if (match) {
-      setAutoQuery(match[2]);
-      setShowAuto(true);
-      autoTriggerPosRef.current = pos - match[1].length;
-      const cursorPos = getCursorPixelPos(el);
-      if (cursorPos) setAutoPos(cursorPos);
-    } else {
-      setShowAuto(false);
+  // Sync title input updates to Y.Doc
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setTitle(val);
+    if (isLoaded) {
+      ydoc.transact(() => {
+        const titleText = ydoc.getText('title');
+        titleText.delete(0, titleText.length);
+        titleText.insert(0, val);
+      });
     }
-  }, []);
-
-  useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    const onInput = () => checkAutocomplete(el);
-    el.addEventListener('input', onInput);
-    return () => el.removeEventListener('input', onInput);
-  }, [checkAutocomplete]);
-
-
+  };
 
   const save = useCallback(async () => {
     const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
 
-    if (isNew && !isRealId(entryIdRef.current) && (title.trim() || content.trim() || allTags.length > 0)) {
+    const draftCheckId = entryIdRef.current;
+    if (isNew && !isRealId(draftCheckId) && (title.trim() || content.trim() || allTags.length > 0)) {
+      // If we are offline and this is a draft, we delegate creation to handleCreateEntry fallback
+      if (draftCheckId && draftCheckId.toString().startsWith('draft-')) {
+        // Already mapped to offline draft, save updates locally
+        const updatedEntry: JournalEntry = {
+          id: draftCheckId,
+          title: title.trim(),
+          content: content.trim(),
+          tags: allTags,
+          created_at: isoDate,
+          date: entryDate || new Date().toLocaleString(),
+        };
+        saveUnsyncedEntry(updatedEntry);
+        setSaveStatus('unsynced');
+        return;
+      }
+
       entryIdRef.current = 'pending';
       setSaveStatus('saving');
       try {
         const id = await onCreate!(title, content, allTags, isoDate);
         entryIdRef.current = id;
       } catch {
-        entryIdRef.current = null;
-        setSaveStatus('error');
+        // Creation failed (likely offline). Trigger local-first draft creation fallback
+        const tempId = `draft-${Date.now()}`;
+        entryIdRef.current = tempId;
+        const updatedEntry: JournalEntry = {
+          id: tempId,
+          title: title.trim(),
+          content: content.trim(),
+          tags: allTags,
+          created_at: isoDate,
+          date: entryDate || new Date().toLocaleString(),
+        };
+        saveUnsyncedEntry(updatedEntry);
+        setSaveStatus('unsynced');
+
+        if (onUpdateById) {
+          await onUpdateById(tempId, updatedEntry);
+        }
       }
       return;
     }
 
-    if (isNew && isRealId(entryIdRef.current)) {
+    const currentActiveId = isNew ? entryIdRef.current : entry.id;
+    if (isNew && isRealId(currentActiveId)) {
+      const realId = currentActiveId as string | number;
       setSaveStatus('saving');
       try {
-        await onUpdateById!(entryIdRef.current, { title: title.trim(), content: content.trim(), tags: allTags, created_at: isoDate });
+        await onUpdateById!(realId, { title: title.trim(), content: content.trim(), tags: allTags, created_at: isoDate });
         setSaveStatus('saved');
         clearSaveStatus();
-        removeUnsyncedEntry(entryIdRef.current);
+        removeUnsyncedEntry(realId);
       } catch {
         const updatedEntry: JournalEntry = {
-          id: entryIdRef.current,
+          id: realId,
           title: title.trim(),
           content: content.trim(),
           tags: allTags,
@@ -323,13 +385,9 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     }
   }, [isNew, title, content, allTags, entryDate, entry, onCreate, onUpdate, onUpdateById, clearSaveStatus]);
 
-  // Synchronously persist the current editor state to localStorage. Unlike save()
-  // (which is async and awaits the network), this completes during beforeunload
-  // so edits are never lost when the tab closes mid-autosave. The background
-  // sync in App.tsx flushes the local record to the backend later.
   const persistLocally = useCallback(() => {
     const id = isNew ? entryIdRef.current : entry.id;
-    if (!isRealId(id)) return;
+    if (!id || id === 'pending') return;
 
     const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
     const trimmedTitle = title.trim();
@@ -393,7 +451,11 @@ export const JournalPage: React.FC<JournalPageProps> = ({
 
   const removeTag = (tag: string) => {
     setExplicitTags(prev => prev.filter(t => t !== tag));
-    setContent(prev => stripHashTag(prev, tag));
+    if (editor) {
+      const text = editor.getText();
+      const newText = stripHashTag(text, tag);
+      editor.commands.setContent(newText);
+    }
   };
 
   const addTagDirect = (name: string) => {
@@ -406,28 +468,29 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   };
 
   const selectAutoTag = (tag: string) => {
-    const pos = textareaRef.current?.selectionStart ?? content.length;
+    if (!editor) return;
     const from = autoTriggerPosRef.current;
-    const needSpace = pos < content.length && content.charAt(pos) !== ' ';
-    const suffix = needSpace ? ' ' : '';
-    const newContent = content.slice(0, from) + `#${tag}${suffix}` + content.slice(pos);
-    setContent(newContent);
+    const to = editor.state.selection.from;
+    
+    editor.chain()
+      .focus()
+      .insertContentAt({ from, to }, `#${tag} `)
+      .run();
+      
     setShowAuto(false);
-    requestAnimationFrame(() => {
-      const el = textareaRef.current;
-      if (el) {
-        el.focus();
-        const newPos = from + tag.length + 1 + suffix.length;
-        el.setSelectionRange(newPos, newPos);
-      }
-    });
   };
 
-  const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (showAuto) {
+  // Keyboard navigation for floating autocomplete dropdown
+  useEffect(() => {
+    const el = editor?.view.dom;
+    if (!el) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!showAuto) return;
       if (e.key === 'Escape') {
         setShowAuto(false);
         e.preventDefault();
+        e.stopPropagation();
       } else if (e.key === 'Enter') {
         if (filteredAutoTags.length > 0) {
           selectAutoTag(filteredAutoTags[autoActiveIndex]);
@@ -435,15 +498,21 @@ export const JournalPage: React.FC<JournalPageProps> = ({
           selectAutoTag(autoQuery);
         }
         e.preventDefault();
+        e.stopPropagation();
       } else if (e.key === 'ArrowDown') {
         setAutoActiveIndex(i => Math.min(i + 1, filteredAutoTags.length - 1));
         e.preventDefault();
+        e.stopPropagation();
       } else if (e.key === 'ArrowUp') {
         setAutoActiveIndex(i => Math.max(i - 1, 0));
         e.preventDefault();
+        e.stopPropagation();
       }
-    }
-  };
+    };
+
+    el.addEventListener('keydown', handleKeyDown, true);
+    return () => el.removeEventListener('keydown', handleKeyDown, true);
+  }, [editor, showAuto, filteredAutoTags, autoActiveIndex, autoQuery]);
 
   useEffect(() => {
     setAutoActiveIndex(0);
@@ -451,13 +520,13 @@ export const JournalPage: React.FC<JournalPageProps> = ({
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(`${entry.title}\n\n${entry.content}`);
+      await navigator.clipboard.writeText(`${entry.title}\n\n${content}`);
     } catch {}
     setShowMenu(false);
   };
 
   const shareEntry = async () => {
-    const text = `${entry.title}\n\n${entry.content}`;
+    const text = `${entry.title}\n\n${content}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: entry.title, text });
@@ -470,6 +539,14 @@ export const JournalPage: React.FC<JournalPageProps> = ({
 
   const handleDeleteClick = () => { setShowDeleteConfirm(true); setShowMenu(false); };
   const handleConfirmDelete = () => { onDelete(); setShowDeleteConfirm(false); };
+
+  if (!isLoaded) {
+    return (
+      <div className="w-full max-w-2xl mx-auto flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted/50" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto relative flex flex-col flex-1">
@@ -557,7 +634,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         <input
           type="text"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={handleTitleChange}
           onBlur={() => save()}
           placeholder="Title..."
           className={`w-full text-3xl md:text-4xl ${getFontClass(font)} font-bold text-body bg-transparent border-none focus:outline-none p-0 mb-4`}
@@ -601,25 +678,8 @@ export const JournalPage: React.FC<JournalPageProps> = ({
           )}
         </div>
 
-        <div className="relative flex-1 flex">
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(e) => {
-              setContent(e.target.value);
-              autoResizeTextarea();
-            }}
-            onKeyDown={handleTextareaKeyDown}
-            onBlur={() => save()}
-            placeholder={isNew ? 'Begin writing your story...' : 'Begin writing...'}
-            className={`w-full flex-1 ${getFontClass(font)} ${getFontSizeClass(fontSize)} leading-relaxed resize-none focus:outline-none text-body placeholder:text-muted/40`}
-            style={{
-              background: 'transparent',
-              minHeight: '8rem',
-              overflow: 'hidden',
-              unicodeBidi: 'plaintext',
-            } as React.CSSProperties}
-          />
+        <div className={`relative flex-1 flex ${getFontClass(font)} ${getFontSizeClass(fontSize)}`}>
+          <EditorContent editor={editor} className="w-full flex-1" />
 
           {showAuto && (
             <div

@@ -10,8 +10,8 @@ async function createEntry(page: Page, title: string, content: string) {
   }
 
   await page.fill('input[placeholder="Title..."]', title);
-  await page.getByPlaceholder('Begin writing your story...').fill(content);
-  await page.getByTitle('Save Entry').click();
+  await page.locator('.ProseMirror').fill(content);
+  await page.getByLabel('Back to journal').click();
   await expect(page.locator('h2').filter({ hasText: title })).toBeVisible({ timeout: 5000 });
 }
 
@@ -44,15 +44,14 @@ test.describe('Journal CRUD', () => {
   test('edits an existing journal entry', async ({ page }) => {
     await createEntry(page, 'Entry to Edit', 'Original content.');
 
-    // Open entry menu and click Edit
-    await page.getByRole('button', { name: 'Entry options' }).click();
-    await page.getByRole('button', { name: 'Edit', exact: true }).click();
+    // Click on the entry card to view/edit it
+    await page.locator('h2').filter({ hasText: 'Entry to Edit' }).click();
 
-    // Modify content in edit mode
-    await page.locator('textarea').first().fill('Updated content after editing.');
+    // Modify content in the Tiptap editor
+    await page.locator('.ProseMirror').fill('Updated content after editing.');
 
-    // Click Save (the button with the Save icon, not the "New Entry" FAB)
-    await page.locator('button.btn-primary:has(.lucide-save)').click();
+    // Save and go back
+    await page.getByLabel('Back to journal').click();
 
     await expect(page.locator('span').filter({ hasText: 'Updated content after editing.' })).toBeVisible();
   });
@@ -60,13 +59,18 @@ test.describe('Journal CRUD', () => {
   test('deletes a journal entry', async ({ page }) => {
     await createEntry(page, 'Entry to Delete', 'This will be deleted.');
 
-    // Open entry menu and delete
+    // Click on the entry card to view/edit it
+    await page.locator('h2').filter({ hasText: 'Entry to Delete' }).click();
+
+    // Open options menu and click delete
     await page.getByRole('button', { name: 'Entry options' }).click();
-    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByRole('button', { name: 'Delete', exact: true }).click();
+    
+    // Accept confirm modal
     await page.getByRole('button', { name: 'Delete', exact: true }).click();
 
-    // After deletion, back to new-entry page
-    await expect(page.getByText('New Entry')).toBeVisible();
+    // After deletion, we should be back on the timeline view
+    await expect(page.getByText('Your Journal')).toBeVisible();
     await expect(page.locator('h2').filter({ hasText: 'Entry to Delete' })).not.toBeVisible();
   });
 });

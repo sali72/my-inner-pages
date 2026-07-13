@@ -3,7 +3,7 @@ import { Edit2 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { JournalTimeline } from './JournalTimeline';
 import { JournalPage } from './JournalPage';
-import { getUnsyncedEntries, removeUnsyncedEntry, STORAGE_KEY } from '@utils/offlineStorage';
+import { getUnsyncedEntries, removeUnsyncedEntry, saveUnsyncedEntry, STORAGE_KEY } from '@utils/offlineStorage';
 
 type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc';
 
@@ -214,20 +214,39 @@ export const JournalView: React.FC<JournalViewProps> = ({
   }, [onSelectEntry]);
 
   const handleCreateEntry = useCallback(async (title: string, content: string, tags: string[], created_at?: string) => {
-    const id = await onSaveNewEntry(title, content, tags, created_at);
-    if (navigatedAwayRef.current) return id;
-    localEntryRef.current!.set(id, {
-      id,
-      title,
-      content,
-      tags,
-      date: created_at
-        ? new Date(created_at).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
-        : new Date().toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
-      created_at,
-    });
-    onSelectEntry(id, 'replace');
-    return id;
+    try {
+      const id = await onSaveNewEntry(title, content, tags, created_at);
+      if (navigatedAwayRef.current) return id;
+      localEntryRef.current!.set(id, {
+        id,
+        title,
+        content,
+        tags,
+        date: created_at
+          ? new Date(created_at).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+          : new Date().toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
+        created_at,
+      });
+      onSelectEntry(id, 'replace');
+      return id;
+    } catch (err) {
+      // Offline fallback: generate a client-side draft ID and save it locally
+      const tempId = `draft-${Date.now()}`;
+      const localEntry: JournalEntry = {
+        id: tempId,
+        title,
+        content,
+        tags,
+        date: created_at
+          ? new Date(created_at).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+          : new Date().toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
+        created_at,
+      };
+      saveUnsyncedEntry(localEntry);
+      localEntryRef.current!.set(tempId, localEntry);
+      onSelectEntry(tempId, 'replace');
+      return tempId;
+    }
   }, [onSaveNewEntry, onSelectEntry]);
 
   const handleUpdateEntry = useCallback(async (id: number | string, updates: Partial<JournalEntry>) => {

@@ -95,9 +95,19 @@ const AppInner: React.FC = () => {
 
     syncCancelRef.current = false;
 
+    const handleIdMigrate = (oldId: string | number, newId: string | number) => {
+      const entryParam = new URLSearchParams(window.location.search).get('entry');
+      if (entryParam === oldId.toString()) {
+        router.navigate({ selectedEntryId: newId }, 'replace');
+      }
+      window.dispatchEvent(new CustomEvent('journal:id-migrated', {
+        detail: { oldId, newId }
+      }));
+    };
+
     const guardedSync = () => {
       if (syncCancelRef.current) return;
-      syncUnsyncedEntries();
+      syncUnsyncedEntries(handleIdMigrate);
     };
 
     // Initial sync attempt
