@@ -131,9 +131,9 @@ export const JournalView: React.FC<JournalViewProps> = ({
   // StrictMode and violates React's render purity.
   useEffect(() => {
     entries.forEach(backendEntry => {
-      const localEntry = localEntryRef.current.get(backendEntry.id);
+      const localEntry = localEntryRef.current!.get(backendEntry.id);
       if (localEntry && isEntrySynced(localEntry, backendEntry)) {
-        localEntryRef.current.delete(backendEntry.id);
+        localEntryRef.current!.delete(backendEntry.id);
         removeUnsyncedEntry(backendEntry.id);
       }
     });
@@ -144,7 +144,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
     entries.forEach(entry => {
       entry.tags?.forEach(tag => tagSet.add(tag));
     });
-    localEntryRef.current.forEach(entry => {
+    localEntryRef.current!.forEach(entry => {
       entry.tags?.forEach(tag => tagSet.add(tag));
     });
     return Array.from(tagSet).sort();
@@ -159,7 +159,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
     });
     
     // Override with/add local entries containing unsynced modifications
-    localEntryRef.current.forEach(entry => {
+    localEntryRef.current!.forEach(entry => {
       allEntriesMap.set(entry.id, entry);
     });
 
@@ -193,7 +193,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
   const currentEntry = useMemo(() => {
     if (selectedEntryId === null) return null;
-    const fromLocal = localEntryRef.current.get(selectedEntryId);
+    const fromLocal = localEntryRef.current!.get(selectedEntryId);
     if (fromLocal) return fromLocal;
     return entries.find(e => e.id === selectedEntryId) || null;
   }, [entries, selectedEntryId, syncVersion]);
@@ -216,7 +216,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const handleCreateEntry = useCallback(async (title: string, content: string, tags: string[], created_at?: string) => {
     const id = await onSaveNewEntry(title, content, tags, created_at);
     if (navigatedAwayRef.current) return id;
-    localEntryRef.current.set(id, {
+    localEntryRef.current!.set(id, {
       id,
       title,
       content,
@@ -231,11 +231,11 @@ export const JournalView: React.FC<JournalViewProps> = ({
   }, [onSaveNewEntry, onSelectEntry]);
 
   const handleUpdateEntry = useCallback(async (id: number | string, updates: Partial<JournalEntry>) => {
-    const local = localEntryRef.current.get(id);
+    const local = localEntryRef.current!.get(id);
     const backend = entries.find(e => e.id === id);
     const existing = local || backend;
     if (existing) {
-      localEntryRef.current.set(id, {
+      localEntryRef.current!.set(id, {
         ...existing,
         ...updates,
       });
@@ -244,7 +244,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
   }, [entries, onUpdateEntry]);
 
   const handleDeleteEntry = useCallback((id: number | string) => {
-    localEntryRef.current.delete(id);
+    localEntryRef.current!.delete(id);
     onDeleteEntry(id);
     onSelectEntry(null);
   }, [onDeleteEntry, onSelectEntry]);
