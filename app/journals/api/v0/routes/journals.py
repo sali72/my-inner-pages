@@ -12,7 +12,6 @@ from app.journals.deps import get_journal_facade
 from app.memory.deps import get_user_model_updater
 from app.memory.services.user_model_updater import UserModelUpdater, trigger_update_if_needed
 from app.core.deps.auth import get_current_user
-from app.core.deps.database import get_db
 from app.auth.db.models import User
 from app.journals.api.config import JournalRoutes
 
@@ -26,7 +25,6 @@ router = APIRouter(prefix="/journals", tags=["journals"])
     response_model=JournalResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new journal entry",
-    dependencies=[Depends(get_db)]
 )
 async def create_journal(
     request: CreateJournalRequest,
@@ -63,7 +61,6 @@ async def create_journal(
     JournalRoutes.ROOT,
     response_model=JournalListResponse,
     summary="List all journal entries",
-    dependencies=[Depends(get_db)]
 )
 async def list_journals(
     page_size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 20,
@@ -93,7 +90,6 @@ async def list_journals(
     JournalRoutes.BY_ID,
     response_model=JournalResponse,
     summary="Get a specific journal entry",
-    dependencies=[Depends(get_db)]
 )
 async def get_journal(
     journal_id: str,
@@ -120,7 +116,6 @@ async def get_journal(
     JournalRoutes.BY_ID,
     response_model=JournalResponse,
     summary="Update a journal entry",
-    dependencies=[Depends(get_db)]
 )
 async def update_journal(
     journal_id: str,
@@ -164,7 +159,6 @@ async def update_journal(
     JournalRoutes.BY_ID,
     response_model=MessageResponse,
     summary="Delete a journal entry",
-    dependencies=[Depends(get_db)]
 )
 async def delete_journal(
     journal_id: str,

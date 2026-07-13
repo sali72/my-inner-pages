@@ -84,6 +84,7 @@ async def get_providers(
                 
             result.append(
                 ProviderConfigSchema(
+                    id=str(p.id),
                     model_name=p.model_name,
                     litellm_params=params,
                     order=p.order,
@@ -120,34 +121,38 @@ async def update_providers(
         # Prepare list of documents to insert
         records_to_insert = []
         
-        for idx, new_p in enumerate(providers_list):
+        for new_p in providers_list:
             new_params = new_p.litellm_params.model_dump(exclude_none=True)
             new_key = new_params.get("api_key")
             
             if new_key and is_key_obfuscated(new_key):
-                # Look up original key from existing collection
                 original_key = None
-                if idx < len(existing_providers):
-                    original_key = existing_providers[idx].litellm_params.api_key
                 
-                # If we couldn't match by index, match by model string name
+                # Match by provider ID first (stable across edits)
+                if new_p.id:
+                    for old_p in existing_providers:
+                        if str(old_p.id) == new_p.id:
+                            original_key = old_p.litellm_params.api_key
+                            break
+                
+                # Fall back to matching by (model, api_base) tuple
                 if not original_key:
                     for old_p in existing_providers:
-                        if old_p.litellm_params.model == new_params.get("model"):
+                        if (old_p.litellm_params.model == new_params.get("model") and
+                            old_p.litellm_params.api_base == new_params.get("api_base")):
                             original_key = old_p.litellm_params.api_key
                             break
                 
                 if original_key:
                     new_params["api_key"] = original_key
                 else:
-                    # Strip if no original key found to prevent dummy stars saving
                     new_params.pop("api_key", None)
             
             # Construct Beanie Document
             doc = LLMProvider(
                 model_name=new_p.model_name,
                 litellm_params=new_params,
-                order=idx + 1,
+                order=new_p.order or 0,
                 is_active=new_p.is_active
             )
             records_to_insert.append(doc)

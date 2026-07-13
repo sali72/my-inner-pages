@@ -1,9 +1,7 @@
-"""Database dependency injection with session per request pattern."""
+"""Database client and initialization."""
 
-from typing import AsyncGenerator
 from functools import cache
-import contextvars
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorClientSession
+from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 
 from app.core.config import Settings
@@ -11,11 +9,6 @@ from app.core.deps.settings import get_settings
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
-
-# Context variable to store the current session
-current_session: contextvars.ContextVar[AsyncIOMotorClientSession | None] = (
-    contextvars.ContextVar("db_session", default=None)
-)
 
 
 @cache
@@ -66,53 +59,3 @@ async def get_client() -> AsyncIOMotorClient:
     """
     settings = get_settings()
     return create_motor_client(settings)
-
-
-
-from fastapi import Depends
-
-async def get_db(client: AsyncIOMotorClient = Depends(get_client)) -> AsyncGenerator[AsyncIOMotorClientSession, None]:
-    """
-    Dependency that yields a new MongoDB session for each request.
-
-    This ensures each API call operates in its own session and
-    sets the session in a context variable for global access.
-
-    Usage:
-        @router.post("/endpoint", dependencies=[Depends(get_db)])
-        async def endpoint():
-            session = get_current_session()
-            await repository.create(..., session=session)
-
-    Yields:
-        MongoDB session for the current request
-    """
-    async with await client.start_session() as session:
-        # Store the session in the context variable
-        set_current_session(session)
-        logger.debug("db_session_started")
-        try:
-            yield session
-        finally:
-            set_current_session(None)
-            logger.debug("db_session_closed")
-
-
-def get_current_session() -> AsyncIOMotorClientSession | None:
-    """
-    Get the current session from the context variable.
-
-    Returns:
-        Current MongoDB session or None if not in a request context
-    """
-    return current_session.get()
-
-
-def set_current_session(session: AsyncIOMotorClientSession | None) -> None:
-    """
-    Set the current session in the context variable.
-
-    Args:
-        session: MongoDB session to set
-    """
-    current_session.set(session)

@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     rate_limit_window_seconds: int = 60
 
     # CORS Configuration
-    cors_allowed_origins: list[str] = ["http://localhost:5173"]
+    cors_allowed_origins: tuple[str, ...] = ("http://localhost:5173",)
     cors_allow_credentials: bool = False
 
     # JWT Configuration

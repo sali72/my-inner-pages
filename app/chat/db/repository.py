@@ -2,11 +2,9 @@ from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
 from pymongo.errors import PyMongoError
-from motor.motor_asyncio import AsyncIOMotorClientSession
 
 from app.chat.db.models import Chat, ChatMessage
 from app.core.exceptions import RepositoryException, DocumentNotFoundException
-from app.core.deps.database import get_current_session
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -21,18 +19,14 @@ class ChatRepository:
         user_id: str,
         title: str = "",
         linked_entry_id: Optional[str] = None,
-        session: Optional[AsyncIOMotorClientSession] = None,
     ) -> Chat:
         try:
-            if session is None:
-                session = get_current_session()
-
             chat = Chat(
                 user_id=user_id,
                 title=title,
                 linked_entry_id=linked_entry_id,
             )
-            await chat.insert(session=session)
+            await chat.insert()
             logger.info("chat_created", chat_id=str(chat.id), user_id=user_id)
             return chat
         except PyMongoError as e:
@@ -46,11 +40,10 @@ class ChatRepository:
         self,
         chat_id: PydanticObjectId,
         user_id: str,
-        session: Optional[AsyncIOMotorClientSession] = None,
     ) -> Optional[Chat]:
         try:
             return await self.model.find_one(
-                {"_id": chat_id, "user_id": user_id}, session=session
+                {"_id": chat_id, "user_id": user_id}
             )
         except PyMongoError as e:
             logger.error("chat_find_failed", error=str(e), chat_id=str(chat_id))
@@ -64,11 +57,10 @@ class ChatRepository:
         user_id: str,
         skip: int = 0,
         limit: int = 50,
-        session: Optional[AsyncIOMotorClientSession] = None,
     ) -> list[Chat]:
         try:
             return await self.model.find(
-                {"user_id": user_id}, session=session
+                {"user_id": user_id}
             ).sort("-updated_at").skip(skip).limit(limit).to_list()
         except PyMongoError as e:
             logger.error("chat_list_failed", error=str(e), user_id=user_id)
@@ -80,11 +72,10 @@ class ChatRepository:
     async def count_by_user(
         self,
         user_id: str,
-        session: Optional[AsyncIOMotorClientSession] = None,
     ) -> int:
         try:
             return await self.model.find(
-                {"user_id": user_id}, session=session
+                {"user_id": user_id}
             ).count()
         except PyMongoError as e:
             logger.error("chat_count_failed", error=str(e), user_id=user_id)
@@ -99,22 +90,17 @@ class ChatRepository:
         user_id: str,
         role: str,
         content: str,
-        session: Optional[AsyncIOMotorClientSession] = None,
     ) -> Optional[Chat]:
         try:
-            if session is None:
-                session = get_current_session()
-
             message = ChatMessage(role=role, content=content)
             chat = await self.model.find_one(
-                {"_id": chat_id, "user_id": user_id}, session=session
+                {"_id": chat_id, "user_id": user_id}
             )
             if not chat:
                 return None
 
             await chat.update(
-                {"$push": {"messages": message.model_dump()}, "$set": {"updated_at": datetime.utcnow()}},
-                session=session,
+                {"$push": {"messages": message.model_dump()}, "$set": {"updated_at": datetime.utcnow()}}
             )
             logger.info(
                 "chat_message_appended",
@@ -139,26 +125,19 @@ class ChatRepository:
         chat_id: PydanticObjectId,
         user_id: str,
         keep_count: int,
-        session: Optional[AsyncIOMotorClientSession] = None,
     ) -> Optional[Chat]:
-        """Remove all messages beyond *keep_count* (i.e. keep the first N messages)."""
         try:
-            if session is None:
-                session = get_current_session()
-
             chat = await self.model.find_one(
-                {"_id": chat_id, "user_id": user_id}, session=session
+                {"_id": chat_id, "user_id": user_id}
             )
             if not chat:
                 return None
 
-            # $slice with a negative count keeps only the first N elements
             await chat.update(
                 {"$set": {
                     "messages": {"$slice": keep_count},
                     "updated_at": datetime.utcnow(),
-                }},
-                session=session,
+                }}
             )
             logger.info(
                 "chat_messages_truncated",
@@ -182,16 +161,14 @@ class ChatRepository:
         chat_id: PydanticObjectId,
         user_id: str,
         title: str,
-        session: Optional[AsyncIOMotorClientSession] = None,
     ) -> Optional[Chat]:
         try:
-            chat = await self.find_by_id(chat_id, user_id, session=session)
+            chat = await self.find_by_id(chat_id, user_id)
             if not chat:
                 return None
 
             await chat.set(
-                {"title": title, "updated_at": datetime.utcnow()},
-                session=session,
+                {"title": title, "updated_at": datetime.utcnow()}
             )
             logger.info("chat_title_updated", chat_id=str(chat_id))
             return chat
@@ -208,14 +185,13 @@ class ChatRepository:
         self,
         chat_id: PydanticObjectId,
         user_id: str,
-        session: Optional[AsyncIOMotorClientSession] = None,
     ) -> bool:
         try:
-            chat = await self.find_by_id(chat_id, user_id, session=session)
+            chat = await self.find_by_id(chat_id, user_id)
             if not chat:
                 return False
 
-            await chat.delete(session=session)
+            await chat.delete()
             logger.info("chat_deleted", chat_id=str(chat_id), user_id=user_id)
             return True
         except PyMongoError as e:

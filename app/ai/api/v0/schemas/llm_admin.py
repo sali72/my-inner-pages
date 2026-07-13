@@ -13,6 +13,7 @@ class LiteLLMParamsSchema(BaseModel):
 
 
 class ProviderConfigSchema(BaseModel):
+    id: Optional[str] = Field(None, description="Provider document ID for stable key matching")
     model_name: str = Field("default", description="Alias used in routing (usually 'default')")
     litellm_params: LiteLLMParamsSchema = Field(..., description="Parameters passed directly to LiteLLM")
     order: Optional[int] = Field(None, description="Priority order for routing failover")

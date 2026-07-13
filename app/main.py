@@ -140,11 +140,15 @@ def create_app() -> FastAPI:
             }
         except Exception as e:
             logger.error("health_check_failed", error=str(e))
-            return {
-                "status": "unhealthy",
-                "database": "disconnected",
-                "error": str(e)
-            }
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "unhealthy",
+                    "database": "disconnected",
+                    "error": str(e)
+                }
+            )
 
     return app
 

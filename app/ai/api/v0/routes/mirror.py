@@ -5,7 +5,6 @@ from app.ai.api.v0.schemas.response import MirrorReflectionResponse
 from app.ai.services.mirror_service import MirrorService
 from app.ai.deps import get_mirror_service
 from app.core.deps.auth import get_current_user
-from app.core.deps.database import get_db
 from app.core.deps.settings import get_settings
 from app.core.rate_limit import rate_limiter
 from app.core.config import Settings
@@ -22,8 +21,7 @@ router = APIRouter(prefix="/mirror", tags=["mirror"])
 @router.get(
     MirrorRoutes.REFLECTION,
     response_model=MirrorReflectionResponse,
-    summary="Generate a daily mirror reflection",
-    dependencies=[Depends(get_db)]
+    summary="Generate a daily mirror reflection"
 )
 async def get_mirror_reflection(
     mode: Annotated[

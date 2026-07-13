@@ -10,7 +10,7 @@ from app.chat.api.v0.schemas.chat import (
 from app.chat.deps import get_chat_persistence_service
 from app.chat.service import ChatPersistenceService
 from app.core.deps.auth import get_current_user
-from app.core.deps.database import get_db
+
 from app.auth.db.models import User
 
 router = APIRouter(prefix="/chats", tags=["chats"])
@@ -20,7 +20,6 @@ router = APIRouter(prefix="/chats", tags=["chats"])
     "",
     response_model=ChatListResponse,
     summary="List all chats for the user",
-    dependencies=[Depends(get_db)],
 )
 async def list_chats(
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
@@ -45,7 +44,6 @@ async def list_chats(
     "/{chat_id}",
     response_model=ChatResponse,
     summary="Get a specific chat with all messages",
-    dependencies=[Depends(get_db)],
 )
 async def get_chat(
     chat_id: str,
@@ -65,7 +63,6 @@ async def get_chat(
     "/{chat_id}",
     response_model=MessageResponse,
     summary="Delete a chat",
-    dependencies=[Depends(get_db)],
 )
 async def delete_chat(
     chat_id: str,
@@ -85,7 +82,6 @@ async def delete_chat(
     "/{chat_id}/title",
     response_model=ChatResponse,
     summary="Update chat title",
-    dependencies=[Depends(get_db)],
 )
 async def update_chat_title(
     chat_id: str,

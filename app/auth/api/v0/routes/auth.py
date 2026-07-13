@@ -10,7 +10,6 @@ from app.auth.facade.auth_facade import AuthFacade
 from app.auth.deps import get_auth_facade
 from app.auth.db.models import User
 from app.core.deps.auth import get_current_user
-from app.core.deps.database import get_db
 from app.core.rate_limit import check_rate_limit
 from app.auth.api.config import AuthRoutes
 
@@ -24,7 +23,6 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
     response_model=MessageResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
-    dependencies=[Depends(get_db)]
 )
 async def register(
     request: RegisterRequest,
@@ -61,7 +59,7 @@ async def register(
     AuthRoutes.LOGIN,
     response_model=LoginResponse,
     summary="Login user",
-    dependencies=[Depends(get_db), Depends(check_rate_limit)]
+    dependencies=[Depends(check_rate_limit)]
 )
 async def login(
     request: LoginRequest,
@@ -97,8 +95,7 @@ async def login(
 @router.get(
     AuthRoutes.ME,
     response_model=UserResponse,
-    summary="Get current user",
-    dependencies=[Depends(get_db)]
+    summary="Get current user"
 )
 async def get_current_user_info(
     current_user: User = Depends(get_current_user)
@@ -137,8 +134,7 @@ async def reset_password(
 @router.get(
     AuthRoutes.VERIFY,
     response_model=UserResponse,
-    summary="Verify JWT token",
-    dependencies=[Depends(get_db)]
+    summary="Verify JWT token"
 )
 async def verify_token(
     current_user: User = Depends(get_current_user)
@@ -154,8 +150,7 @@ async def verify_token(
 @router.put(
     AuthRoutes.PREFERENCES,
     response_model=UserResponse,
-    summary="Update user preferences",
-    dependencies=[Depends(get_db)]
+    summary="Update user preferences"
 )
 async def update_preferences(
     request: UpdatePreferencesRequest,

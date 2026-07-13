@@ -14,7 +14,7 @@ class LLMProviderRepository:
         return await LLMProvider.find_all().sort(+LLMProvider.order).to_list()
 
     async def replace_providers(self, providers: List[LLMProvider]) -> List[LLMProvider]:
-        """Replace the entire set of LLM providers in the database atomically (delete all + insert new)."""
+        """Replace the entire set of LLM providers."""
         await LLMProvider.find_all().delete()
         for doc in providers:
             await doc.insert()
