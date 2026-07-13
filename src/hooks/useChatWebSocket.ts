@@ -30,6 +30,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
   const messagesRef = useRef(state.messages);
   messagesRef.current = state.messages;
   const chatIdRef = useRef<string | null>(null);
+  const loadGenRef = useRef(0);
 
   const cleanup = useCallback(() => {
     if (wsRef.current) {
@@ -89,14 +90,17 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
 
         case 'token':
           currentAssistantMsg.current += data.content;
-          setState(prev => {
-            const msgs = [...prev.messages];
-            const last = msgs[msgs.length - 1];
-            if (last?.role === 'assistant' && last.id === 'streaming') {
-              msgs[msgs.length - 1] = { ...last, content: currentAssistantMsg.current };
-            }
-            return { ...prev, messages: msgs, isStreaming: true };
-          });
+          {
+            const accumulated = currentAssistantMsg.current;
+            setState(prev => {
+              const msgs = [...prev.messages];
+              const last = msgs[msgs.length - 1];
+              if (last?.role === 'assistant' && last.id === 'streaming') {
+                msgs[msgs.length - 1] = { ...last, content: accumulated };
+              }
+              return { ...prev, messages: msgs, isStreaming: true };
+            });
+          }
           break;
 
         case 'done': {
@@ -148,6 +152,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
   }, [disconnect, connect]);
 
   const loadChat = useCallback(async (targetChatId: string) => {
+    const gen = ++loadGenRef.current;
     currentAssistantMsg.current = '';
     cleanup();
     setState(prev => ({
@@ -159,6 +164,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
 
     try {
       const chat = await api.get(`/chats/${targetChatId}`, chatResponseSchema);
+      if (loadGenRef.current !== gen) return;
       if (chat && chat.messages) {
         const loadedMessages: ChatMessage[] = chat.messages.map((m: { role: string; content: string; created_at: string }) => ({
           id: crypto.randomUUID(),
@@ -169,9 +175,11 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
         setState(prev => ({ ...prev, messages: loadedMessages }));
       }
     } catch {
-      // silently fail; messages stay empty
+      if (loadGenRef.current !== gen) return;
+      setState(prev => ({ ...prev, error: 'Failed to load chat' }));
+      return;
     }
-
+    if (loadGenRef.current !== gen) return;
     connect(targetChatId);
   }, [cleanup, connect]);
 

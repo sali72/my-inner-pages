@@ -61,7 +61,7 @@ export const useJournalEntries = () => {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {});
     },
   });
 
@@ -69,14 +69,14 @@ export const useJournalEntries = () => {
     mutationFn: ({ id, title, content, tags, created_at }: Partial<JournalEntry> & { id: number | string }) =>
       api.put(`/journals/${id}`, { title, content, tags, created_at }),
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {});
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number | string) => api.delete(`/journals/${id}`),
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {});
     },
   });
 
@@ -113,7 +113,7 @@ export const useJournalEntries = () => {
         console.error(`Failed to sync entry ${id}:`, error);
       }
     }
-    queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {});
   }, [updateMutation, queryClient]);
 
   return {
@@ -126,6 +126,6 @@ export const useJournalEntries = () => {
     updateEntry,
     deleteEntry,
     syncUnsyncedEntries,
-    refreshEntries: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+    refreshEntries: () => { queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {}); },
   };
 };

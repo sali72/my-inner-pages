@@ -27,6 +27,7 @@ const AppInner: React.FC = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const isDark = resolvedMode === 'dark';
   const wasAuthenticated = useRef(isAuthenticated);
+  const syncCancelRef = useRef(false);
 
   // Intercept back button at index 0 to prevent exiting the app
   useEffect(() => {
@@ -92,28 +93,29 @@ const AppInner: React.FC = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
 
+    syncCancelRef.current = false;
+
+    const guardedSync = () => {
+      if (syncCancelRef.current) return;
+      syncUnsyncedEntries();
+    };
+
     // Initial sync attempt
-    syncUnsyncedEntries();
+    guardedSync();
 
-    const handleOnline = () => {
-      syncUnsyncedEntries();
-    };
-    const handleFocus = () => {
-      syncUnsyncedEntries();
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('focus', handleFocus);
+    window.addEventListener('online', guardedSync);
+    window.addEventListener('focus', guardedSync);
 
     const interval = setInterval(() => {
-      if (navigator.onLine) {
-        syncUnsyncedEntries();
+      if (navigator.onLine && !syncCancelRef.current) {
+        guardedSync();
       }
     }, 30000);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('focus', handleFocus);
+      syncCancelRef.current = true;
+      window.removeEventListener('online', guardedSync);
+      window.removeEventListener('focus', guardedSync);
       clearInterval(interval);
     };
   }, [isAuthenticated, syncUnsyncedEntries]);

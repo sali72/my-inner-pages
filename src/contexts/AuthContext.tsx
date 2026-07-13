@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, ReactNode } from 'react';
 
 // Backend API URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
@@ -31,6 +31,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     checkAuthStatus();
@@ -58,6 +64,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const token = localStorage.getItem('authToken');
       if (token) {
+        if (!mountedRef.current) return;
         const response = await fetch(`${API_URL}/auth/verify`, {
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -66,6 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
         
         if (response.ok) {
+          if (!mountedRef.current) return;
           const userData = await response.json();
           setUser({
             id: userData.id,
@@ -75,21 +83,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           });
           setIsAuthenticated(true);
         } else {
+          if (!mountedRef.current) return;
           clearSessionData();
           setUser(null);
           setIsAuthenticated(false);
         }
       } else {
+        if (!mountedRef.current) return;
         setUser(null);
         setIsAuthenticated(false);
       }
     } catch (error) {
+      if (!mountedRef.current) return;
       console.error('Auth check failed:', error);
       clearSessionData();
       setUser(null);
       setIsAuthenticated(false);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false);
     }
   };
 

@@ -54,6 +54,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   }, [chatId]);
 
   useEffect(() => {
+    setChatListError(null);
     const currentChatId = chatIdRef.current;
     if (selectedChatId === 'new') {
       if (currentChatId !== null) {
@@ -92,6 +93,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [chatList, setChatList] = useState<ChatSummary[]>([]);
+  const [chatListError, setChatListError] = useState<string | null>(null);
   const COLLAPSE_THRESHOLD = 280;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -109,8 +111,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
       if (data?.items) {
         setChatList(data.items);
       }
+      setChatListError(null);
     } catch {
-      // silently fail
+      setChatListError('Failed to load chat history');
     }
   }, []);
 
@@ -260,14 +263,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   const handleDeleteChat = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    const previous = chatList;
+    setChatList(prev => prev.filter(c => c.id !== id));
+    if (chatId === id) {
+      onSelectChat('new');
+    }
     try {
       await api.delete(`/chats/${id}`);
-      setChatList(prev => prev.filter(c => c.id !== id));
-      if (chatId === id) {
-        onSelectChat('new');
-      }
     } catch {
-      // silently fail
+      setChatList(previous);
     }
   };
 
@@ -497,6 +501,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
       </div>
       </div>
 
+      {chatHistoryOpen && chatListError && (
+        <div className="fixed right-0 top-16 z-50 w-80 p-3 text-xs text-red-500 bg-red-50 dark:bg-red-950/20 border-b border-red-200 dark:border-red-900/50">
+          {chatListError}
+        </div>
+      )}
       <ChatHistorySidebar
         isOpen={chatHistoryOpen}
         chats={chatList}
