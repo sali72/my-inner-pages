@@ -100,6 +100,19 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Global handler to mask internal details on 5xx
+    from starlette.exceptions import HTTPException as StarletteHTTPException
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request, exc):
+        if isinstance(exc, StarletteHTTPException):
+            raise exc
+        logger.error("unhandled_exception", error=str(exc), error_type=type(exc).__name__)
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"},
+        )
+
     # Register routers
     app.include_router(auth_router.router, prefix="/api/v0")
     app.include_router(journals_router.router, prefix="/api/v0")

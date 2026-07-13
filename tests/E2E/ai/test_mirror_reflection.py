@@ -6,7 +6,7 @@ Uses mock LLM to avoid actual API costs.
 """
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 
 from app.ai.api.config import MirrorRoutes
 from tests.config import MIRROR_PREFIX
@@ -321,3 +321,37 @@ async def test_reflection_consistency_across_modes(authenticated_client: AsyncCl
         assert response_data["mode"] == mode
         assert len(response_data["reflection"]) > 0
         assert response_data["available_modes"] == modes
+
+
+@pytest.mark.asyncio
+async def test_get_reflection_llm_failure_returns_500(
+    app,
+    test_user: dict,
+):
+    """
+    Test that when the LLM fails, the API returns 500 (not a fake 200).
+
+    This validates fix #11 — mirror service no longer swallows errors.
+
+    Args:
+        app: FastAPI application fixture
+        test_user: Test user fixture with access token
+    """
+    from app.ai.deps import get_llm_client
+    from app.ai.integrations.base import LLMClient
+
+    class FailingLLMClient(LLMClient):
+        async def generate(self, **kwargs):
+            raise RuntimeError("LLM service unavailable")
+        async def generate_stream(self, **kwargs):
+            raise RuntimeError("LLM service unavailable")
+
+    app.dependency_overrides[get_llm_client] = lambda: FailingLLMClient()
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        client.headers.update({"Authorization": f"Bearer {test_user['access_token']}"})
+        response = await client.get(f"{MIRROR_PREFIX}{MirrorRoutes.REFLECTION}")
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Failed to generate reflection"

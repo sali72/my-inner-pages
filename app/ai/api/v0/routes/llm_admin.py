@@ -96,7 +96,7 @@ async def get_providers(
         logger.error("admin_get_providers_failed", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to load LLM providers: {str(e)}",
+            detail="Failed to load LLM providers",
         )
 
 
@@ -169,7 +169,7 @@ async def update_providers(
         logger.error("admin_update_providers_failed", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update LLM providers configuration: {str(e)}",
+            detail="Failed to update LLM providers configuration",
         )
 
 
@@ -192,7 +192,7 @@ async def force_reload_providers(
         logger.error("admin_reload_failed", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to reload LLM client: {str(e)}",
+            detail="Failed to reload LLM client",
         )
 
 
@@ -280,9 +280,10 @@ async def test_providers(
     try:
         providers = await repository.get_all_providers()
     except Exception as e:
+        logger.error("admin_test_providers_query_failed", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to query providers from database: {str(e)}",
+            detail="Failed to query providers from database",
         )
 
     if not providers:

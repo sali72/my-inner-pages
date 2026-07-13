@@ -72,5 +72,5 @@ async def get_mirror_reflection(
         logger.error("mirror_reflection_error", user_id=str(current_user.id), error=str(e), error_type=type(e).__name__)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate reflection: {str(e)}"
+            detail="Failed to generate reflection"
         )

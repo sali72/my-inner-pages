@@ -55,6 +55,31 @@ async def test_register_user_happy_path(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_register_password_max_length_72(client: AsyncClient):
+    """
+    Test that passwords up to 72 chars (bcrypt limit) work, and >72 are rejected.
+
+    Args:
+        client: HTTP client without authentication
+    """
+    # 72-char password should succeed
+    password_72 = "a" * 72
+    response = await client.post(
+        f"{AUTH_PREFIX}{AuthRoutes.REGISTER}",
+        json={"email": "longpass@example.com", "password": password_72, "confirm_password": password_72}
+    )
+    assert response.status_code == 201, f"72-char password should work: {response.text}"
+
+    # 73-char password should be rejected
+    password_73 = "a" * 73
+    response = await client.post(
+        f"{AUTH_PREFIX}{AuthRoutes.REGISTER}",
+        json={"email": "toolong@example.com", "password": password_73, "confirm_password": password_73}
+    )
+    assert response.status_code == 400, f"73-char password should be rejected: {response.text}"
+
+
+@pytest.mark.asyncio
 async def test_register_user_email_normalization(client: AsyncClient):
     """
     Test that email is normalized (lowercased) during registration.

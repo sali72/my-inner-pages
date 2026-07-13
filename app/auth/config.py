@@ -10,7 +10,7 @@ class AuthModuleConfig(BaseModel):
     
     # Password settings
     min_password_length: int = 8
-    max_password_length: int = 128
+    max_password_length: int = 72
     
     # Email settings
     max_email_length: int = 255

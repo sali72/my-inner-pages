@@ -86,8 +86,17 @@ async def chat_websocket(
         "chat_id": actual_chat_id,
     })
 
+    MAX_MESSAGE_LENGTH = 10_000
+
     try:
         async for data in websocket.iter_json():
+            if not isinstance(data, dict):
+                await connection_manager.send_json(websocket, {
+                    "type": "error",
+                    "content": "Invalid message format",
+                })
+                continue
+
             msg_type = data.get("type")
 
             if msg_type == "edit":
@@ -95,7 +104,14 @@ async def chat_websocket(
                 # new user content as a fresh continuation.  message_index is
                 # the 0-based position of the user message being edited —
                 # everything from that index onward (inclusive) is replaced.
-                user_msg = data["content"]
+                user_msg = data.get("content", "")
+                if not user_msg or len(user_msg) > MAX_MESSAGE_LENGTH:
+                    await connection_manager.send_json(websocket, {
+                        "type": "error",
+                        "content": "Message is empty or exceeds maximum length",
+                    })
+                    continue
+
                 message_index = data.get("message_index")
 
                 if actual_chat_id is None:
@@ -123,7 +139,13 @@ async def chat_websocket(
             elif msg_type != "message":
                 continue
             else:
-                user_msg = data["content"]
+                user_msg = data.get("content", "")
+                if not user_msg or len(user_msg) > MAX_MESSAGE_LENGTH:
+                    await connection_manager.send_json(websocket, {
+                        "type": "error",
+                        "content": "Message is empty or exceeds maximum length",
+                    })
+                    continue
 
             if actual_chat_id is None:
                 chat = await chat_persistence.create_chat(str(user.id))

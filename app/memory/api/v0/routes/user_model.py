@@ -44,7 +44,7 @@ async def trigger_user_model_update(
         logger.exception("manual_user_model_update_failed", user_id=str(current_user.id))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"User model update failed: {str(e)}",
+            detail="User model update failed",
         )
 
 

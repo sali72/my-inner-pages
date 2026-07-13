@@ -70,35 +70,22 @@ class MirrorService:
 
         logger.info("prompts_formatted")
 
-        try:
-            logger.info("calling_llm_client", mode=mode)
+        logger.info("calling_llm_client", mode=mode)
 
-            reflection_text = await self.llm_client.generate(
-                prompt=user_prompt,
-                system_prompt=system_prompt,
-                max_tokens=400,
-                temperature=0.8,
-            )
+        reflection_text = await self.llm_client.generate(
+            prompt=user_prompt,
+            system_prompt=system_prompt,
+            max_tokens=400,
+            temperature=0.8,
+        )
 
-            logger.info(
-                "reflection_generated_successfully",
-                reflection_length=len(reflection_text),
-            )
+        logger.info(
+            "reflection_generated_successfully",
+            reflection_length=len(reflection_text),
+        )
 
-            return {
-                "reflection": reflection_text,
-                "mode": mode,
-                "available_modes": self.config.mirror_reflection_modes,
-            }
-        except Exception as e:
-            logger.error(
-                "reflection_generation_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            return {
-                "reflection": "Take a moment to reflect on your recent thoughts. What patterns do you notice?",
-                "mode": mode,
-                "available_modes": self.config.mirror_reflection_modes,
-                "error": str(e),
-            }
+        return {
+            "reflection": reflection_text,
+            "mode": mode,
+            "available_modes": self.config.mirror_reflection_modes,
+        }
