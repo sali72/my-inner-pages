@@ -79,7 +79,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
 
     setIsLoading(true);
     try {
-      await onRegister(email, password, confirmPassword);
+      await onRegister(email.toLowerCase().trim(), password, confirmPassword);
       setRegistrationSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Failed to register. Please try again.');

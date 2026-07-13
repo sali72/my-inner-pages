@@ -32,7 +32,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
 
     setIsLoading(true);
     try {
-      await onResetPassword(email);
+      await onResetPassword(email.toLowerCase().trim());
       setResetSent(true);
     } catch (err: any) {
       setError(err.message || 'Failed to send reset email. Please try again.');

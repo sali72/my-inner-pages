@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { MirrorReflection, MirrorMode } from '@/types/mirror';
 import { MIRROR_MODES } from '@constants/mirrorModes';
 import { api } from '@/utils/api';
@@ -15,26 +15,44 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [isRevealing, setIsRevealing] = useState(false);
 
+  const mountedRef = useRef(true);
+  const modeAtRequestRef = useRef<MirrorMode>(selectedMode);
+  const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current);
+    };
+  }, []);
+
+  const setSafeIsRevealing = (v: boolean) => {
+    if (mountedRef.current) setIsRevealing(v);
+  };
+
   const generateReflection = async () => {
     setLoading(true);
     setIsRevealing(true);
     setReflection(null);
+    modeAtRequestRef.current = selectedMode;
 
     try {
       const data = await api.get<MirrorReflection>(`/mirror/reflection?mode=${selectedMode}`);
+      if (!mountedRef.current || modeAtRequestRef.current !== selectedMode) return;
       setReflection(data);
-      setTimeout(() => setIsRevealing(false), 500);
+      revealTimeoutRef.current = setTimeout(() => setSafeIsRevealing(false), 500);
     } catch (err) {
+      if (!mountedRef.current) return;
       console.error('Error generating reflection:', err);
       setReflection({
         reflection: 'Unable to generate reflection at this moment. Please try again.',
-        mode: selectedMode,
+        mode: modeAtRequestRef.current,
         available_modes: ['emotional', 'cognitive', 'behavioral', 'relational'],
         error: err instanceof Error ? err.message : 'Unknown error'
       });
-      setTimeout(() => setIsRevealing(false), 500);
+      revealTimeoutRef.current = setTimeout(() => setSafeIsRevealing(false), 500);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 

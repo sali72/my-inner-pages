@@ -7,6 +7,14 @@ interface MarkdownRendererProps {
   isDark: boolean;
 }
 
+function ExternalLink({ href, children }: { href?: string; children?: React.ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  );
+}
+
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isDark }) => {
   return (
     <div className={`content-typography chat-typography [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-3 ${
@@ -22,7 +30,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isD
         ? '[&_blockquote]:border-white/20 [&_blockquote]:text-[#a0a09c]'
         : '[&_blockquote]:border-black/20 [&_blockquote]:text-[#5a5a56]'
     } [&_hr]:my-4 [&_hr]:border-default [&_table]:w-full [&_th]:text-left [&_th]:font-semibold [&_th]:pb-1 [&_td]:py-0.5 [&_tr]:border-b [&_tr]:border-default`}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{ a: ExternalLink }}
+      >
         {content}
       </ReactMarkdown>
     </div>

@@ -1,6 +1,6 @@
 import { JournalEntry } from '@/types';
 
-const STORAGE_KEY = 'my-inner-pages-unsynced-journals';
+export const STORAGE_KEY = 'my-inner-pages-unsynced-journals';
 
 export function getUnsyncedEntries(): Record<string | number, JournalEntry> {
   try {

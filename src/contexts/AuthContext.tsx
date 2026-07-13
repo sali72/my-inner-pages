@@ -36,6 +36,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     checkAuthStatus();
   }, []);
 
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      clearSessionData();
+      setUser(null);
+      setIsAuthenticated(false);
+    };
+    window.addEventListener('auth:expired', handleAuthExpired);
+    return () => window.removeEventListener('auth:expired', handleAuthExpired);
+  }, []);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      checkAuthStatus();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   const checkAuthStatus = async () => {
     try {
       const token = localStorage.getItem('authToken');

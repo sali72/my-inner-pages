@@ -93,10 +93,18 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                             </p>
                         ) : (
                             filteredChats.map(chat => (
-                                <button
+                                <div
                                     key={chat.id}
                                     onClick={() => onSelectChat(chat.id)}
-                                    className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-colors group ${
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            onSelectChat(chat.id);
+                                        }
+                                    }}
+                                    role="button"
+                                    tabIndex={0}
+                                    className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-colors group cursor-pointer ${
                                         chat.id === activeChatId
                                             ? 'bg-accent/10'
                                             : 'hover:bg-surface-hover'
@@ -124,7 +132,7 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
                                     </button>
-                                </button>
+                                </div>
                             ))
                         )}
                     </div>

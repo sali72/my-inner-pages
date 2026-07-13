@@ -3,7 +3,7 @@ import { Edit2 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { JournalTimeline } from './JournalTimeline';
 import { JournalPage } from './JournalPage';
-import { getUnsyncedEntries, removeUnsyncedEntry } from '@utils/offlineStorage';
+import { getUnsyncedEntries, removeUnsyncedEntry, STORAGE_KEY } from '@utils/offlineStorage';
 
 type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc';
 
@@ -99,7 +99,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const [showFilters, setShowFilters] = useState(false);
 
   const navigatedAwayRef = useRef(false);
-  const localEntryRef = useRef<Map<string | number, JournalEntry>>(null as any);
+  const localEntryRef = useRef<Map<string | number, JournalEntry> | null>(null);
+  const [syncVersion, setSyncVersion] = useState(0);
   if (!localEntryRef.current) {
     const map = new Map<string | number, JournalEntry>();
     const unsynced = getUnsyncedEntries();
@@ -108,6 +109,21 @@ export const JournalView: React.FC<JournalViewProps> = ({
     });
     localEntryRef.current = map;
   }
+
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY) return;
+      const unsynced = getUnsyncedEntries();
+      const map = new Map<string | number, JournalEntry>();
+      Object.values(unsynced).forEach(entry => {
+        map.set(entry.id, entry);
+      });
+      localEntryRef.current = map;
+      setSyncVersion(v => v + 1);
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   // Synchronize and prune localEntryRef entries when they are fully synced to
   // backend entries. This mutates a ref and writes localStorage, so it must
@@ -132,7 +148,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
       entry.tags?.forEach(tag => tagSet.add(tag));
     });
     return Array.from(tagSet).sort();
-  }, [entries]);
+  }, [entries, syncVersion]);
 
   const filteredEntries = useMemo(() => {
     const allEntriesMap = new Map<string | number, JournalEntry>();
@@ -173,14 +189,14 @@ export const JournalView: React.FC<JournalViewProps> = ({
     });
 
     return filtered;
-  }, [entries, searchQuery, selectedTags, sortBy]);
+  }, [entries, searchQuery, selectedTags, sortBy, syncVersion]);
 
   const currentEntry = useMemo(() => {
     if (selectedEntryId === null) return null;
     const fromLocal = localEntryRef.current.get(selectedEntryId);
     if (fromLocal) return fromLocal;
     return entries.find(e => e.id === selectedEntryId) || null;
-  }, [entries, selectedEntryId]);
+  }, [entries, selectedEntryId, syncVersion]);
 
   const handleSelectEntry = useCallback((id: number | string) => {
     navigatedAwayRef.current = false;

@@ -5,7 +5,11 @@ import React from 'react';
  */
 export const detectRTL = (text: string): boolean => {
   if (!text || text.length === 0) return false;
-  return /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/.test(text.charAt(0));
+  for (const char of text) {
+    if (/[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/.test(char)) return true;
+    if (/[a-zA-Z0-9]/.test(char)) return false;
+  }
+  return false;
 };
 
 /**

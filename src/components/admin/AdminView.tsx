@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, 
   Trash2, 
@@ -57,6 +57,7 @@ export const AdminView: React.FC = () => {
 
   // Confirmation modal state
   const [removeIndex, setRemoveIndex] = useState<number | null>(null);
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Form state for adding a new provider
   const [newModel, setNewModel] = useState<string>('');
@@ -107,8 +108,9 @@ export const AdminView: React.FC = () => {
   }, []);
 
   const showStatus = (type: 'success' | 'error', text: string) => {
+    if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
     setStatusMessage({ type, text });
-    setTimeout(() => setStatusMessage(null), 5000);
+    statusTimerRef.current = setTimeout(() => setStatusMessage(null), 5000);
   };
 
   const handleRunDiagnostics = async () => {
@@ -406,7 +408,7 @@ export const AdminView: React.FC = () => {
               
               return (
                 <div 
-                  key={idx}
+                  key={`${p.litellm_params.model}-${p.order ?? idx}`}
                   className={`card p-5 hover:border-hover transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4 group ${
                     p.is_active === false ? 'opacity-50 bg-base/20' : ''
                   }`}

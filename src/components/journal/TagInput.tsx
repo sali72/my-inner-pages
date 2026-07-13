@@ -51,9 +51,9 @@ export const TagInput: React.FC<TagInputProps> = ({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {tags.map((tag, i) => (
+      {tags.map((tag) => (
         <span
-          key={i}
+          key={tag}
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs bg-accent-tint/50 text-accent-tint"
         >
           {tag}

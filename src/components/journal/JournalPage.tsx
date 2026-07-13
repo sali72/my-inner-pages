@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   ArrowLeft, Copy, Share2, Plus, X,
-  MessageCircle, Trash2, MoreVertical, AlertCircle, CloudOff
+  MessageCircle, Trash2, MoreVertical, AlertCircle, CloudOff, CheckCircle2, Loader2
 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
@@ -26,12 +26,14 @@ interface JournalPageProps {
 type SaveStatus = 'saving' | 'saved' | 'error' | 'unsynced' | null;
 
 const SaveIndicator: React.FC<{ status: SaveStatus }> = ({ status }) => {
-  if (!status || status === 'saving' || status === 'saved') return null;
-  const styles = {
+  if (!status) return null;
+  const styles: Record<string, { icon: React.ReactNode; text: string; cls: string }> = {
+    saving: { icon: <Loader2 className="w-3 h-3 animate-spin" />, text: 'Saving...', cls: 'text-muted' },
+    saved: { icon: <CheckCircle2 className="w-3 h-3" />, text: 'Saved', cls: 'text-green-500' },
     error: { icon: <AlertCircle className="w-3 h-3" />, text: 'Couldn\'t save', cls: 'text-red-500' },
     unsynced: { icon: <CloudOff className="w-3 h-3" />, text: 'Unsynced (Saved locally)', cls: 'text-amber-500' },
   };
-  const s = styles[status as 'error' | 'unsynced'];
+  const s = styles[status];
   return (
     <span className={`inline-flex items-center gap-1 text-xs transition-opacity ${s.cls}`}>
       {s.icon}{s.text}
@@ -55,39 +57,42 @@ function isRealId(v: string | number | null): v is string | number {
 
 function getCursorPixelPos(textarea: HTMLTextAreaElement): { top: number; left: number } | null {
   const mirror = document.createElement('div');
-  const style = window.getComputedStyle(textarea);
-  const props = [
-    'font', 'fontSize', 'fontFamily', 'lineHeight', 'letterSpacing',
-    'padding', 'border', 'boxSizing',
-  ] as const;
-  const css = [
-    ...props.map(p => {
-      const k = p.replace(/([A-Z])/g, '-$1').toLowerCase();
-      return `${k}: ${style[p as unknown as number]}`;
-    }),
-    `width: ${textarea.clientWidth}px`,
-    'white-space: pre-wrap',
-    'word-wrap: break-word',
-    'overflow-wrap: break-word',
-    'position: absolute',
-    'top: -9999px',
-    'left: 0',
-    'visibility: hidden',
-  ].join('; ');
-  mirror.style.cssText = css;
+  try {
+    const style = window.getComputedStyle(textarea);
+    const props = [
+      'font', 'fontSize', 'fontFamily', 'lineHeight', 'letterSpacing',
+      'padding', 'border', 'boxSizing',
+    ] as const;
+    const css = [
+      ...props.map(p => {
+        const k = p.replace(/([A-Z])/g, '-$1').toLowerCase();
+        return `${k}: ${style[p as unknown as number]}`;
+      }),
+      `width: ${textarea.clientWidth}px`,
+      'white-space: pre-wrap',
+      'word-wrap: break-word',
+      'overflow-wrap: break-word',
+      'position: absolute',
+      'top: -9999px',
+      'left: 0',
+      'visibility: hidden',
+    ].join('; ');
+    mirror.style.cssText = css;
 
-  const textBefore = textarea.value.slice(0, textarea.selectionStart);
-  mirror.appendChild(document.createTextNode(textBefore));
+    const textBefore = textarea.value.slice(0, textarea.selectionStart);
+    mirror.appendChild(document.createTextNode(textBefore));
 
-  const marker = document.createElement('span');
-  marker.textContent = '|';
-  mirror.appendChild(marker);
+    const marker = document.createElement('span');
+    marker.textContent = '|';
+    mirror.appendChild(marker);
 
-  document.body.appendChild(mirror);
-  const markerRect = marker.getBoundingClientRect();
-  document.body.removeChild(mirror);
+    document.body.appendChild(mirror);
+    const markerRect = marker.getBoundingClientRect();
 
-  return { top: markerRect.top, left: markerRect.left };
+    return { top: markerRect.top, left: markerRect.left };
+  } finally {
+    if (mirror.parentNode) mirror.parentNode.removeChild(mirror);
+  }
 }
 
 export const JournalPage: React.FC<JournalPageProps> = ({
@@ -143,6 +148,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const [autoQuery, setAutoQuery] = useState('');
   const [autoPos, setAutoPos] = useState({ top: 0, left: 0 });
   const autoTriggerPosRef = useRef(0);
+  const [autoActiveIndex, setAutoActiveIndex] = useState(0);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -424,29 +430,41 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         e.preventDefault();
       } else if (e.key === 'Enter') {
         if (filteredAutoTags.length > 0) {
-          selectAutoTag(filteredAutoTags[0]);
+          selectAutoTag(filteredAutoTags[autoActiveIndex]);
         } else if (autoQuery) {
           selectAutoTag(autoQuery);
         }
         e.preventDefault();
-      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      } else if (e.key === 'ArrowDown') {
+        setAutoActiveIndex(i => Math.min(i + 1, filteredAutoTags.length - 1));
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp') {
+        setAutoActiveIndex(i => Math.max(i - 1, 0));
         e.preventDefault();
       }
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(`${entry.title}\n\n${entry.content}`);
+  useEffect(() => {
+    setAutoActiveIndex(0);
+  }, [showAuto, autoQuery]);
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(`${entry.title}\n\n${entry.content}`);
+    } catch {}
     setShowMenu(false);
   };
 
-  const shareEntry = () => {
+  const shareEntry = async () => {
     const text = `${entry.title}\n\n${entry.content}`;
-    if (navigator.share) {
-      navigator.share({ title: entry.title, text });
-    } else {
-      copyToClipboard();
-    }
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: entry.title, text });
+      } else {
+        await copyToClipboard();
+      }
+    } catch {}
     setShowMenu(false);
   };
 
@@ -509,8 +527,9 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         style={{ background: 'var(--bg-elevated)' }}
       >
         <button
-          onClick={() => dateInputRef.current?.showPicker()}
+          onClick={() => dateInputRef.current?.showPicker?.()}
           className="text-xs text-muted/50 hover:text-muted transition-colors text-left"
+          aria-label={`Edit date: ${formattedDate}`}
         >
           {formattedDate}
         </button>
@@ -519,8 +538,14 @@ export const JournalPage: React.FC<JournalPageProps> = ({
           type="datetime-local"
           value={entryDate}
           onChange={(e) => setEntryDate(e.target.value)}
-          className="absolute opacity-0 w-px h-px overflow-hidden"
-          tabIndex={-1}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              dateInputRef.current?.showPicker?.();
+            }
+          }}
+          className="sr-only"
+          tabIndex={0}
         />
         <SaveIndicator status={saveStatus} />
       </div>
@@ -541,8 +566,8 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         />
 
         <div className="flex flex-wrap items-center gap-1.5 mb-6 min-h-[1.5rem]">
-          {allTags.map((tag, i) => (
-            <span key={i}
+          {allTags.map((tag) => (
+            <span key={tag}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-accent-tint/50 text-accent-tint group"
             >
               #{tag}
@@ -600,13 +625,19 @@ export const JournalPage: React.FC<JournalPageProps> = ({
             <div
               ref={autoRef}
               className="fixed z-50 card py-1 shadow-elevated min-w-[10rem] max-h-48 overflow-y-auto"
-              style={{ top: autoPos.top + 'px', left: autoPos.left + 'px' }}
+              style={{
+                top: Math.min(autoPos.top, window.innerHeight - 250) + 'px',
+                left: Math.min(autoPos.left, window.innerWidth - 200) + 'px',
+              }}
             >
               {filteredAutoTags.length > 0 ? (
-                filteredAutoTags.map(tag => (
+                filteredAutoTags.map((tag, i) => (
                   <button key={tag}
                     onMouseDown={(e) => { e.preventDefault(); selectAutoTag(tag); }}
-                    className="w-full text-left px-3 py-1.5 text-sm text-body hover:bg-accent-tint transition-colors"
+                    onMouseEnter={() => setAutoActiveIndex(i)}
+                    className={`w-full text-left px-3 py-1.5 text-sm transition-colors ${
+                      i === autoActiveIndex ? 'bg-accent-tint text-accent' : 'text-body hover:bg-accent-tint'
+                    }`}
                   >
                     #{tag}
                   </button>

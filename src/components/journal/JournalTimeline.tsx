@@ -90,17 +90,21 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
     return () => observer.disconnect();
   }, [hasMore, isLoadingMore, onLoadMore]);
 
-  const handleCopy = (entry: JournalEntry) => {
-    navigator.clipboard.writeText(`${entry.title}\n\n${entry.content}`);
+  const handleCopy = async (entry: JournalEntry) => {
+    try {
+      await navigator.clipboard.writeText(`${entry.title}\n\n${entry.content}`);
+    } catch {}
   };
 
-  const handleShare = (entry: JournalEntry) => {
+  const handleShare = async (entry: JournalEntry) => {
     const text = `${entry.title}\n\n${entry.content}`;
-    if (navigator.share) {
-      navigator.share({ title: entry.title, text });
-    } else {
-      navigator.clipboard.writeText(text);
-    }
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: entry.title, text });
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+    } catch {}
   };
 
   const handleConfirmDelete = () => {

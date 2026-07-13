@@ -37,7 +37,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
     setIsLoading(true);
     try {
-      await onLogin(email, password);
+      await onLogin(email.toLowerCase().trim(), password);
     } catch (err: any) {
       setError(err.message || 'Failed to login. Please try again.');
     } finally {

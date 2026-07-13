@@ -35,6 +35,12 @@ async function request<T>(
             const body = await response.json();
             detail = body.detail ?? detail;
         } catch {}
+
+        if (response.status === 401) {
+            localStorage.removeItem('authToken');
+            window.dispatchEvent(new CustomEvent('auth:expired'));
+        }
+
         throw new ApiError(detail, response.status);
     }
 
