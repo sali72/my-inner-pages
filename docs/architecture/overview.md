@@ -107,7 +107,7 @@ App (root)
 ```
 1. User changes setting → ThemeContext setter
 2. localStorage updated immediately (instant response)
-3. Debounced (1s) PUT /auth/me/preferences → Backend
+3. Debounced (400ms) PUT /auth/me/preferences → Backend
 4. Backend → Route validates → Facade merges → Repository $set
 5. On page load: GET /auth/me returns preferences
 6. ThemeContext merges server preferences with local cache
