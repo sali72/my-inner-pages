@@ -1,11 +1,10 @@
 import React from 'react';
-import { MoreVertical, Edit2, Copy, Share2, MessageCircle, Trash2 } from 'lucide-react';
+import { MoreVertical, Copy, Share2, MessageCircle, Trash2 } from 'lucide-react';
 import { IconButton, DropdownMenu } from '@components/common';
 
 interface EntryMenuProps {
   isOpen: boolean;
   onToggle: () => void;
-  onEdit: () => void;
   onCopy: () => void;
   onShare: () => void;
   onChat: () => void;
@@ -15,13 +14,11 @@ interface EntryMenuProps {
 export const EntryMenu: React.FC<EntryMenuProps> = ({
   isOpen,
   onToggle,
-  onEdit,
   onCopy,
   onShare,
   onChat,
   onDelete,
 }) => {
-  const handleEdit = () => { onEdit(); onToggle(); };
   const handleCopy = () => { onCopy(); onToggle(); };
   const handleShare = () => { onShare(); onToggle(); };
   const handleChat = () => { onChat(); onToggle(); };
@@ -36,13 +33,6 @@ export const EntryMenu: React.FC<EntryMenuProps> = ({
       />
 
       <DropdownMenu isOpen={isOpen} onClose={onToggle}>
-        <button
-          onClick={handleEdit}
-          className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-accent-tint transition-all"
-        >
-          <Edit2 className="w-4 h-4" />
-          Edit
-        </button>
         <button
           onClick={handleCopy}
           className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-accent-tint transition-all"

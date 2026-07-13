@@ -278,7 +278,6 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
                   <EntryMenu
                     isOpen={openMenuId === entry.id}
                     onToggle={() => setOpenMenuId(openMenuId === entry.id ? null : entry.id)}
-                    onEdit={() => { onSelectEntry(entry.id); setOpenMenuId(null); }}
                     onCopy={() => { handleCopy(entry); setOpenMenuId(null); }}
                     onShare={() => { handleShare(entry); setOpenMenuId(null); }}
                     onChat={() => { onStartChat(entry); setOpenMenuId(null); }}
