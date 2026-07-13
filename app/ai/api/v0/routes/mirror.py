@@ -6,6 +6,9 @@ from app.ai.services.mirror_service import MirrorService
 from app.ai.deps import get_mirror_service
 from app.core.deps.auth import get_current_user
 from app.core.deps.database import get_db
+from app.core.deps.settings import get_settings
+from app.core.rate_limit import rate_limiter
+from app.core.config import Settings
 from app.auth.db.models import User
 from app.core.logging import get_logger
 from app.ai.api.config import MirrorRoutes
@@ -44,7 +47,16 @@ async def get_mirror_reflection(
     If no mode is specified, defaults to 'emotional'.
     """
     logger.info("mirror_reflection_request", user_id=str(current_user.id), mode=mode)
-    
+
+    settings = get_settings()
+    if settings.is_production:
+        user_id = str(current_user.id)
+        if not rate_limiter.check_rate_limit(f"user:{user_id}", 10, 60):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Rate limit exceeded. Maximum 10 requests per minute."
+            )
+
     try:
         result = await service.generate_reflection(
             user_id=str(current_user.id),

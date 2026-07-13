@@ -13,6 +13,7 @@ from app.chat.config import ChatModuleConfig
 from app.chat.deps import get_chat_config
 from app.core.deps.services import get_jwt_service
 from app.core.logging import get_logger
+from app.core.rate_limit import rate_limiter
 from app.core.services.jwt_service import JWTService
 
 logger = get_logger(__name__)
@@ -27,7 +28,7 @@ def get_user_repository() -> UserRepository:
 @router.websocket("/chat/ws")
 async def chat_websocket(
     websocket: WebSocket,
-    token: str = Query(...),
+    token: Optional[str] = Query(None),
     chat_id: Optional[str] = Query(None),
     jwt_service: JWTService = Depends(get_jwt_service),
     user_repository: UserRepository = Depends(get_user_repository),
@@ -35,6 +36,14 @@ async def chat_websocket(
     connection_manager: ConnectionManager = Depends(get_connection_manager),
     chat_persistence: ChatPersistenceService = Depends(get_chat_persistence_service),
 ):
+    # Prefer token from Sec-WebSocket-Protocol header, fall back to query param
+    if not token:
+        token = websocket.headers.get("sec-websocket-protocol", "")
+
+    if not token:
+        await websocket.close(code=4001)
+        return
+
     try:
         payload = jwt_service.decode_token(token)
         user_id = payload.get("sub")
@@ -48,6 +57,10 @@ async def chat_websocket(
             await websocket.close(code=4001)
             return
     except Exception:
+        await websocket.close(code=4001)
+        return
+
+    if not rate_limiter.check_rate_limit(f"ws:{str(user.id)}", 5, 60):
         await websocket.close(code=4001)
         return
 

@@ -25,8 +25,12 @@ class Settings(BaseSettings):
     rate_limit_max_requests: int = 5
     rate_limit_window_seconds: int = 60
 
+    # CORS Configuration
+    cors_allowed_origins: list[str] = ["http://localhost:5173"]
+    cors_allow_credentials: bool = False
+
     # JWT Configuration
-    jwt_secret_key: str = "dev-secret-key-change-in-production"
+    jwt_secret_key: str  # No default — must be set via JWT_SECRET_KEY env
     
     @property
     def is_production(self) -> bool:

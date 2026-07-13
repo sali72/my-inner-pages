@@ -76,6 +76,14 @@ class RateLimiter:
         return True
 
 
+def _resolve_client_ip(request: Request) -> str:
+    """Resolve client IP from X-Forwarded-For (proxy-aware) or direct connection."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
 # Global rate limiter instance
 rate_limiter = RateLimiter()
 
@@ -92,7 +100,7 @@ def check_rate_limit(
     if not settings.is_production:
         max_requests = 100
 
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = _resolve_client_ip(request)
 
     if not rate_limiter.check_rate_limit(client_ip, max_requests, window_seconds):
         raise HTTPException(

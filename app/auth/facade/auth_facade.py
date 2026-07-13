@@ -6,7 +6,6 @@ from beanie import PydanticObjectId
 from app.auth.config import AuthModuleConfig
 from app.auth.db.models import User
 from app.auth.db.repository import UserRepository
-from app.core.cache import user_cache
 from app.core.exceptions import DuplicateDocumentException, RepositoryException
 from app.core.logging import get_logger
 from app.core.services.jwt_service import JWTService
@@ -138,7 +137,7 @@ class AuthFacade:
 
     async def verify_token(self, token: str) -> Optional[User]:
         """
-        Verify JWT token and return user (with caching).
+        Verify JWT token and return user.
 
         Args:
             token: JWT access token
@@ -154,19 +153,7 @@ class AuthFacade:
             if not user_id:
                 return None
 
-            # Check cache first
-            cache_key = f"user:{user_id}"
-            cached_user = user_cache.get(cache_key)
-            if cached_user:
-                return cached_user
-
-            # Fetch from database
             user = await self.get_user_by_id(user_id)
-
-            # Cache for future requests
-            if user:
-                user_cache.set(cache_key, user, ttl=300)  # 5 minutes
-
             return user
         except Exception as e:
             print("VERIFY TOKEN ERROR:", str(e))
@@ -206,11 +193,6 @@ class AuthFacade:
         updated = await self.repository.update_preferences(obj_id, current)
         if not updated:
             raise ValueError("Failed to update preferences")
-
-        # Invalidate and re-cache so verify_token returns fresh data immediately
-        cache_key = f"user:{user_id}"
-        user_cache.delete(cache_key)
-        user_cache.set(cache_key, updated, ttl=300)
 
         return updated
 
