@@ -20,12 +20,16 @@ def get_ai_config() -> AIModuleConfig:
     return AIModuleConfig()
 
 
-from app.ai.db.repository import LLMProviderRepository
 import json
+import time
 import structlog
+from app.ai.db.repository import LLMProviderRepository
 
 logger = structlog.get_logger(__name__)
 
+_cached_providers: list | None = None
+_cached_providers_at: float = 0
+_PROVIDER_CACHE_TTL = 30  # seconds
 
 def get_llm_provider_repository() -> LLMProviderRepository:
     """Get LLM provider repository."""
@@ -56,8 +60,13 @@ async def get_llm_client(
     if config.use_mock_llm:
         return MockLLMClient()
 
-    # Query active providers from the database repository
-    providers = await repository.get_active_providers()
+    global _cached_providers, _cached_providers_at
+    now = time.time()
+    if _cached_providers is None or now - _cached_providers_at > _PROVIDER_CACHE_TTL:
+        _cached_providers = await repository.get_active_providers()
+        _cached_providers_at = now
+
+    providers = _cached_providers
     model_list = [p.to_litellm_dict() for p in providers]
 
     if not model_list:
@@ -79,7 +88,9 @@ async def reload_llm_client(
     config: AIModuleConfig,
     repository: LLMProviderRepository,
 ) -> LiteLLMClient:
-    """Clear the lru_cache and return a re-instantiated LiteLLMClient."""
+    """Clear both caches and return a re-instantiated LiteLLMClient."""
+    global _cached_providers
+    _cached_providers = None
     get_cached_litellm_client.cache_clear()
     return await get_llm_client(config, repository)
 

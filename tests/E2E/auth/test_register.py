@@ -76,7 +76,7 @@ async def test_register_password_max_length_72(client: AsyncClient):
         f"{AUTH_PREFIX}{AuthRoutes.REGISTER}",
         json={"email": "toolong@example.com", "password": password_73, "confirm_password": password_73}
     )
-    assert response.status_code == 400, f"73-char password should be rejected: {response.text}"
+    assert response.status_code == 422, f"73-char password should be rejected: {response.text}"
 
 
 @pytest.mark.asyncio

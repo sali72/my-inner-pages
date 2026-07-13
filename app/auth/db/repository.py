@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from beanie import PydanticObjectId
 from pymongo.errors import PyMongoError, DuplicateKeyError
@@ -77,7 +77,7 @@ class UserRepository:
 
             await user.set({
                 "hashed_password": hashed_password,
-                "updated_at": datetime.utcnow()
+                "updated_at": datetime.now(timezone.utc)
             })
             logger.info("user_password_updated", user_id=str(user_id))
             return user
@@ -118,7 +118,7 @@ class UserRepository:
             if not user:
                 return None
 
-            await user.set({"preferences": preferences, "updated_at": datetime.utcnow()})
+            await user.set({"preferences": preferences, "updated_at": datetime.now(timezone.utc)})
             logger.info("user_preferences_updated", user_id=str(user_id))
             return user
         except PyMongoError as e:

@@ -7,17 +7,19 @@ logger = get_logger(__name__)
 
 
 class SimpleCache:
-    """Simple in-memory cache with TTL."""
+    """Simple in-memory cache with TTL and max size eviction."""
     
-    def __init__(self, default_ttl: int = 300):
+    def __init__(self, default_ttl: int = 300, max_size: int = 1000):
         """
         Initialize cache.
         
         Args:
             default_ttl: Default time-to-live in seconds (default: 5 minutes)
+            max_size: Maximum number of entries before eviction (default: 1000)
         """
         self.cache: Dict[str, Tuple[Any, float]] = {}
         self.default_ttl = default_ttl
+        self.max_size = max_size
         self.hits = 0
         self.misses = 0
     
@@ -58,6 +60,10 @@ class SimpleCache:
         ttl = ttl if ttl is not None else self.default_ttl
         expires_at = time.time() + ttl
         self.cache[key] = (value, expires_at)
+        if len(self.cache) > self.max_size:
+            oldest = min(self.cache.keys(), key=lambda k: self.cache[k][1])
+            del self.cache[oldest]
+            logger.debug("cache_evicted", key=oldest, max_size=self.max_size)
         logger.debug("cache_set", key=key, ttl=ttl)
     
     def delete(self, key: str):

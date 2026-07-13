@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.ai.integrations.base import LLMClient
 from app.core.logging import get_logger
@@ -95,7 +95,7 @@ class UserModelUpdater:
 
             updated = self._parse_and_merge(user_model, response)
             updated.version += 1
-            updated.updatedAt = datetime.utcnow()
+            updated.updatedAt = datetime.now(timezone.utc)
             updated.stats.totalEntries = await self.journal_repository.count_by_user(user_id)
             updated.stats.totalWords = await self._count_total_words(user_id)
             updated.stats.lastUpdatedEntryCount = updated.stats.totalEntries
@@ -118,7 +118,7 @@ class UserModelUpdater:
             user_id=user_id,
             limit=10000,
         )
-        return sum(len(j.content.split()) for j in journals)
+        return sum(len((j.content or "").split()) for j in journals)
 
     def _format_journals_for_prompt(self, journals: list[Journal]) -> str:
         parts = []

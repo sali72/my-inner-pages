@@ -1,6 +1,6 @@
 import json
 import base64
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from bson import ObjectId
 from beanie import PydanticObjectId
@@ -64,10 +64,14 @@ class JournalRepository:
                 details={"journal_id": str(journal_id), "error": str(e)}
             )
 
-    def _decode_cursor(self, cursor: str) -> tuple[datetime, ObjectId]:
-        raw = base64.b64decode(cursor).decode()
-        data = json.loads(raw)
-        return datetime.fromisoformat(data["c"]), ObjectId(data["i"])
+    def _decode_cursor(self, cursor: str) -> Optional[tuple[datetime, ObjectId]]:
+        try:
+            raw = base64.b64decode(cursor).decode()
+            data = json.loads(raw)
+            return datetime.fromisoformat(data["c"]), ObjectId(data["i"])
+        except (ValueError, json.JSONDecodeError, KeyError, Exception):
+            logger.warning("invalid_cursor", cursor=cursor[:50])
+            return None
 
     def _encode_cursor(self, created_at: datetime, doc_id: ObjectId) -> str:
         raw = json.dumps({"c": created_at.isoformat(), "i": str(doc_id)})
@@ -82,7 +86,10 @@ class JournalRepository:
         try:
             query: dict = {"user_id": user_id}
             if cursor:
-                cursor_created_at, cursor_id = self._decode_cursor(cursor)
+                decoded = self._decode_cursor(cursor)
+                if decoded is None:
+                    return [], None
+                cursor_created_at, cursor_id = decoded
                 query["$or"] = [
                     {"created_at": {"$lt": cursor_created_at}},
                     {
@@ -140,7 +147,7 @@ class JournalRepository:
             if not journal:
                 return None
 
-            update_data = {"updated_at": datetime.utcnow()}
+            update_data = {"updated_at": datetime.now(timezone.utc)}
 
             if title is not None:
                 update_data["title"] = title

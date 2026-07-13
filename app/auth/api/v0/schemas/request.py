@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Literal
 from pydantic import BaseModel, Field, EmailStr, field_validator, ConfigDict
 
 
@@ -16,7 +16,7 @@ class RegisterRequest(BaseModel):
     )
     
     email: EmailStr = Field(..., description="User email address")
-    password: str = Field(..., min_length=8, max_length=128, description="User password")
+    password: str = Field(..., min_length=8, max_length=72, description="User password")
     confirm_password: str = Field(..., description="Password confirmation")
     
     @field_validator("email")
@@ -45,10 +45,10 @@ class UpdatePreferencesRequest(BaseModel):
         }
     )
     
-    mode: Optional[str] = Field(None, description="Theme mode: light, dark, or system")
-    accent: Optional[str] = Field(None, description="Accent color")
-    fontStyle: Optional[str] = Field(None, description="Font style: serif, sans, or mono")
-    fontSize: Optional[str] = Field(None, description="Font size: small, medium, large, or x-large")
+    mode: Optional[Literal["light", "dark", "system"]] = Field(None, description="Theme mode: light, dark, or system")
+    accent: Optional[Literal["sage", "dusk", "amber", "slate", "blush", "ink", "sand", "moss"]] = Field(None, description="Accent color")
+    fontStyle: Optional[Literal["serif", "sans", "mono"]] = Field(None, description="Font style: serif, sans, or mono")
+    fontSize: Optional[Literal["small", "medium", "large", "x-large"]] = Field(None, description="Font size: small, medium, large, or x-large")
 
 
 class LoginRequest(BaseModel):

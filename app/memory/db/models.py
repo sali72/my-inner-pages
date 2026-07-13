@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from beanie import Document
 from pydantic import BaseModel, Field
@@ -31,7 +31,7 @@ class UserModel(Document):
     patterns: list[PatternItem] = Field(default_factory=list)
     activeThemes: list[str] = Field(default_factory=list)
     conversationGuidelines: list[str] = Field(default_factory=list)
-    createdAt: datetime = Field(default_factory=datetime.utcnow)
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:
         name = "user_models"

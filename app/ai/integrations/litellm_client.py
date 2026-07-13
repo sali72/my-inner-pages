@@ -5,8 +5,7 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Optional
 
-from dotenv import load_dotenv
-load_dotenv()
+
 
 from app.ai.integrations.base import LLMClient
 from app.core.logging import get_logger

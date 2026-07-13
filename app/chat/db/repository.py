@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from beanie import PydanticObjectId
 from pymongo.errors import PyMongoError
@@ -100,7 +100,7 @@ class ChatRepository:
                 return None
 
             await chat.update(
-                {"$push": {"messages": message.model_dump()}, "$set": {"updated_at": datetime.utcnow()}}
+                {"$push": {"messages": message.model_dump()}, "$set": {"updated_at": datetime.now(timezone.utc)}}
             )
             logger.info(
                 "chat_message_appended",
@@ -136,7 +136,7 @@ class ChatRepository:
             await chat.update(
                 {"$set": {
                     "messages": {"$slice": keep_count},
-                    "updated_at": datetime.utcnow(),
+                    "updated_at": datetime.now(timezone.utc),
                 }}
             )
             logger.info(
@@ -168,7 +168,7 @@ class ChatRepository:
                 return None
 
             await chat.set(
-                {"title": title, "updated_at": datetime.utcnow()}
+                {"title": title, "updated_at": datetime.now(timezone.utc)}
             )
             logger.info("chat_title_updated", chat_id=str(chat_id))
             return chat

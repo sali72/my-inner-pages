@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from beanie import PydanticObjectId
@@ -47,8 +48,7 @@ class AuthFacade:
             ValueError: If validation fails or email already exists
             RepositoryException: If database operation fails
         """
-        # Validate email and password
-        self._validate_email(email)
+        # Validate password
         self._validate_password(password)
 
         try:
@@ -108,7 +108,9 @@ class AuthFacade:
         token_data = {
             "sub": str(user.id),
             "email": user.email,
-            "exp": datetime.utcnow()
+            "type": "access",
+            "jti": str(uuid.uuid4()),
+            "exp": datetime.now(timezone.utc)
             + timedelta(minutes=self.config.access_token_expire_minutes),
         }
         access_token = self.jwt_service.encode_token(token_data)
@@ -224,19 +226,6 @@ class AuthFacade:
 
         # Always return True to prevent email enumeration
         return True
-
-    def _validate_email(self, email: str) -> None:
-        """Validate email format and length."""
-        if not email or not email.strip():
-            raise ValueError("Email cannot be empty")
-
-        if len(email) > self.config.max_email_length:
-            raise ValueError(
-                f"Email cannot exceed {self.config.max_email_length} characters"
-            )
-
-        if "@" not in email or "." not in email.split("@")[-1]:
-            raise ValueError("Invalid email format")
 
     def _validate_password(self, password: str) -> None:
         """Validate password strength."""

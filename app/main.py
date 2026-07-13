@@ -56,23 +56,20 @@ async def lifespan(app: FastAPI):
                     delay=delay,
                     error=str(e),
                 )
-                print(f"⏳ Waiting for MongoDB (attempt {attempt}/{max_retries}, retrying in {delay}s)...")
+                logger.info("waiting_for_mongodb", attempt=attempt, max_retries=max_retries, delay=delay)
                 await asyncio.sleep(delay)
     if last_exception:
         logger.error("database_connection_failed", error=str(last_exception))
-        print(f"✗ Failed to connect to MongoDB after {max_retries} attempts")
         raise last_exception
 
     logger.info("database_connected", database=settings.database_name)
-    print(f"✓ Connected to MongoDB: {settings.database_name}")
-    print(f"✓ Application started in {settings.environment} mode")
+    logger.info("application_started", environment=settings.environment)
 
     yield
 
     # Shutdown
     client.close()
     logger.info("application_shutdown")
-    print("✓ Disconnected from MongoDB")
 
 
 def create_app() -> FastAPI:
