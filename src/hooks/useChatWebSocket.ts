@@ -52,12 +52,15 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       return;
     }
 
-    const params = new URLSearchParams({ token });
+    const params = new URLSearchParams();
     if (targetChatId) {
       params.set('chat_id', targetChatId);
     }
 
-    const ws = new WebSocket(`${WS_BASE_URL}/chat/ws?${params}`);
+    const url = targetChatId
+      ? `${WS_BASE_URL}/chat/ws?${params}`
+      : `${WS_BASE_URL}/chat/ws`;
+    const ws = new WebSocket(url, [token]);
     wsRef.current = ws;
 
     ws.onopen = () => {
