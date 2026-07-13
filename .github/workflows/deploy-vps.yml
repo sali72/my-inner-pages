@@ -106,7 +106,7 @@ jobs:
                   | tail -n +2 \
                   | cut -d'|' -f2 \
                   | sort -u \
-                  | xargs -r docker rmi -f 2>/dev/null
+                  | xargs -r docker rmi -f 2>/dev/null || true
               done
               docker image prune -f 2>/dev/null || true
             }
