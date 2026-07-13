@@ -105,6 +105,9 @@ export const AdminView: React.FC = () => {
 
   useEffect(() => {
     fetchProviders();
+    return () => {
+      if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+    };
   }, []);
 
   const showStatus = (type: 'success' | 'error', text: string) => {

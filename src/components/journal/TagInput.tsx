@@ -35,9 +35,9 @@ export const TagInput: React.FC<TagInputProps> = ({
     }
   };
 
-  const handleRemoveTag = (index: number) => {
+  const handleRemoveTag = (tag: string) => {
     if (onTagsChange) {
-      onTagsChange(tags.filter((_, i) => i !== index));
+      onTagsChange(tags.filter(t => t !== tag));
     }
   };
 
@@ -58,7 +58,7 @@ export const TagInput: React.FC<TagInputProps> = ({
         >
           {tag}
           {editable && (
-            <button onClick={() => handleRemoveTag(i)} className="hover:text-red-500 transition-colors ml-0.5">
+            <button onClick={() => handleRemoveTag(tag)} className="hover:text-red-500 transition-colors ml-0.5">
               <X className="w-3 h-3" />
             </button>
           )}
