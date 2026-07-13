@@ -207,7 +207,7 @@ jobs:
               --env-file ./backend/.env \
               -p 127.0.0.1:\$NEW_PORT:8000 \
               --restart unless-stopped \
-              -m 256m \
+              -m 512m \
               --cpus 0.5 \
               my-inner-pages-backend:$SHA
 
@@ -320,6 +320,14 @@ jobs:
 
             echo "End-to-end health check failed after 30 attempts"
             curl -v http://localhost/health 2>&1 || true
+            echo "--- Backend container status ---"
+            docker ps -a --filter name=backend- --format '{{.Names}} {{.Status}} {{.Ports}}' 2>&1 || true
+            for c in backend-blue backend-green; do
+              if docker ps -a -q --filter name="^\$c\$" | grep -q .; then
+                echo "--- Logs for \$c ---"
+                docker logs "\$c" 2>&1 | tail -50 || true
+              fi
+            done
             exit 1
           ENDSSH
 
