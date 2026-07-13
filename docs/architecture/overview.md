@@ -9,6 +9,7 @@
 │  - Context API for auth state                              │
 │  - Custom hooks for features                               │
 │  - Single-page app (no routing)                            │
+│  - Local-first editor: Yjs + y-indexeddb + Tiptap          │
 └──────────────────┬──────────────────────────────────────────┘
                    │ HTTP/JSON
                    │ JWT Authentication
@@ -91,16 +92,37 @@ App (root)
 - **Global State**: AuthContext (user, login, logout)
 - **Feature State**: Custom hooks (useJournalEntries, useSettings, usePageFlip)
 - **Local Storage**: Auth token (cache), theme preferences (cache with server sync)
+- **Editor State**: Y.Doc per journal entry, persisted to IndexedDB via y-indexeddb (local source of truth)
 
 ## Data Flow
 
-### Journal Creation Flow
+### Journal Editing Flow
 ```
-1. User fills form → JournalPage component
-2. Submit → useJournalEntries hook
-3. API call → api.post('/journals', data)
-4. Backend → Route validates → Facade creates → Repository saves
-5. Response → Update local state → UI reflects new entry
+Local-first (authoritative):
+1. User types → Tiptap Editor → Y.Doc shared types
+2. y-indexeddb persists to IndexedDB immediately (local source of truth)
+3. Optional: debounced save() → PUT /journals/{id} (best-effort backend sync)
+
+Offline draft:
+1. Create fails (offline) → draft-{timestamp} ID generated locally
+2. Entry saved to IndexedDB (Y.Doc) + localStorage (sync queue)
+3. Background sync (on online/focus/30s polling) → POST /journals → receives real ID
+4. URL param swapped → component remounts with real database
+```
+
+### Background Sync Flow
+```
+App.tsx monitors:
+- navigator.onLine event
+- window focus event
+- 30-second polling interval (setInterval) — retries pending syncs periodically
+
+When triggered:
+1. Reads unsynced entries from localStorage
+2. For draft- entries: POST /journals (create on backend)
+3. For existing entries: PUT /journals/{id} (update on backend)
+4. On success: dispatch journal:id-migrated event, remove from localStorage
+5. On failure: log error, retry on next cycle
 ```
 
 ### Preferences Flow
@@ -216,6 +238,12 @@ const { entries, addEntry, updateEntry } = useJournalEntries();
 - Good for document-based data
 - Easy aggregation for AI context
 
+### Why Yjs for Editor State?
+- CRDT-based conflict resolution (future multi-tab/collaboration)
+- Official Tiptap integration via `@tiptap/extension-collaboration`
+- Offline-first: persists to IndexedDB via y-indexeddb
+- No custom sync protocol needed — Y.Doc is the single source of truth
+
 ### Why React without Router?
 - Simple single-page flow
 - Reduced bundle size
@@ -247,8 +275,8 @@ mongod --replSet rs0
 # Backend: E2E tests with pytest
 uv run pytest
 
-# Frontend: Manual testing (E2E framework TBD)
-npm run dev
+# Frontend: E2E tests with Playwright
+npm run test:e2e
 ```
 
 ### Deployment
