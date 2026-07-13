@@ -43,3 +43,5 @@ React 18 SPA with TypeScript, Vite, Tailwind CSS, TanStack Query, Playwright.
 
 ## Reference docs
 - `README.md` — setup guide, features overview, user flow, configuration
+- `docs/features/local-first-editor.md` — local-first editor (Yjs + IndexedDB) feature docs
+- `docs/adr/001-local-first-editor-architecture.md` — architecture decision record
