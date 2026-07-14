@@ -134,10 +134,7 @@ class ChatRepository:
                 return None
 
             await chat.update(
-                {"$set": {
-                    "messages": {"$slice": keep_count},
-                    "updated_at": datetime.now(timezone.utc),
-                }}
+                {"$push": {"messages": {"$each": [], "$slice": keep_count}}, "$set": {"updated_at": datetime.now(timezone.utc)}}
             )
             logger.info(
                 "chat_messages_truncated",
