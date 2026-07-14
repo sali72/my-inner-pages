@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
-import { Sun, Moon, Monitor, LogOut } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Sun, Moon, Monitor, LogOut, Check } from 'lucide-react';
 import { Mode, Accent, FontStyle, ContentFontSize } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { ConfirmModal } from '@components/journal';
+
+const FONT_FAMILIES: Record<FontStyle, string> = {
+  serif: "'Lora', Georgia, serif",
+  sans: "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', 'Fira Code', monospace",
+};
 
 interface SettingsViewProps {
   mode: Mode;
@@ -64,6 +70,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const { logout, user } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
+  const prevSettings = useRef({ mode, accent, fontStyle, fontSize });
+
+  useEffect(() => {
+    const current = { mode, accent, fontStyle, fontSize };
+    if (JSON.stringify(current) !== JSON.stringify(prevSettings.current)) {
+      prevSettings.current = current;
+      setShowSaved(true);
+      const timer = setTimeout(() => setShowSaved(false), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [mode, accent, fontStyle, fontSize]);
 
   const handleLogout = async () => {
     setShowLogoutModal(true);
@@ -77,17 +95,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   return (
     <>
       <div className="max-w-2xl mx-auto p-4 pt-6">
-        <div className="card p-6 space-y-8">
+        <div className="card p-6 space-y-8 relative">
+
+        <div className={`absolute top-3 right-3 flex items-center gap-1.5 text-xs text-accent transition-opacity duration-300 ${showSaved ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <Check className="w-3 h-3" />
+          Saved
+        </div>
 
         {/* Appearance Mode */}
         <section>
           <h2 className="text-lg font-semibold text-primary mb-1">Appearance Mode</h2>
           <p className="text-sm text-secondary mb-3">Choose light, dark, or follow your system preference.</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Appearance mode">
             {(['light', 'dark', 'system'] as Mode[]).map((m) => (
               <button
                 key={m}
                 onClick={() => onModeChange(m)}
+                role="radio"
+                aria-checked={mode === m}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-lg border transition-all text-sm ${
                   mode === m
                     ? 'bg-accent text-white border-accent'
@@ -102,14 +127,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </section>
 
         {/* Accent Color */}
-        <section>
+        <section className="border-t border-subtle pt-8">
           <h2 className="text-lg font-semibold text-primary mb-1">Accent Color</h2>
           <p className="text-sm text-secondary mb-3">Used for buttons, links, tags, and highlights.</p>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3" role="radiogroup" aria-label="Accent color">
             {ACCENTS.map(({ value, label, light }) => (
               <button
                 key={value}
                 onClick={() => onAccentChange(value)}
+                role="radio"
+                aria-checked={accent === value}
                 className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
                   accent === value
                     ? 'border-accent bg-accent-tint'
@@ -118,7 +145,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               >
                 <span
                   className="w-8 h-8 rounded-full border border-white/20 shadow-sm"
-                  style={{ background: light }}
+                    style={{ background: light }}
                 />
                 <span className="text-xs text-secondary">{label}</span>
               </button>
@@ -127,8 +154,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </section>
 
         {/* Live Preview */}
-        <section className="card p-5">
-          <div className="content-typography">
+        <section className="border-t border-subtle pt-8">
+          <h2 className="text-lg font-semibold text-primary mb-1">Preview</h2>
+          <div className="content-typography border border-subtle rounded-xl p-5">
             <div className="flex items-start justify-between mb-3">
               <div>
                 <span className="text-xs font-medium text-accent">{PREVIEW_TEXT.date}</span>
@@ -150,23 +178,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </section>
 
         {/* Typography */}
-        <section>
+        <section className="border-t border-subtle pt-8">
           <h2 className="text-lg font-semibold text-primary mb-1">Typography</h2>
           <p className="text-sm text-secondary mb-3">Font style and size for journal entries, reflections, and chat.</p>
 
-          <label className="text-sm font-medium text-primary mb-2 block">Font Style</label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
+          <label id="font-style-label" className="text-sm font-medium text-primary mb-2 block">Font Style</label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5" role="radiogroup" aria-labelledby="font-style-label">
             {FONT_STYLES.map(({ value, label, preview }) => (
               <button
                 key={value}
                 onClick={() => onFontStyleChange(value)}
+                role="radio"
+                aria-checked={fontStyle === value}
                 className={`p-4 rounded-lg border-2 transition-all text-center ${
                   fontStyle === value
                     ? 'border-accent bg-accent-tint'
                     : 'border-default hover:border-hover'
                 }`}
               >
-                <p className="text-lg font-semibold text-primary" style={{ fontFamily: `var(--content-font)` }}>
+                <p className="text-lg font-semibold text-primary" style={{ fontFamily: FONT_FAMILIES[value] }}>
                   {preview}
                 </p>
                 <p className="text-xs text-secondary mt-1">{label}</p>
@@ -174,12 +204,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             ))}
           </div>
 
-          <label className="text-sm font-medium text-primary mb-2 block">Font Size</label>
-          <div className="flex gap-2">
+          <label id="font-size-label" className="text-sm font-medium text-primary mb-2 block">Font Size</label>
+          <div className="flex gap-2" role="radiogroup" aria-labelledby="font-size-label">
             {FONT_SIZES.map(({ value, label }) => (
               <button
                 key={value}
                 onClick={() => onFontSizeChange(value)}
+                role="radio"
+                aria-checked={fontSize === value}
                 className={`flex-1 py-2.5 rounded-lg border-2 transition-all text-sm ${
                   fontSize === value
                     ? 'border-accent bg-accent-tint text-accent'
@@ -193,7 +225,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </section>
 
         {/* Account */}
-        <section>
+        <section className="border-t border-subtle pt-8">
           <h2 className="text-lg font-semibold text-primary mb-1">Account</h2>
           <div className="p-4 rounded-lg border border-default bg-surface mb-3">
             <p className="text-sm text-secondary mb-1">Logged in as:</p>
@@ -201,7 +233,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
           <button
             onClick={handleLogout}
-            className="w-full p-4 rounded-lg border-2 border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-all flex justify-between items-center"
+            className="w-full p-4 rounded-lg border-2 border-red-500/20 bg-red-500/10 text-red-600 hover:bg-red-600/20 transition-all flex justify-between items-center"
           >
             <span className="font-medium">Logout</span>
             <LogOut className="w-5 h-5" />
