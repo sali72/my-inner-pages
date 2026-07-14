@@ -23,6 +23,7 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat }) =
   const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current);
@@ -43,6 +44,7 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat }) =
       const data = await api.get<MirrorReflection>(`/mirror/reflection?mode=${selectedMode}`);
       if (!mountedRef.current || modeAtRequestRef.current !== selectedMode) return;
       setReflection(data);
+      console.log('[Mirror] Reflection set, scheduling reveal');
       revealTimeoutRef.current = setTimeout(() => setSafeIsRevealing(false), 500);
     } catch (err) {
       if (!mountedRef.current) return;
