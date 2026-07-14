@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, Tag, Search, Filter, X, Loader2, CloudOff } from 'lucide-react';
+import { Calendar, Tag, Search, Filter, X, Loader2 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { isEntryUnsynced } from '@utils/offlineStorage';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
@@ -7,7 +7,7 @@ import { renderTextWithLineDirection } from '@utils/textDirection';
 import { EntryMenu } from './EntryMenu';
 import { ConfirmModal } from './ConfirmModal';
 
-type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc';
+type SortOption = 'date-desc' | 'date-asc';
 
 interface JournalTimelineProps {
   entries: JournalEntry[];
@@ -71,6 +71,7 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
   hasMore,
   onLoadMore,
 }) => {
+  const MAX_VISIBLE_TAGS = 2;
   const hasActiveFilters = searchQuery || selectedTags.length > 0;
   const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
   const [entryToDelete, setEntryToDelete] = useState<JournalEntry | null>(null);
@@ -172,8 +173,6 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
                 >
                   <option value="date-desc">Date (Newest First)</option>
                   <option value="date-asc">Date (Oldest First)</option>
-                  <option value="title-asc">Title (A-Z)</option>
-                  <option value="title-desc">Title (Z-A)</option>
                 </select>
               </div>
 
@@ -237,10 +236,7 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
                   <Calendar className="w-3.5 h-3.5" />
                   <span>{entry.date}</span>
                   {isEntryUnsynced(entry.id) && (
-                    <span className="flex items-center gap-1 text-xs text-amber-500 ml-auto" title="Unsynced changes (Saved locally)">
-                      <CloudOff className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Unsynced</span>
-                    </span>
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 ml-auto" title="Unsynced changes (Saved locally)" />
                   )}
                 </div>
 
@@ -251,8 +247,8 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
                 </h2>
 
                 {entry.tags && entry.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {entry.tags.map((tag, i) => (
+                  <div className="hidden sm:flex flex-wrap gap-1.5 mb-3">
+                    {entry.tags.slice(0, MAX_VISIBLE_TAGS).map((tag, i) => (
                       <span
                         key={i}
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent-tint text-accent-tint"
@@ -261,6 +257,11 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
                         {tag}
                       </span>
                     ))}
+                    {entry.tags.length > MAX_VISIBLE_TAGS && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs text-muted">
+                        +{entry.tags.length - MAX_VISIBLE_TAGS}
+                      </span>
+                    )}
                   </div>
                 )}
 

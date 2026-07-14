@@ -5,7 +5,7 @@ import { JournalTimeline } from './JournalTimeline';
 import { JournalPage } from './JournalPage';
 import { getUnsyncedEntries, removeUnsyncedEntry, saveUnsyncedEntry, STORAGE_KEY } from '@utils/offlineStorage';
 
-type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc';
+type SortOption = 'date-desc' | 'date-asc';
 
 interface JournalViewProps {
   entries: JournalEntry[];
@@ -186,10 +186,6 @@ export const JournalView: React.FC<JournalViewProps> = ({
           return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
         case 'date-asc':
           return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
-        case 'title-asc':
-          return a.title.localeCompare(b.title);
-        case 'title-desc':
-          return b.title.localeCompare(a.title);
         default:
           return 0;
       }

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
-  ArrowLeft, Copy, Share2, Plus, X,
+  ArrowLeft, Copy, Share2, Plus, X, Calendar,
   MessageCircle, Trash2, MoreVertical, AlertCircle, CloudOff, Loader2, RefreshCw
 } from 'lucide-react';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -613,9 +613,10 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       >
         <button
           onClick={() => dateInputRef.current?.showPicker?.()}
-          className="text-xs text-muted/50 hover:text-muted transition-colors text-left"
+          className="inline-flex items-center gap-1.5 text-xs text-muted/50 hover:text-muted transition-colors text-left"
           aria-label={`Edit date: ${formattedDate}`}
         >
+          <Calendar className="w-3 h-3" />
           {formattedDate}
         </button>
         <input
