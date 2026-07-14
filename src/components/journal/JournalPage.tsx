@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   ArrowLeft, Copy, Share2, Plus, X,
-  MessageCircle, Trash2, MoreVertical, AlertCircle, CloudOff, CheckCircle2, Loader2
+  MessageCircle, Trash2, MoreVertical, AlertCircle, CloudOff, Loader2, RefreshCw
 } from 'lucide-react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
@@ -30,20 +30,23 @@ interface JournalPageProps {
   onBack: () => void;
 }
 
-type SaveStatus = 'saving' | 'saved' | 'error' | 'unsynced' | null;
+type SaveStatus = 'error' | 'unsynced' | null;
 
-const SaveIndicator: React.FC<{ status: SaveStatus }> = ({ status }) => {
+const SaveIndicator: React.FC<{ status: SaveStatus; onRetry?: () => void }> = ({ status, onRetry }) => {
   if (!status) return null;
   const styles: Record<string, { icon: React.ReactNode; text: string; cls: string }> = {
-    saving: { icon: <Loader2 className="w-3 h-3 animate-spin" />, text: 'Saving...', cls: 'text-muted' },
-    saved: { icon: <CheckCircle2 className="w-3 h-3" />, text: 'Saved', cls: 'text-green-500' },
     error: { icon: <AlertCircle className="w-3 h-3" />, text: 'Couldn\'t save', cls: 'text-red-500' },
     unsynced: { icon: <CloudOff className="w-3 h-3" />, text: 'Unsynced (Saved locally)', cls: 'text-amber-500' },
   };
   const s = styles[status];
   return (
-    <span className={`inline-flex items-center gap-1 text-xs transition-opacity ${s.cls}`}>
+    <span className={`inline-flex items-center gap-1 text-xs ${s.cls}`}>
       {s.icon}{s.text}
+      {onRetry && (
+        <button onClick={onRetry} className="ml-1 p-0.5 rounded hover:bg-accent-tint transition-colors" aria-label="Retry save">
+          <RefreshCw className="w-3 h-3" />
+        </button>
+      )}
     </span>
   );
 };
@@ -120,7 +123,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const autoRef = useRef<HTMLDivElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
-  const saveStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const entryIdRef = useRef<string | number | null>(isNew ? null : entry.id);
   const creationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -128,11 +130,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   // switch databases when transitioning from 'new' to a real entry ID.
   const docEntryId = useMemo(() => entry.id, []);
   const { ydoc, isLoaded } = useJournalDoc(docEntryId, entry.title);
-
-  const clearSaveStatus = useCallback(() => {
-    if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
-    saveStatusTimerRef.current = setTimeout(() => setSaveStatus(null), 1000);
-  }, []);
 
   const checkAutocomplete = useCallback((ed: any) => {
     const { from } = ed.state.selection;
@@ -240,10 +237,9 @@ export const JournalPage: React.FC<JournalPageProps> = ({
 
   useEffect(() => {
     if (saveStatus === 'unsynced' && !isEntryUnsynced(entry.id)) {
-      setSaveStatus('saved');
-      clearSaveStatus();
+      setSaveStatus(null);
     }
-  }, [entry.id, saveStatus, clearSaveStatus]);
+  }, [entry.id, saveStatus]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -302,7 +298,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       }
 
       entryIdRef.current = 'pending';
-      setSaveStatus('saving');
       try {
         const id = await onCreate!(title, content, allTags, isoDate);
         entryIdRef.current = id;
@@ -331,11 +326,8 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     const currentActiveId = isNew ? entryIdRef.current : entry.id;
     if (isNew && isRealId(currentActiveId)) {
       const realId = currentActiveId as string | number;
-      setSaveStatus('saving');
       try {
         await onUpdateById!(realId, { title: title.trim(), content: content.trim(), tags: allTags, created_at: isoDate });
-        setSaveStatus('saved');
-        clearSaveStatus();
         removeUnsyncedEntry(realId);
       } catch {
         const updatedEntry: JournalEntry = {
@@ -365,11 +357,8 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       JSON.stringify(allTags) !== JSON.stringify(entry.tags) ||
       dateChanged
     ) {
-      setSaveStatus('saving');
       try {
         await onUpdate!({ title: trimmedTitle, content: trimmedContent, tags: allTags, created_at: isoDate });
-        setSaveStatus('saved');
-        clearSaveStatus();
         removeUnsyncedEntry(entry.id);
       } catch (error) {
         const updatedEntry: JournalEntry = {
@@ -384,7 +373,14 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         setSaveStatus('unsynced');
       }
     }
-  }, [isNew, title, content, allTags, entryDate, entry, onCreate, onUpdate, onUpdateById, clearSaveStatus]);
+  }, [isNew, title, content, allTags, entryDate, entry, onCreate, onUpdate, onUpdateById]);
+
+  const handleRetry = useCallback(async () => {
+    if (isNew && entryIdRef.current?.toString().startsWith('draft-')) {
+      entryIdRef.current = null;
+    }
+    await save();
+  }, [isNew, save]);
 
   const persistLocally = useCallback(() => {
     const id = isNew ? entryIdRef.current : entry.id;
@@ -440,7 +436,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
 
   useEffect(() => {
     return () => {
-      if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
       if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
     };
   }, []);
@@ -637,7 +632,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
           className="sr-only"
           tabIndex={0}
         />
-        <SaveIndicator status={saveStatus} />
+        <SaveIndicator status={saveStatus} onRetry={saveStatus ? handleRetry : undefined} />
       </div>
 
       <div
