@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Copy, Check, MessageCircle } from 'lucide-react';
+import { Copy, Check, MessageCircle, Heart, Sparkles, Crosshair, Users } from 'lucide-react';
 import { MirrorReflection, MirrorMode } from '@/types/mirror';
 import { MIRROR_MODES } from '@constants/mirrorModes';
 import { api } from '@/utils/api';
-import { DropdownMenu, DropdownMenuItem, IconButton } from '@components/common';
 
 interface MirrorViewProps {
   isDark: boolean;
@@ -14,7 +13,6 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat }) =
   const [reflection, setReflection] = useState<MirrorReflection | null>(null);
   const [selectedMode, setSelectedMode] = useState<MirrorMode>('emotional');
   const [loading, setLoading] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [isRevealing, setIsRevealing] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -44,7 +42,6 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat }) =
       const data = await api.get<MirrorReflection>(`/mirror/reflection?mode=${selectedMode}`);
       if (!mountedRef.current || modeAtRequestRef.current !== selectedMode) return;
       setReflection(data);
-      console.log('[Mirror] Reflection set, scheduling reveal');
       revealTimeoutRef.current = setTimeout(() => setSafeIsRevealing(false), 500);
     } catch (err) {
       if (!mountedRef.current) return;
@@ -67,44 +64,40 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat }) =
     }
   };
 
+  const MODE_ICONS: Record<MirrorMode, React.ReactNode> = {
+    emotional: <Heart className="w-3.5 h-3.5" />,
+    cognitive: <Sparkles className="w-3.5 h-3.5" />,
+    behavioral: <Crosshair className="w-3.5 h-3.5" />,
+    relational: <Users className="w-3.5 h-3.5" />,
+  };
+
   const modeConfig = MIRROR_MODES[selectedMode];
   const showBlur = loading || !reflection;
 
   return (
     <div className="min-h-screen p-4 pt-4">
       <div className="w-full max-w-3xl mx-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-body">
-            🪞 Mirror
-          </h1>
-
-          <div className="relative">
-            <IconButton
-              onClick={() => setShowDropdown(!showDropdown)}
-              ariaLabel="Mirror mode options"
-              icon={<MoreVertical className="w-5 h-5" />}
-            />
-
-            <DropdownMenu
-              isOpen={showDropdown}
-              onClose={() => setShowDropdown(false)}
-            >
-              {(Object.keys(MIRROR_MODES) as MirrorMode[]).map((mode) => (
-                <DropdownMenuItem
-                  key={mode}
-                  onClick={() => {
-                    setSelectedMode(mode);
-                    setShowDropdown(false);
-                    setReflection(null);
-                  }}
-                  isActive={selectedMode === mode}
-                  icon={MIRROR_MODES[mode].icon}
-                >
-                  {MIRROR_MODES[mode].title}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenu>
-          </div>
+        <div className="flex gap-2 mb-6 overflow-x-auto">
+          {(Object.keys(MIRROR_MODES) as MirrorMode[]).map((mode) => {
+            const isActive = selectedMode === mode;
+            return (
+              <button
+                key={mode}
+                onClick={() => {
+                  setSelectedMode(mode);
+                  setReflection(null);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                  isActive
+                    ? `bg-gradient-to-r ${MIRROR_MODES[mode].gradient} text-white shadow-sm`
+                    : 'bg-surface text-muted hover:text-body border border-border'
+                }`}
+              >
+                {MODE_ICONS[mode]}
+                {MIRROR_MODES[mode].title}
+              </button>
+            );
+          })}
         </div>
 
         <div
@@ -129,7 +122,7 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat }) =
                   <div className="absolute inset-0 backdrop-blur-2xl" />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <p className="text-sm text-body font-medium">
-                      {modeConfig.icon} Reflecting...
+                      Reflecting...
                     </p>
                   </div>
                 </div>
@@ -144,7 +137,7 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat }) =
                       See what patterns the AI notices in your recent journal entries
                     </p>
                     <p className="text-xs text-muted mt-2">
-                      {modeConfig.icon} {modeConfig.title} lens
+                      {modeConfig.title} lens
                     </p>
                   </div>
                 </div>
@@ -156,18 +149,13 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat }) =
             <div className={`relative p-8 transition-opacity duration-1000 ${
               isRevealing ? 'opacity-0' : 'opacity-100'
             }`}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${modeConfig.gradient} flex items-center justify-center text-2xl shadow-lg`}>
-                  {modeConfig.icon}
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-body">
-                    {modeConfig.title} Reflection
-                  </h2>
-                  <p className="text-sm text-muted">
-                    Based on your recent journals
-                  </p>
-                </div>
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-body">
+                  {modeConfig.title} Reflection
+                </h2>
+                <p className="text-sm text-muted">
+                  Based on your recent journals
+                </p>
               </div>
 
               <div className="content-typography whitespace-pre-wrap">
@@ -184,7 +172,7 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat }) =
                       : `bg-gradient-to-r ${modeConfig.gradient} text-white hover:shadow-lg hover:scale-105`
                   }`}
                 >
-                  ✨ Reflect again
+                  Reflect again
                 </button>
 
                 <button

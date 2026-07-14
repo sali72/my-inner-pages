@@ -18,6 +18,7 @@ interface ChatViewProps {
   onToggleChatHistory: () => void;
   selectedChatId: string | null;
   onSelectChat: (id: string | null, action?: 'push' | 'replace') => void;
+  chatContext?: { type: 'journal'; title: string } | { type: 'mirror'; mode: string } | null;
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({
@@ -28,6 +29,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onToggleChatHistory,
   selectedChatId,
   onSelectChat,
+  chatContext,
 }) => {
   const {
     chatId,
@@ -291,29 +293,42 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <Loader2 className="w-8 h-8 animate-spin text-accent mb-4" />
                 <p className="text-sm text-muted">Loading chat history...</p>
               </div>
-            ) : messages.length === 0 ? (
-              <div className="min-h-[calc(100dvh-6rem)] flex flex-col items-center justify-center p-8 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mb-4 shadow-lg">
-                  <MessageSquare className="w-8 h-8 text-white" />
-                </div>
-                <h2 className="text-lg font-semibold text-body mb-2">
-                  {isContextLoaded ? 'Ask me anything' : 'Connecting...'}
-                </h2>
-                <p className="text-sm text-muted max-w-sm">
-                  I've loaded your recent journal entries for context. Ask me about patterns, insights, or anything on your mind.
-                </p>
-                {!isContextLoaded && !error && (
-                  <Loader2 className="w-5 h-5 mt-4 animate-spin text-muted" />
-                )}
-                {error && (
-                  <div className="mt-4 flex items-center gap-2 text-red-500 text-sm">
-                    <AlertCircle className="w-4 h-4" />
-                    {error}
+            ) : (
+              <>
+                {chatContext && (
+                  <div className="flex justify-center pt-4">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent border border-accent/20">
+                      {chatContext.type === 'journal' ? (
+                        <>Chatting about: {chatContext.title}</>
+                      ) : (
+                        <>Exploring: {chatContext.mode} Reflection</>
+                      )}
+                    </span>
                   </div>
                 )}
-              </div>
-            ) : (
-              <div className="p-4 space-y-6 pb-28 min-h-[calc(100dvh-6rem)]">
+                {messages.length === 0 ? (
+                  <div className="min-h-[calc(100dvh-6rem)] flex flex-col items-center justify-center p-8 text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mb-4 shadow-lg">
+                      <MessageSquare className="w-8 h-8 text-white" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-body mb-2">
+                      {isContextLoaded ? 'Ask me anything' : 'Connecting...'}
+                    </h2>
+                    <p className="text-sm text-muted max-w-sm">
+                      I've loaded your recent journal entries for context. Ask me about patterns, insights, or anything on your mind.
+                    </p>
+                    {!isContextLoaded && !error && (
+                      <Loader2 className="w-5 h-5 mt-4 animate-spin text-muted" />
+                    )}
+                    {error && (
+                      <div className="mt-4 flex items-center gap-2 text-red-500 text-sm">
+                        <AlertCircle className="w-4 h-4" />
+                        {error}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 space-y-6 pb-28 min-h-[calc(100dvh-6rem)]">
                 {isContextLoaded && messages.length > 1 && (
                   <div className="flex justify-center">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-accent-tint text-accent-tint">
@@ -441,6 +456,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <div ref={messagesEndRef} />
               </div>
             )}
+          </>)}
           </div>
         </div>
       </div>

@@ -24,6 +24,7 @@ const AppInner: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatHistoryOpen, setChatHistoryOpen] = useState(false);
   const [chatInitialMessage, setChatInitialMessage] = useState<string | null>(null);
+  const [chatContext, setChatContext] = useState<{ type: 'journal'; title: string } | { type: 'mirror'; mode: string } | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const isDark = resolvedMode === 'dark';
   const wasAuthenticated = useRef(isAuthenticated);
@@ -147,13 +148,15 @@ const AppInner: React.FC = () => {
     setChatInitialMessage(
       `I'd like to discuss my journal entry "${entry.title}". Here's what I wrote:\n\n${entry.content}`
     );
+    setChatContext({ type: 'journal', title: entry.title });
     updateNavigationState({ activeView: 'chat', selectedEntryId: null, selectedChatId: 'new' });
   };
 
   const handleStartChatFromMirror = (reflection: string, mode: string) => {
     setChatInitialMessage(
-      `I'd like to explore this ${mode} Reflection further:\n\n${reflection}`
+      `I just received this ${mode.toLowerCase()} reflection on my journaling and I'd like to explore it with you:\n\n${reflection}`
     );
+    setChatContext({ type: 'mirror', mode });
     updateNavigationState({ activeView: 'chat', selectedEntryId: null, selectedChatId: 'new' });
   };
 
@@ -167,6 +170,7 @@ const AppInner: React.FC = () => {
   };
 
   const handleSelectChat = useCallback((id: string | null, action?: 'push' | 'replace') => {
+    if (action !== 'replace') setChatContext(null);
     updateNavigationState({ selectedChatId: id }, action);
   }, [updateNavigationState]);
 
@@ -242,6 +246,7 @@ const AppInner: React.FC = () => {
             onToggleChatHistory={() => setChatHistoryOpen(!chatHistoryOpen)}
             selectedChatId={selectedChatId}
             onSelectChat={handleSelectChat}
+            chatContext={chatContext}
           />
         </div>
 
