@@ -150,6 +150,13 @@ const AppInner: React.FC = () => {
     updateNavigationState({ activeView: 'chat', selectedEntryId: null, selectedChatId: 'new' });
   };
 
+  const handleStartChatFromMirror = (reflection: string, mode: string) => {
+    setChatInitialMessage(
+      `I'd like to explore this ${mode} Reflection further:\n\n${reflection}`
+    );
+    updateNavigationState({ activeView: 'chat', selectedEntryId: null, selectedChatId: 'new' });
+  };
+
   const handleDeleteEntry = async (id: number | string) => {
     try {
       await deleteEntry(id);
@@ -224,7 +231,7 @@ const AppInner: React.FC = () => {
           />
         ) : null}
 
-        {activeView === 'mirror' && <MirrorView isDark={isDark} />}
+        {activeView === 'mirror' && <MirrorView isDark={isDark} onStartChat={handleStartChatFromMirror} />}
 
         <div className={activeView === 'chat' ? '' : 'hidden'}>
           <ChatView

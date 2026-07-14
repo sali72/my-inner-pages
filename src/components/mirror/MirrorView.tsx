@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { MoreVertical, Copy, Check, MessageCircle } from 'lucide-react';
 import { MirrorReflection, MirrorMode } from '@/types/mirror';
 import { MIRROR_MODES } from '@constants/mirrorModes';
 import { api } from '@/utils/api';
@@ -6,14 +7,16 @@ import { DropdownMenu, DropdownMenuItem, IconButton } from '@components/common';
 
 interface MirrorViewProps {
   isDark: boolean;
+  onStartChat?: (reflection: string, mode: string) => void;
 }
 
-export const MirrorView: React.FC<MirrorViewProps> = ({ isDark }) => {
+export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat }) => {
   const [reflection, setReflection] = useState<MirrorReflection | null>(null);
   const [selectedMode, setSelectedMode] = useState<MirrorMode>('emotional');
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isRevealing, setIsRevealing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const mountedRef = useRef(true);
   const modeAtRequestRef = useRef<MirrorMode>(selectedMode);
@@ -77,11 +80,7 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark }) => {
             <IconButton
               onClick={() => setShowDropdown(!showDropdown)}
               ariaLabel="Mirror mode options"
-              icon={
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                </svg>
-              }
+              icon={<MoreVertical className="w-5 h-5" />}
             />
 
             <DropdownMenu
@@ -139,8 +138,11 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark }) => {
                     <p className="text-xl font-medium text-body mb-2">
                       Touch to reflect
                     </p>
-                    <p className="text-sm text-muted">
-                      {modeConfig.icon} {modeConfig.title} mirror
+                    <p className="text-sm text-muted max-w-xs text-center">
+                      See what patterns the AI notices in your recent journal entries
+                    </p>
+                    <p className="text-xs text-muted mt-2">
+                      {modeConfig.icon} {modeConfig.title} lens
                     </p>
                   </div>
                 </div>
@@ -170,17 +172,41 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark }) => {
                 {reflection.reflection}
               </div>
 
-              <button
-                onClick={generateReflection}
-                disabled={loading}
-                className={`mt-8 px-6 py-3 rounded-lg font-medium transition-all ${
-                  loading
-                    ? 'bg-surface-hover text-muted cursor-not-allowed'
-                    : `bg-gradient-to-r ${modeConfig.gradient} text-white hover:shadow-lg hover:scale-105`
-                }`}
-              >
-                ✨ Reflect again
-              </button>
+              <div className="flex items-center gap-3 mt-8">
+                <button
+                  onClick={generateReflection}
+                  disabled={loading}
+                  className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                    loading
+                      ? 'bg-surface-hover text-muted cursor-not-allowed'
+                      : `bg-gradient-to-r ${modeConfig.gradient} text-white hover:shadow-lg hover:scale-105`
+                  }`}
+                >
+                  ✨ Reflect again
+                </button>
+
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(reflection.reflection);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="p-3 rounded-lg text-muted hover:text-body hover:bg-surface-hover transition-all"
+                  aria-label="Copy reflection"
+                >
+                  {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                </button>
+
+                {onStartChat && (
+                  <button
+                    onClick={() => onStartChat(reflection.reflection, modeConfig.title)}
+                    className="p-3 rounded-lg text-muted hover:text-accent hover:bg-accent-tint transition-all"
+                    aria-label="Chat about this reflection"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
 
               {reflection.error && (
                 <p className="text-xs mt-4 text-accent">
