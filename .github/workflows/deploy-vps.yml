@@ -237,13 +237,49 @@ jobs:
             echo "upstream backend { server 127.0.0.1:\$NEW_PORT; keepalive 32; }" | sudo tee /etc/nginx/conf.d/backend-upstream.conf > /dev/null
             sudo nginx -t && sudo systemctl reload nginx
 
+            echo "Verifying backend through nginx..."
+            NGINX_HEALTHY=false
+            for i in \$(seq 1 15); do
+              if curl -sf http://localhost/health > /dev/null 2>&1; then
+                NGINX_HEALTHY=true
+                echo "nginx upstream verified! (attempt \$i)"
+                break
+              fi
+              echo "Waiting for nginx upstream... (attempt \$i/15)"
+              sleep 2
+            done
+
+            if [ "\$NGINX_HEALTHY" = false ]; then
+              echo "nginx upstream health check FAILED — rolling back..."
+              echo "--- nginx error log (last 30 lines) ---"
+              sudo tail -30 /var/log/nginx/error.log 2>/dev/null || echo "(could not read)"
+              echo "--- nginx upstream config ---"
+              cat /etc/nginx/conf.d/backend-upstream.conf 2>/dev/null || echo "(could not read)"
+              echo "--- new backend logs ---"
+              docker logs backend-\$NEW_COLOR 2>&1 | tail -20 || true
+              if [ -n "\$OLD_COLOR" ]; then
+                if [ "\$OLD_COLOR" = "blue" ]; then
+                  OLD_PORT=8000
+                else
+                  OLD_PORT=8001
+                fi
+                echo "Rolling back upstream to backend-\$OLD_COLOR (port \$OLD_PORT)..."
+                echo "upstream backend { server 127.0.0.1:\$OLD_PORT; keepalive 32; }" | sudo tee /etc/nginx/conf.d/backend-upstream.conf > /dev/null
+                sudo nginx -t && sudo systemctl reload nginx
+                echo "Upstream rolled back to backend-\$OLD_COLOR"
+              fi
+              docker stop backend-\$NEW_COLOR 2>/dev/null || true
+              docker rm backend-\$NEW_COLOR 2>/dev/null || true
+              exit 1
+            fi
+
             echo "Draining in-flight requests (sleeping 10s)..."
             sleep 10
 
             if [ -n "\$OLD_COLOR" ]; then
               echo "Stopping old backend-\$OLD_COLOR..."
-              docker stop backend-\$OLD_COLOR
-              docker rm backend-\$OLD_COLOR
+              docker stop backend-\$OLD_COLOR 2>/dev/null || true
+              docker rm backend-\$OLD_COLOR 2>/dev/null || true
             fi
 
             echo "=== Frontend: atomic deploy ==="
@@ -328,6 +364,10 @@ jobs:
                 docker logs "\$c" 2>&1 | tail -50 || true
               fi
             done
+            echo "--- nginx error log (last 30 lines) ---"
+            sudo tail -30 /var/log/nginx/error.log 2>/dev/null || echo "(could not read nginx error log)"
+            echo "--- nginx upstream config ---"
+            cat /etc/nginx/conf.d/backend-upstream.conf 2>/dev/null || echo "(could not read upstream config)"
             exit 1
           ENDSSH
 
