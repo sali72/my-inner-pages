@@ -124,9 +124,10 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const entryIdRef = useRef<string | number | null>(isNew ? null : entry.id);
   const creationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 1. Initialize Local-First Yjs Document & IndexedDB Persistence
-  const currentId = isNew ? (entryIdRef.current || entry.id) : entry.id;
-  const { ydoc, isLoaded } = useJournalDoc(currentId, entry.title);
+  // Stable Yjs doc ID — captured once at mount so the persistence doesn't
+  // switch databases when transitioning from 'new' to a real entry ID.
+  const docEntryId = useMemo(() => entry.id, []);
+  const { ydoc, isLoaded } = useJournalDoc(docEntryId, entry.title);
 
   const clearSaveStatus = useCallback(() => {
     if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
@@ -442,6 +443,18 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
       if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
     };
+  }, []);
+
+  // Clean up the IndexedDB database for 'new' entries to prevent stale content
+  // from reappearing when the user creates another new entry later.
+  useEffect(() => {
+    return () => {
+      if (docEntryId === 'new') {
+        const dbName = `my-inner-pages-journal-new`;
+        indexedDB.deleteDatabase(dbName);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleBack = useCallback(async () => {

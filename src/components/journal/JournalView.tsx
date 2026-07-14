@@ -83,10 +83,17 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const isNewEntry = selectedEntryId === 'new';
   const [editorSessionKey, setEditorSessionKey] = useState<string>('');
 
+  const newSessionRef = useRef(false);
+
   React.useEffect(() => {
     if (selectedEntryId !== null) {
       if (selectedEntryId === 'new') {
+        newSessionRef.current = true;
         setEditorSessionKey(`new-${Date.now()}`);
+      } else if (newSessionRef.current) {
+        // Transitioning from 'new' to real entry ID — keep the same session key
+        // to avoid remounting the editor mid-typing.
+        newSessionRef.current = false;
       } else {
         setEditorSessionKey(String(selectedEntryId));
       }
