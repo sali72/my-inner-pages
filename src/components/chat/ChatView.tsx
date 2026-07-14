@@ -261,8 +261,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
     onSelectChat(id);
   };
 
-  const handleDeleteChat = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+  const handleDeleteChat = async (id: string) => {
     const previous = chatList;
     setChatList(prev => prev.filter(c => c.id !== id));
     if (chatId === id) {
@@ -315,6 +314,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </div>
             ) : (
               <div className="p-4 space-y-6 pb-28 min-h-[calc(100dvh-6rem)]">
+                {isContextLoaded && messages.length > 1 && (
+                  <div className="flex justify-center">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-accent-tint text-accent-tint">
+                      <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                      Journals loaded
+                    </span>
+                  </div>
+                )}
                 {messages.map((msg, idx) => {
                   const isLastUserMsg = idx === lastUserIdx;
                   const isLastAssistant = idx === messages.length - 1 && msg.role === 'assistant' && lastUserIdx !== -1;

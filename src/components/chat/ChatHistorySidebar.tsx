@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MessageSquare, Trash2, Plus, Search, X } from 'lucide-react';
 import type { ChatSummary } from '@/types/chat';
+import { ConfirmModal } from '@components/journal';
 
 interface ChatHistorySidebarProps {
     isOpen: boolean;
@@ -8,7 +9,7 @@ interface ChatHistorySidebarProps {
     activeChatId: string | null;
     onClose: () => void;
     onSelectChat: (chatId: string) => void;
-    onDeleteChat: (e: React.MouseEvent, chatId: string) => void;
+    onDeleteChat: (chatId: string) => void;
     onNewChat: () => void;
 }
 
@@ -22,6 +23,7 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     onNewChat,
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [chatToDelete, setChatToDelete] = useState<string | null>(null);
 
     const filteredChats = useMemo(() => {
         if (!searchQuery.trim()) return chats;
@@ -126,7 +128,7 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                                         </p>
                                     </div>
                                     <button
-                                        onClick={(e) => onDeleteChat(e, chat.id)}
+                                        onClick={(e) => { e.stopPropagation(); setChatToDelete(chat.id); }}
                                         aria-label={`Delete chat ${chat.title || 'New chat'}`}
                                         className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 p-1 rounded hover:bg-red-500/10 text-muted hover:text-red-500 transition-all shrink-0 mt-0.5"
                                     >
@@ -142,6 +144,16 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                     </div>
                 </div>
             </aside>
+
+            <ConfirmModal
+                isOpen={chatToDelete !== null}
+                title="Delete Chat"
+                message={`Delete "${chats.find(c => c.id === chatToDelete)?.title || 'this chat'}"? This action cannot be undone.`}
+                confirmLabel="Delete"
+                variant="danger"
+                onConfirm={() => { onDeleteChat(chatToDelete!); setChatToDelete(null); }}
+                onCancel={() => setChatToDelete(null)}
+            />
         </>
     );
 };

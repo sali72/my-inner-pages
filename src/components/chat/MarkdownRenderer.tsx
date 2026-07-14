@@ -17,7 +17,7 @@ function ExternalLink({ href, children }: { href?: string; children?: React.Reac
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isDark }) => {
   return (
-    <div className={`content-typography chat-typography [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-3 ${
+    <div className={`content-typography chat-typography break-words [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-3 ${
       isDark
         ? '[&_pre]:bg-[#1a1a18] [&_pre]:border [&_pre]:border-white/10'
         : '[&_pre]:bg-[#f4f4f0] [&_pre]:border [&_pre]:border-black/8'
