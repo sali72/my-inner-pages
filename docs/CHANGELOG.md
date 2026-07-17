@@ -9,6 +9,15 @@ All notable changes to the backend will be documented in this file.
   - Redis backend for shared state across blue/green containers (production).
   - Per-route decorators (`@limiter.limit("5/minute")`) replace manual dependency.
   - Rate limit settings now env-configurable (`RATE_LIMIT_DEFAULT`, `REDIS_URL`).
+- **Rate Limiting (Phase 2)**: Tightened key resolution and consistency.
+  - Custom `key_func` (`custom_key_func`) replaces `get_remote_address`:
+    1. `request.state.user` for authenticated per-user keys.
+    2. `X-Real-IP` header (authoritative from nginx/Cloudflare).
+    3. `X-Forwarded-For` fallback for dev without nginx.
+  - `get_current_user` stashes user on `request.state` for per-user limiting.
+  - `rate_limit_enabled` toggle (not just production guard) now respected.
+  - Mirror endpoint uses `@limiter.limit("10/minute")` instead of inline.
+- **429 Responses**: Include `Retry-After` header parsed from the limit window.
 
 ### Added
 - **User Model**: Persistent structured memory per user — compact JSON summary of patterns, tone, thinking style, and conversation guidelines
