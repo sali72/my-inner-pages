@@ -104,16 +104,28 @@ def create_app() -> FastAPI:
     configure_limiter(settings)
     app.state.limiter = limiter
 
-    from slowapi.errors import RateLimitExceeded as SlowapiRateLimitExceeded
-    from fastapi.responses import JSONResponse
-    @app.exception_handler(SlowapiRateLimitExceeded)
-    async def rate_limit_handler(request, exc):
-        return JSONResponse(
-            status_code=429,
-            content={"detail": str(exc)},
-        )
+    if settings.rate_limit_enabled:
+        import re
+        from slowapi.errors import RateLimitExceeded as SlowapiRateLimitExceeded
+        from fastapi.responses import JSONResponse
+        @app.exception_handler(SlowapiRateLimitExceeded)
+        async def rate_limit_handler(request, exc):
+            detail = str(exc)
+            match = re.search(r'per\s+(\d+)\s+(second|minute|hour)', detail)
+            if match:
+                count = int(match.group(1))
+                unit = match.group(2)
+                multiplier = {"second": 1, "minute": 60, "hour": 3600}
+                retry_after = str(count * multiplier[unit])
+            else:
+                retry_after = "60"
+            return JSONResponse(
+                status_code=429,
+                content={"detail": detail},
+                headers={"Retry-After": retry_after},
+            )
 
-    app.add_middleware(SlowAPIMiddleware)
+        app.add_middleware(SlowAPIMiddleware)
 
     # Global handler to mask internal details on 5xx
     from starlette.exceptions import HTTPException as StarletteHTTPException

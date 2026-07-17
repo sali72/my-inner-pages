@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.auth.facade.auth_facade import AuthFacade
@@ -39,6 +39,7 @@ def get_auth_facade(
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     facade: AuthFacade = Depends(get_auth_facade)
 ) -> User:
@@ -46,6 +47,7 @@ async def get_current_user(
     Dependency to get current authenticated user from JWT token.
     
     Args:
+        request: FastAPI request (injected automatically)
         credentials: HTTP Bearer credentials from request
         facade: Auth facade (injected)
         
@@ -71,6 +73,7 @@ async def get_current_user(
             detail="User account is deactivated"
         )
     
+    request.state.user = user
     return user
 
 
