@@ -35,6 +35,18 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379" # Only accessible from localhost
+    mem_limit: 64m
+    mem_reservation: 32m
+    cpus: 0.25
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   mongodb:
     ports:
       - "127.0.0.1:27017:27017" # Only accessible from localhost
