@@ -60,7 +60,7 @@ async def chat_websocket(
         await websocket.close(code=4001)
         return
 
-    if not check_ws_rate_limit(f"ws:{str(user.id)}", 5):
+    if not check_ws_rate_limit(f"ws:{str(user.id)}", 20):
         await websocket.close(code=4003)
         return
 
@@ -154,6 +154,17 @@ async def chat_websocket(
             await chat_persistence.append_message(
                 actual_chat_id, str(user.id), "user", user_msg
             )
+
+            if not check_ws_rate_limit(f"llm:{str(user.id)}", 10):
+                await connection_manager.send_json(websocket, {
+                    "type": "error",
+                    "content": "You're sending messages too quickly. Please wait a moment.",
+                })
+                await chat_persistence.append_message(
+                    actual_chat_id, str(user.id), "assistant",
+                    "I'm sorry, but you've been sending messages too quickly. Please wait a moment before continuing."
+                )
+                continue
 
             full_response = ""
 
