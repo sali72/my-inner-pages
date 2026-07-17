@@ -34,7 +34,8 @@ export type WSServerMessage =
   | { type: 'ack'; message_id: string }
   | { type: 'ping' }
   | { type: 'pong' }
-  | { type: 'generation_lost'; chat_id: string };
+  | { type: 'generation_lost'; chat_id: string }
+  | { type: 'generation_resumed' };
 
 export interface ChatState {
   chatId: string | null;
@@ -43,4 +44,5 @@ export interface ChatState {
   isStreaming: boolean;
   isContextLoaded: boolean;
   error: string | null;
+  resumed: boolean;
 }

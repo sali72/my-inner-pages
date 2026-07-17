@@ -56,6 +56,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     isStreaming: false,
     isContextLoaded: false,
     error: null,
+    resumed: false,
   });
   const currentAssistantMsg = useRef('');
   const messagesRef = useRef(state.messages);
@@ -231,6 +232,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
             chatId: newChatId,
             isContextLoaded: true,
             error: null,
+            resumed: false,
           }));
           drainQueue();
           break;
@@ -268,7 +270,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
                 aborted: data.aborted,
               };
             }
-            return { ...prev, messages: msgs, isStreaming: false };
+            return { ...prev, messages: msgs, isStreaming: false, resumed: false };
           });
           break;
         }
@@ -305,6 +307,11 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
           break;
         }
 
+        case 'generation_resumed': {
+          setState(prev => ({ ...prev, resumed: true }));
+          break;
+        }
+
         case 'generation_lost': {
           setState(prev => ({
             ...prev,
@@ -329,6 +336,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       isStreaming: false,
       isContextLoaded: false,
       error: null,
+      resumed: false,
     });
     chatIdRef.current = null;
     pendingQueueRef.current = [];
@@ -396,6 +404,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       messages: [...prev.messages, userMsg, placeholder],
       isStreaming: true,
       error: null,
+      resumed: false,
     }));
 
     currentAssistantMsg.current = '';
@@ -537,6 +546,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     isStreaming: state.isStreaming,
     isContextLoaded: state.isContextLoaded,
     error: state.error,
+    resumed: state.resumed,
     sendMessage,
     sendEdit,
     stopStreaming,

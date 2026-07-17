@@ -44,6 +44,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
     editMessage,
     startNewChat,
     loadChat,
+    resumed,
   } = useChatWebSocket();
 
   const isLoadingHistory = selectedChatId !== null && selectedChatId !== 'new' && chatId !== selectedChatId;
@@ -114,6 +115,25 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const pendingMessageRef = useRef<string | null>(null);
   const prevStreaming = useRef(isStreaming);
   const titleRefreshed = useRef(false);
+  const [showStillConnecting, setShowStillConnecting] = useState(false);
+  const stillConnectingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!isContextLoaded && connectionState === 'connected') {
+      stillConnectingTimer.current = setTimeout(() => setShowStillConnecting(true), 5000);
+    } else {
+      if (stillConnectingTimer.current !== null) {
+        clearTimeout(stillConnectingTimer.current);
+        stillConnectingTimer.current = null;
+      }
+      setShowStillConnecting(false);
+    }
+    return () => {
+      if (stillConnectingTimer.current !== null) {
+        clearTimeout(stillConnectingTimer.current);
+      }
+    };
+  }, [isContextLoaded, connectionState]);
 
   const loadChatList = useCallback(async () => {
     try {
@@ -325,9 +345,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     <p className="text-sm text-muted max-w-sm">
                       {isContextLoaded
                         ? "I've loaded your recent journal entries for context. Ask me about patterns, insights, or anything on your mind."
-                        : connectionState === 'connected'
-                          ? 'Loading context…'
-                          : 'Establishing connection…'}
+                        : showStillConnecting
+                          ? 'Still connecting…'
+                          : connectionState === 'connected'
+                            ? 'Loading context…'
+                            : 'Establishing connection…'}
                     </p>
                     {!isContextLoaded && !error && (
                       <Loader2 className="w-5 h-5 mt-4 animate-spin text-muted" />
@@ -516,6 +538,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <WifiOff className="w-3 h-3" />
               )}
               <span>{connectionLabel}</span>
+            </div>
+          )}
+          {resumed && (
+            <div className="mb-2 flex items-center justify-center gap-1.5 text-emerald-500 text-xs">
+              <span>Resumed</span>
             </div>
           )}
           {error && (
