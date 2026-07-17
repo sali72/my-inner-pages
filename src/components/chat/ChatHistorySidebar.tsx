@@ -75,6 +75,7 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search chats..."
+                                aria-label="Search chats"
                                 className="w-full pl-8 pr-8 py-1.5 text-sm rounded-lg bg-surface-hover border border-default outline-none focus:border-accent transition-colors text-body placeholder:text-muted"
                             />
                             {searchQuery && (

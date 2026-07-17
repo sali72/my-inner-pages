@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { MessageSquare, Send, Square, Loader2, AlertCircle, Copy, Check, RotateCw, Pencil, ChevronDown, ChevronUp, WifiOff } from 'lucide-react';
+import { MessageSquare, Send, Square, Loader2, AlertCircle, RotateCw, Pencil, ChevronDown, ChevronUp, WifiOff } from 'lucide-react';
 import { useChatWebSocket } from '@hooks/useChatWebSocket';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ChatHistorySidebar } from './ChatHistorySidebar';
+import { CopyButton } from './CopyButton';
 import { api, chatListResponseSchema } from '@utils/api';
 import type { ChatSummary } from '@/types/chat';
 
@@ -39,9 +40,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
     isContextLoaded,
     error,
     sendMessage,
+    sendEdit,
     stopStreaming,
     regenerate,
-    editMessage,
     startNewChat,
     loadChat,
     resumed,
@@ -307,7 +308,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const handleNewChat = () => {
     titleRefreshed.current = false;
     onSelectChat('new');
-    setTimeout(() => loadChatList(), 500);
   };
 
   return (
@@ -390,7 +390,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
-                                    editMessage(editContent, lastUserIdx);
+                                    sendEdit(editContent, lastUserIdx);
                                     setEditingId(null);
                                     setEditContent('');
                                   }
@@ -411,7 +411,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                                 </button>
                                 <button
                                   onClick={() => {
-                                    editMessage(editContent, lastUserIdx);
+                                    sendEdit(editContent, lastUserIdx);
                                     setEditingId(null);
                                     setEditContent('');
                                   }}
@@ -454,12 +454,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                           )}
                           <div className="flex items-center gap-0.5">
                             {editingId !== msg.id && (
-                              <button
-                                onClick={() => handleCopy(msg.id, msg.content)}
-                                className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
-                              >
-                                {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                              </button>
+                              <CopyButton messageId={msg.id} content={msg.content} copiedId={copiedId} onCopy={handleCopy} />
                             )}
                             {isLastUserMsg && !editingId && !isStreaming && (
                               <button
@@ -486,12 +481,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                             )}
                           </div>
                           <div className="flex items-center gap-0.5">
-                            <button
-                              onClick={() => handleCopy(msg.id, msg.content)}
-                              className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity p-1 rounded hover:bg-accent-tint text-muted"
-                            >
-                              {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                            </button>
+                            <CopyButton messageId={msg.id} content={msg.content} copiedId={copiedId} onCopy={handleCopy} />
                             {isLastAssistant && !isStreaming && (
                               <button
                                 onClick={regenerate}
