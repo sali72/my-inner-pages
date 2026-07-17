@@ -11,6 +11,7 @@ import { MirrorView } from '@components/mirror';
 import { ChatView } from '@components/chat';
 import { SettingsView } from '@components/settings';
 import { AdminView } from '@components/admin';
+import { Toaster } from 'sonner';
 import { useRouter } from '@hooks/useRouter';
 
 const AppInner: React.FC = () => {
@@ -290,6 +291,12 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <AppInner />
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: { background: 'var(--color-surface)', color: 'var(--color-base-text)', border: '1px solid var(--color-default)' },
+        }}
+      />
     </ThemeProvider>
   );
 };

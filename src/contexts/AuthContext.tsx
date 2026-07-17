@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, ReactNode } from 'react';
+import { toast } from 'sonner';
 
 // Backend API URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
@@ -112,6 +113,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
     
     if (!response.ok) {
+      if (response.status === 429) {
+        toast.error('Too many login attempts — please wait a moment');
+      }
       const error = await response.json();
       throw new Error(error.detail || 'Login failed');
     }
@@ -145,6 +149,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
     
     if (!response.ok) {
+      if (response.status === 429) {
+        toast.error('Too many registration attempts — please wait a moment');
+      }
       const error = await response.json();
       throw new Error(error.detail || 'Registration failed');
     }
@@ -158,6 +165,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
     
     if (!response.ok) {
+      if (response.status === 429) {
+        toast.error('Too many password reset attempts — please wait a moment');
+      }
       const error = await response.json();
       throw new Error(error.detail || 'Failed to send reset email');
     }

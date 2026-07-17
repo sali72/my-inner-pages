@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { z } from 'zod';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
@@ -39,6 +40,8 @@ async function request<T>(
         if (response.status === 401) {
             localStorage.removeItem('authToken');
             window.dispatchEvent(new CustomEvent('auth:expired'));
+        } else if (response.status === 429) {
+            toast.error('Too many requests — please slow down');
         }
 
         throw new ApiError(detail, response.status);
