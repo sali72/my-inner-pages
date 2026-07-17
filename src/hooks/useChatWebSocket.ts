@@ -1,8 +1,40 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import type { ChatMessage, ChatState, WSClientMessage, WSServerMessage } from '@/types/chat';
+import type { ChatMessage, ChatState, WSClientMessage, WSServerMessage, MessageStatus } from '@/types/chat';
 import { api, chatResponseSchema } from '@utils/api';
 
 const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/api/v0';
+
+const MAX_RECONNECT_ATTEMPTS = 15;
+const BASE_RECONNECT_DELAY_MS = 1000;
+const MAX_RECONNECT_DELAY_MS = 30000;
+const ACK_TIMEOUT_MS = 5000;
+
+function jitteredDelay(attempt: number): number {
+  const exponential = Math.min(
+    BASE_RECONNECT_DELAY_MS * Math.pow(2, attempt),
+    MAX_RECONNECT_DELAY_MS,
+  );
+  const jitter = 0.8 + Math.random() * 0.4;
+  return Math.round(exponential * jitter);
+}
+
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const expMs = (payload.exp as number) * 1000;
+    return Date.now() >= expMs - 5 * 60 * 1000;
+  } catch {
+    return true;
+  }
+}
+
+interface QueuedMessage {
+  id: string;
+  content: string;
+  type: 'message' | 'edit';
+  message_index?: number;
+  retries: number;
+}
 
 interface UseChatWebSocketReturn extends ChatState {
   sendMessage: (content: string) => void;
@@ -11,7 +43,6 @@ interface UseChatWebSocketReturn extends ChatState {
   regenerate: () => void;
   editMessage: (content: string, messageIndex: number) => void;
   disconnect: () => void;
-  reconnect: () => void;
   startNewChat: () => void;
   loadChat: (chatId: string) => Promise<void>;
 }
@@ -21,7 +52,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
   const [state, setState] = useState<ChatState>({
     chatId: null,
     messages: [],
-    isConnected: false,
+    connectionState: 'disconnected',
     isStreaming: false,
     isContextLoaded: false,
     error: null,
@@ -31,8 +62,20 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
   messagesRef.current = state.messages;
   const chatIdRef = useRef<string | null>(null);
   const loadGenRef = useRef(0);
+  const reconnectAttemptRef = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingQueueRef = useRef<QueuedMessage[]>([]);
+  const ackWaitRef = useRef<{ messageId: string; timer: ReturnType<typeof setTimeout> } | null>(null);
 
   const cleanup = useCallback(() => {
+    if (reconnectTimerRef.current !== null) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    if (ackWaitRef.current !== null) {
+      clearTimeout(ackWaitRef.current.timer);
+      ackWaitRef.current = null;
+    }
     if (wsRef.current) {
       wsRef.current.onopen = null;
       wsRef.current.onclose = null;
@@ -43,7 +86,29 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     }
   }, []);
 
-  const connect = useCallback((targetChatId?: string | null) => {
+  const scheduleReconnect = useCallback(() => {
+    if (reconnectAttemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      setState(prev => ({ ...prev, connectionState: 'failed' }));
+      return;
+    }
+
+    const attempt = reconnectAttemptRef.current;
+    const delay = jitteredDelay(attempt);
+
+    setState(prev => ({ ...prev, connectionState: 'reconnecting' }));
+
+    reconnectTimerRef.current = setTimeout(() => {
+      const token = localStorage.getItem('authToken');
+      if (!token || isTokenExpired(token)) {
+        setState(prev => ({ ...prev, error: 'Session expired. Please log in again.', connectionState: 'failed' }));
+        return;
+      }
+      reconnectAttemptRef.current += 1;
+      connect(chatIdRef.current, true);
+    }, delay);
+  }, []);
+
+  const connect = useCallback((targetChatId?: string | null, isReconnect: boolean = false) => {
     cleanup();
 
     const token = localStorage.getItem('authToken');
@@ -52,10 +117,18 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       return;
     }
 
+    if (isReconnect && isTokenExpired(token)) {
+      setState(prev => ({ ...prev, error: 'Session expired. Please log in again.', connectionState: 'failed' }));
+      return;
+    }
+
     const params = new URLSearchParams();
     params.set('token', token);
     if (targetChatId) {
       params.set('chat_id', targetChatId);
+    }
+    if (isReconnect && targetChatId) {
+      params.set('resume', 'true');
     }
 
     const url = `${WS_BASE_URL}/chat/ws?${params}`;
@@ -63,15 +136,35 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      setState(prev => ({ ...prev, isConnected: true, error: null }));
+      reconnectAttemptRef.current = 0;
+      setState(prev => ({ ...prev, connectionState: 'connected', error: null }));
     };
 
-    ws.onclose = () => {
-      setState(prev => ({ ...prev, isConnected: false, isStreaming: false }));
+    ws.onclose = (event) => {
       wsRef.current = null;
+      setState(prev => ({ ...prev, isStreaming: false, isContextLoaded: false }));
+
+      if (event.code === 4001) {
+        setState(prev => ({ ...prev, connectionState: 'failed', error: 'Authentication failed. Please log in again.' }));
+        return;
+      }
+
+      if (event.code === 4003) {
+        setState(prev => ({ ...prev, connectionState: 'reconnecting', error: 'Rate limited. Reconnecting...' }));
+        scheduleReconnect();
+        return;
+      }
+
+      if (event.code === 1000 || event.code === 1001) {
+        scheduleReconnect();
+        return;
+      }
+
+      scheduleReconnect();
     };
 
     ws.onerror = () => {
+      if (!wsRef.current) return;
       setState(prev => ({ ...prev, error: 'Connection failed' }));
     };
 
@@ -86,24 +179,25 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
             ...prev,
             chatId: newChatId,
             isContextLoaded: true,
+            error: null,
           }));
+          drainQueue();
           break;
         }
 
-        case 'token':
+        case 'token': {
           currentAssistantMsg.current += data.content;
-          {
-            const accumulated = currentAssistantMsg.current;
-            setState(prev => {
-              const msgs = [...prev.messages];
-              const last = msgs[msgs.length - 1];
-              if (last?.role === 'assistant' && last.id === 'streaming') {
-                msgs[msgs.length - 1] = { ...last, content: accumulated };
-              }
-              return { ...prev, messages: msgs, isStreaming: true };
-            });
-          }
+          const accumulated = currentAssistantMsg.current;
+          setState(prev => {
+            const msgs = [...prev.messages];
+            const last = msgs[msgs.length - 1];
+            if (last?.role === 'assistant' && last.id === 'streaming') {
+              msgs[msgs.length - 1] = { ...last, content: accumulated };
+            }
+            return { ...prev, messages: msgs, isStreaming: true };
+          });
           break;
+        }
 
         case 'done': {
           const finalContent = currentAssistantMsg.current;
@@ -120,6 +214,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
                 ...last,
                 id: crypto.randomUUID(),
                 content: finalContent,
+                aborted: data.aborted,
               };
             }
             return { ...prev, messages: msgs, isStreaming: false };
@@ -127,30 +222,117 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
           break;
         }
 
-        case 'error':
+        case 'error': {
           setState(prev => ({ ...prev, isStreaming: false, error: data.content }));
           currentAssistantMsg.current = '';
           break;
+        }
+
+        case 'ack': {
+          if (ackWaitRef.current !== null && ackWaitRef.current.messageId === data.message_id) {
+            clearTimeout(ackWaitRef.current.timer);
+            ackWaitRef.current = null;
+          }
+          setState(prev => ({
+            ...prev,
+            messages: prev.messages.map(m =>
+              m.id === data.message_id ? { ...m, status: 'delivered' as MessageStatus } : m
+            ),
+          }));
+          break;
+        }
+
+        case 'ping': {
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: 'pong' }));
+          }
+          break;
+        }
+
+        case 'generation_lost': {
+          setState(prev => ({
+            ...prev,
+            messages: prev.messages.map(m =>
+              m.status === 'sending' || m.id === 'streaming'
+                ? { ...m, status: 'failed' as MessageStatus }
+                : m
+            ),
+          }));
+          break;
+        }
       }
     };
-  }, [cleanup]);
+  }, [cleanup, scheduleReconnect]);
+
+  const drainQueue = useCallback(() => {
+    const queue = pendingQueueRef.current;
+    if (queue.length === 0) return;
+
+    const sendNext = () => {
+      if (queue.length === 0) return;
+      const item = queue[0];
+      const ws = wsRef.current;
+
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        return;
+      }
+
+      const msg: WSClientMessage = item.type === 'edit'
+        ? { type: 'edit', content: item.content, message_index: item.message_index!, id: item.id }
+        : { type: 'message', content: item.content, id: item.id };
+
+      ws.send(JSON.stringify(msg));
+
+      setState(prev => ({
+        ...prev,
+        messages: prev.messages.map(m =>
+          m.id === item.id ? { ...m, status: 'sending' as MessageStatus } : m
+        ),
+      }));
+
+      const ackTimer = setTimeout(() => {
+        if (item.retries < 1) {
+          item.retries += 1;
+          sendNext();
+        } else {
+          queue.shift();
+          setState(prev => ({
+            ...prev,
+            messages: prev.messages.map(m =>
+              m.id === item.id ? { ...m, status: 'failed' as MessageStatus } : m
+            ),
+          }));
+          sendNext();
+        }
+      }, ACK_TIMEOUT_MS);
+
+      if (ackWaitRef.current !== null) {
+        clearTimeout(ackWaitRef.current.timer);
+      }
+      ackWaitRef.current = { messageId: item.id, timer: ackTimer };
+    };
+
+    sendNext();
+  }, []);
 
   const disconnect = useCallback(() => {
     cleanup();
     setState({
       chatId: null,
       messages: [],
-      isConnected: false,
+      connectionState: 'disconnected',
       isStreaming: false,
       isContextLoaded: false,
       error: null,
     });
     chatIdRef.current = null;
+    pendingQueueRef.current = [];
   }, [cleanup]);
 
   const connectNew = useCallback(() => {
     disconnect();
-    connect(null);
+    pendingQueueRef.current = [];
+    connect(null, false);
   }, [disconnect, connect]);
 
   const loadChat = useCallback(async (targetChatId: string) => {
@@ -182,17 +364,19 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       return;
     }
     if (loadGenRef.current !== gen) return;
-    connect(targetChatId);
+    connect(targetChatId, false);
   }, [cleanup, connect]);
 
   const sendMessage = useCallback((content: string) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    const msgId = crypto.randomUUID();
+    const ws = wsRef.current;
 
     const userMsg: ChatMessage = {
-      id: crypto.randomUUID(),
+      id: msgId,
       role: 'user',
       content,
       timestamp: Date.now(),
+      status: ws && ws.readyState === WebSocket.OPEN ? 'sending' : 'queued',
     };
 
     const placeholder: ChatMessage = {
@@ -211,13 +395,42 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
 
     currentAssistantMsg.current = '';
 
-    const msg: WSClientMessage = { type: 'message', content };
-    wsRef.current.send(JSON.stringify(msg));
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      pendingQueueRef.current.push({
+        id: msgId,
+        content,
+        type: 'message',
+        retries: 0,
+      });
+      return;
+    }
+
+    const msg: WSClientMessage = { type: 'message', content, id: msgId };
+    ws.send(JSON.stringify(msg));
+
+    if (ackWaitRef.current !== null) {
+      clearTimeout(ackWaitRef.current.timer);
+    }
+    const ackTimer = setTimeout(() => {
+      const pending = pendingQueueRef.current;
+      const alreadyQueued = pending.some(q => q.id === msgId);
+      if (!alreadyQueued) {
+        pending.push({ id: msgId, content, type: 'message', retries: 0 });
+      }
+    }, ACK_TIMEOUT_MS);
+    ackWaitRef.current = { messageId: msgId, timer: ackTimer };
   }, []);
 
   const stopStreaming = useCallback(() => {
     const partialContent = currentAssistantMsg.current;
     currentAssistantMsg.current = '';
+
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const cancelMsg: WSClientMessage = { type: 'cancel' };
+      ws.send(JSON.stringify(cancelMsg));
+    }
+
     setState(prev => {
       const msgs = prev.messages.map(m =>
         m.id === 'streaming'
@@ -228,9 +441,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       ).filter(Boolean) as ChatMessage[];
       return { ...prev, messages: msgs, isStreaming: false };
     });
-    cleanup();
-    connect(chatIdRef.current);
-  }, [cleanup, connect]);
+  }, []);
 
   const getLastUserIndex = useCallback((): number => {
     const msgs = messagesRef.current;
@@ -241,18 +452,17 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
   }, []);
 
   const sendEdit = useCallback((content: string, messageIndex: number) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    const msgId = crypto.randomUUID();
+    const ws = wsRef.current;
 
-    // Truncate the UI message list at messageIndex, then append the new
-    // user message + streaming placeholder — exactly like sendMessage but
-    // with the history forked at the edit point.
     const truncated = messagesRef.current.slice(0, messageIndex);
 
     const userMsg: ChatMessage = {
-      id: crypto.randomUUID(),
+      id: msgId,
       role: 'user',
       content,
       timestamp: Date.now(),
+      status: ws && ws.readyState === WebSocket.OPEN ? 'sending' : 'queued',
     };
     const placeholder: ChatMessage = {
       id: 'streaming',
@@ -270,8 +480,31 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
 
     currentAssistantMsg.current = '';
 
-    const msg: WSClientMessage = { type: 'edit', content, message_index: messageIndex };
-    wsRef.current.send(JSON.stringify(msg));
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      pendingQueueRef.current.push({
+        id: msgId,
+        content,
+        type: 'edit',
+        message_index: messageIndex,
+        retries: 0,
+      });
+      return;
+    }
+
+    const msg: WSClientMessage = { type: 'edit', content, message_index: messageIndex, id: msgId };
+    ws.send(JSON.stringify(msg));
+
+    if (ackWaitRef.current !== null) {
+      clearTimeout(ackWaitRef.current.timer);
+    }
+    const ackTimer = setTimeout(() => {
+      const pending = pendingQueueRef.current;
+      const alreadyQueued = pending.some(q => q.id === msgId);
+      if (!alreadyQueued) {
+        pending.push({ id: msgId, content, type: 'edit', message_index: messageIndex, retries: 0 });
+      }
+    }, ACK_TIMEOUT_MS);
+    ackWaitRef.current = { messageId: msgId, timer: ackTimer };
   }, []);
 
   const regenerate = useCallback(() => {
@@ -286,19 +519,23 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
   }, [sendEdit]);
 
   useEffect(() => {
-    connect(null);
+    connect(null, false);
     return cleanup;
   }, [connect, cleanup]);
 
   return {
-    ...state,
+    chatId: state.chatId,
+    messages: state.messages,
+    connectionState: state.connectionState,
+    isStreaming: state.isStreaming,
+    isContextLoaded: state.isContextLoaded,
+    error: state.error,
     sendMessage,
     sendEdit,
     stopStreaming,
     regenerate,
     editMessage,
     disconnect,
-    reconnect: () => connect(chatIdRef.current),
     startNewChat: connectNew,
     loadChat,
   };

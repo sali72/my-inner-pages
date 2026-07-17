@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { MessageSquare, Send, Square, Loader2, AlertCircle, Copy, Check, RotateCw, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageSquare, Send, Square, Loader2, AlertCircle, Copy, Check, RotateCw, Pencil, ChevronDown, ChevronUp, WifiOff } from 'lucide-react';
 import { useChatWebSocket } from '@hooks/useChatWebSocket';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ChatHistorySidebar } from './ChatHistorySidebar';
@@ -34,7 +34,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const {
     chatId,
     messages,
-    isConnected,
+    connectionState,
     isStreaming,
     isContextLoaded,
     error,
@@ -42,12 +42,20 @@ export const ChatView: React.FC<ChatViewProps> = ({
     stopStreaming,
     regenerate,
     editMessage,
-    reconnect,
     startNewChat,
     loadChat,
   } = useChatWebSocket();
 
   const isLoadingHistory = selectedChatId !== null && selectedChatId !== 'new' && chatId !== selectedChatId;
+
+  const connectionLabel = useMemo(() => {
+    switch (connectionState) {
+      case 'connected': return null;
+      case 'reconnecting': return 'Reconnecting…';
+      case 'disconnected': return 'Disconnected';
+      case 'failed': return 'Connection lost';
+    }
+  }, [connectionState]);
 
   // Load target chat or start new chat based on selectedChatId prop (URL parameter)
   const chatIdRef = useRef(chatId);
@@ -164,12 +172,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
   }, [initialMessage, startNewChat]);
 
   useEffect(() => {
-    if (isConnected && pendingMessageRef.current) {
+    if (connectionState === 'connected' && pendingMessageRef.current) {
       sendMessage(pendingMessageRef.current);
       pendingMessageRef.current = null;
       onInitialMessageSent?.();
     }
-  }, [isConnected, sendMessage, onInitialMessageSent]);
+  }, [connectionState, sendMessage, onInitialMessageSent]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -200,7 +208,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   const handleSend = () => {
     const trimmed = input.trim();
-    if (!trimmed || !isConnected || isStreaming) return;
+    if (!trimmed || connectionState !== 'connected' || isStreaming) return;
     userScrolledUp.current = false;
     sendMessage(trimmed);
     setInput('');
@@ -215,10 +223,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
   };
 
   useEffect(() => {
-    if (isConnected && !isStreaming) {
+    if (connectionState === 'connected' && !isStreaming) {
       inputRef.current?.focus();
     }
-  }, [isConnected, isStreaming]);
+  }, [connectionState, isStreaming]);
 
   const toggleExpand = (id: string) => {
     setExpandedMessages(prev => {
@@ -312,10 +320,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       <MessageSquare className="w-8 h-8 text-white" />
                     </div>
                     <h2 className="text-lg font-semibold text-body mb-2">
-                      {isContextLoaded ? 'Ask me anything' : 'Connecting...'}
+                      {isContextLoaded ? 'Ask me anything' : connectionLabel || 'Preparing your chat…'}
                     </h2>
                     <p className="text-sm text-muted max-w-sm">
-                      I've loaded your recent journal entries for context. Ask me about patterns, insights, or anything on your mind.
+                      {isContextLoaded
+                        ? "I've loaded your recent journal entries for context. Ask me about patterns, insights, or anything on your mind."
+                        : connectionState === 'connected'
+                          ? 'Loading context…'
+                          : 'Establishing connection…'}
                     </p>
                     {!isContextLoaded && !error && (
                       <Loader2 className="w-5 h-5 mt-4 animate-spin text-muted" />
@@ -388,10 +400,26 @@ export const ChatView: React.FC<ChatViewProps> = ({
                               </div>
                             </div>
                           ) : (
-                            <div className="rounded-2xl px-4 py-2.5 bg-accent text-white">
+                            <div className="rounded-2xl px-4 py-2.5 bg-accent text-white relative">
                               <div className={`content-typography chat-typography !text-white [&_*]:!text-white whitespace-pre-wrap ${msg.content === '' ? 'animate-pulse' : ''} ${!expandedMessages.has(msg.id) && msg.content.length > COLLAPSE_THRESHOLD ? 'max-h-32 overflow-hidden' : ''}`}>
                                 {msg.content || '▊'}
                               </div>
+                              {msg.status && (
+                                <div className="absolute -bottom-4 right-0 flex items-center gap-1">
+                                  {msg.status === 'sending' && (
+                                    <Loader2 className="w-3 h-3 animate-spin text-muted/60" />
+                                  )}
+                                  {msg.status === 'delivered' && (
+                                    <Check className="w-3 h-3 text-emerald-400/60" />
+                                  )}
+                                  {msg.status === 'queued' && (
+                                    <span className="text-[10px] text-muted/60">waiting…</span>
+                                  )}
+                                  {msg.status === 'failed' && (
+                                    <AlertCircle className="w-3 h-3 text-red-400" />
+                                  )}
+                                </div>
+                              )}
                               {msg.content.length > COLLAPSE_THRESHOLD && (
                                 <button
                                   onClick={() => toggleExpand(msg.id)}
@@ -476,16 +504,20 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </button>
             </div>
           )}
+          {connectionLabel && connectionState !== 'connected' && (
+            <div className="mb-2 flex items-center justify-center gap-1.5 text-muted text-xs">
+              {connectionState === 'reconnecting' ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <WifiOff className="w-3 h-3" />
+              )}
+              <span>{connectionLabel}</span>
+            </div>
+          )}
           {error && (
-            <div className="mb-3 flex items-center gap-2 text-red-500 text-xs">
+            <div className="mb-2 flex items-center gap-2 text-red-500 text-xs">
               <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
               <span className="flex-1">{error}</span>
-              <button
-                onClick={reconnect}
-                className="text-xs px-2 py-1 rounded bg-surface-hover text-muted hover:bg-accent-tint transition-colors"
-              >
-                Reconnect
-              </button>
             </div>
           )}
           <div className="flex gap-3 items-end bg-surface rounded-xl border border-default p-2 shadow-lg">
@@ -494,8 +526,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={isConnected ? 'Type a message...' : 'Connecting...'}
-              disabled={!isConnected}
+              placeholder={
+                connectionState === 'connected' ? 'Type a message...'
+                : connectionState === 'reconnecting' ? 'Reconnecting…'
+                : connectionState === 'failed' ? 'Connection lost'
+                : 'Disconnected'
+              }
+              disabled={connectionState !== 'connected'}
               className="flex-1 resize-none bg-transparent px-2 py-3 text-sm outline-none disabled:opacity-50 scrollbar-theme text-body placeholder:text-muted"
               style={{ lineHeight: `${LINE_HEIGHT}px`, maxHeight: `${MAX_TEXTAREA_ROWS * LINE_HEIGHT}px`, height: `${LINE_HEIGHT + INPUT_VERTICAL_PADDING}px` }}
             />
@@ -509,9 +546,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
             ) : (
               <button
                 onClick={handleSend}
-                disabled={!input.trim() || !isConnected}
+                disabled={!input.trim() || connectionState !== 'connected'}
                 className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 ${
-                  input.trim() && isConnected
+                  input.trim() && connectionState === 'connected'
                     ? 'bg-accent text-white shadow-md hover:shadow-lg hover:scale-105'
                     : 'bg-surface-hover text-muted'
                 } disabled:cursor-not-allowed`}
