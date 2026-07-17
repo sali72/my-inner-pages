@@ -90,7 +90,8 @@ App (root)
 
 ### State Management
 - **Global State**: AuthContext (user, login, logout)
-- **Feature State**: Custom hooks (useJournalEntries, useSettings, usePageFlip)
+- **Feature State**: Custom hooks (useJournalEntries, useSettings, usePageFlip, useChatWebSocket)
+  - useChatWebSocket manages connection state machine (connected/reconnecting/disconnected/failed), auto-reconnect with jittered backoff, message queue, and per-message delivery status
 - **Local Storage**: Auth token (cache), theme preferences (cache with server sync)
 - **Editor State**: Y.Doc per journal entry, persisted to IndexedDB via y-indexeddb (local source of truth)
 
@@ -151,13 +152,17 @@ When triggered:
 2. useChatWebSocket hook connects WebSocket:
    - No chat_id → server sends context_loaded with chat_id: null
    - Existing chat_id → server sends context_loaded with chat_id
-3. User types message → sendMessage() via WebSocket
-4. Backend persists user message to MongoDB (creates chat if first msg)
-5. Backend streams LLM tokens → frontend renders via MarkdownRenderer
-6. Stream completes → backend persists assistant message → frontend receives done
-7. Chat list loaded via REST GET /chats for sidebar
-8. User can switch views → ChatView stays mounted (hidden), WebSocket stays open
-9. User can browse history via ChatHistorySidebar (right overlay, REST-backed)
+3. User types message → sendMessage() via WebSocket (with UUID for dedup/ack)
+4. Server acks immediately, persists user message, streams LLM tokens
+5. On disconnect → auto-reconnect with jittered exponential backoff (1s–30s)
+   - Token expiry checked before reconnect
+   - If generation was active → reconnect with resume=true param
+   - Queued messages drained on reconnect
+6. On reconnect success → server may send generation_resumed if within grace period
+7. Stream completes → backend persists assistant message → frontend receives done
+8. Chat list loaded via REST GET /chats for sidebar
+9. User can switch views → ChatView stays mounted (hidden), WebSocket stays open
+10. User can browse history via ChatHistorySidebar (right overlay, REST-backed)
 ```
 
 ## Key Design Patterns

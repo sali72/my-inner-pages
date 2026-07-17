@@ -10,6 +10,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **WebSocket Chat Robustness (Phases 1-4)**:
+  - Three-state message dedup with ack protocol to prevent duplicate LLM calls
+  - `cancel` message type for non-destructive stop streaming
+  - `edit` message type for editing past messages
+  - Generation manager with 10s grace period and resume capability
+  - App-level heartbeat (ping every 20s, timeout at 30s)
+  - ConnectionManager: per-user cap (5), oldest-eviction, `last_pong` tracking
+  - Zombie connection cleanup (60s sweep, 5min idle threshold)
+  - `retry_after_seconds` in rate limit error responses
+  - `generation_resumed` / `generation_lost` WS messages for resume UX
+- **Frontend auto-reconnect**:
+  - Jittered exponential backoff (1s–30s, 15 max attempts)
+  - Token expiry check before reconnect
+  - Message queue with 5s bounded ack-wait, retry-once, fail-skip
+  - Connection state machine (connected/reconnecting/disconnected/failed)
+  - Close code handling (4001→failed, 4003→reconnecting, 1000/1001→reconnect)
+  - Subtle connection status pill + per-message delivery indicators
+  - "Still connecting…" hint after 5s
+  - "Generating…" animation for pre-first-token state
+  - "Resumed" toast on successful generation resume
 - **Backend Rate Limiting**: Replaced custom in-memory rate limiter with slowapi + Redis.
   - Redis backend for shared rate limit state across blue/green containers (production).
   - Per-route decorators (`@limiter.limit("5/minute")`) replace manual dependency.
