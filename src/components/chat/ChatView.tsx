@@ -426,22 +426,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                               <div className={`content-typography chat-typography !text-white [&_*]:!text-white whitespace-pre-wrap ${msg.content === '' ? 'animate-pulse' : ''} ${!expandedMessages.has(msg.id) && msg.content.length > COLLAPSE_THRESHOLD ? 'max-h-32 overflow-hidden' : ''}`}>
                                 {msg.content || '▊'}
                               </div>
-                              {msg.status && (
-                                <div className="absolute -bottom-4 right-0 flex items-center gap-1">
-                                  {msg.status === 'sending' && (
-                                    <Loader2 className="w-3 h-3 animate-spin text-muted/60" />
-                                  )}
-                                  {msg.status === 'delivered' && (
-                                    <Check className="w-3 h-3 text-emerald-400/60" />
-                                  )}
-                                  {msg.status === 'queued' && (
-                                    <span className="text-[10px] text-muted/60">waiting…</span>
-                                  )}
-                                  {msg.status === 'failed' && (
-                                    <AlertCircle className="w-3 h-3 text-red-400" />
-                                  )}
-                                </div>
-                              )}
+
                               {msg.content.length > COLLAPSE_THRESHOLD && (
                                 <button
                                   onClick={() => toggleExpand(msg.id)}
