@@ -73,10 +73,20 @@ async def chat_websocket(
         await websocket.close(code=4001)
         return
 
-    if not check_ws_rate_limit(f"ws:{str(user.id)}", 20):
+    ws_allowed, ws_retry_after = check_ws_rate_limit(f"ws:{str(user.id)}", 20)
+    if not ws_allowed:
+        try:
+            await websocket.send_json({
+                "type": "error",
+                "content": "Connection rate limited. Please wait.",
+                "retry_after_seconds": ws_retry_after,
+            })
+        except Exception:
+            pass
         await websocket.close(code=4003)
         return
 
+    connection_manager.start_zombie_sweep()
     await connection_manager.connect(websocket, str(user.id), is_resume=resume)
 
     actual_chat_id: Optional[str] = None
@@ -364,10 +374,12 @@ async def _message_loop(
                 actual_chat_id, user_id, "user", user_msg
             )
 
-            if not check_ws_rate_limit(f"llm:{user_id}", 10):
+            llm_allowed, llm_retry_after = check_ws_rate_limit(f"llm:{user_id}", 10)
+            if not llm_allowed:
                 await connection_manager.send_json(ws, {
                     "type": "error",
                     "content": "You're sending messages too quickly. Please wait a moment.",
+                    "retry_after_seconds": llm_retry_after,
                 })
                 await chat_persistence.append_message(
                     actual_chat_id, user_id, "assistant",

@@ -1,3 +1,4 @@
+import asyncio
 import time
 from dataclasses import dataclass, field
 from typing import Optional
@@ -32,6 +33,53 @@ class ConnectionManager:
     def __init__(self) -> None:
         self._connections: dict[str, set[ConnectionInfo]] = {}
         self._ws_to_info: dict[int, ConnectionInfo] = {}
+        self._sweep_task: Optional[asyncio.Task] = None
+
+    def start_zombie_sweep(self) -> None:
+        if self._sweep_task is None:
+            self._sweep_task = asyncio.create_task(self._zombie_sweep_loop())
+
+    async def stop_zombie_sweep(self) -> None:
+        if self._sweep_task is not None:
+            self._sweep_task.cancel()
+            try:
+                await self._sweep_task
+            except asyncio.CancelledError:
+                pass
+            self._sweep_task = None
+
+    async def _zombie_sweep_loop(self) -> None:
+        while True:
+            await asyncio.sleep(60)
+            await self._cleanup_zombies(max_idle_seconds=300)
+
+    async def _cleanup_zombies(self, max_idle_seconds: float = 300) -> int:
+        now = time.monotonic()
+        to_close: list[WebSocket] = []
+        for conn_id, info in list(self._ws_to_info.items()):
+            if now - info.last_activity > max_idle_seconds:
+                to_close.append(info.ws)
+                user_conns = self._connections.get(info.user_id)
+                if user_conns:
+                    user_conns.discard(info)
+                    if not user_conns:
+                        del self._connections[info.user_id]
+                del self._ws_to_info[conn_id]
+
+        for ws in to_close:
+            try:
+                await ws.close(code=1000)
+            except Exception:
+                pass
+
+        if to_close:
+            logger.warning(
+                "ws_zombie_cleanup",
+                closed_count=len(to_close),
+                max_idle_seconds=max_idle_seconds,
+            )
+
+        return len(to_close)
 
     async def connect(
         self,

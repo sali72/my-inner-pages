@@ -152,6 +152,12 @@ class GenerationManager:
         gen.ws = ws
         gen.last_activity = time.monotonic()
 
+        try:
+            await ws.send_json({"type": "generation_resumed"})
+        except Exception:
+            gen.ws = None
+            return None
+
         if gen.buffer:
             try:
                 await ws.send_json({"type": "token", "content": gen.buffer})
