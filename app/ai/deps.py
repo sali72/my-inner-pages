@@ -8,6 +8,8 @@ from app.ai.integrations.mock_llm_client import MockLLMClient
 from app.ai.integrations.litellm_client import LiteLLMClient
 from app.ai.services.chat_service import ChatService
 from app.ai.services.mirror_service import MirrorService
+from app.ai.ws.dedup import MessageDedupStore
+from app.ai.ws.generation_manager import GenerationManager
 from app.ai.ws.manager import ConnectionManager
 from app.journals.deps import get_journal_repository
 from app.journals.db.repository import JournalRepository
@@ -111,6 +113,22 @@ def get_mirror_service(
 @lru_cache
 def get_connection_manager() -> ConnectionManager:
     return ConnectionManager()
+
+
+@lru_cache
+def get_message_dedup_store() -> MessageDedupStore:
+    config = get_ai_config()
+    return MessageDedupStore(ttl=config.ws_message_dedup_ttl)
+
+
+def get_generation_manager(
+    config: AIModuleConfig = Depends(get_ai_config),
+    dedup_store: MessageDedupStore = Depends(get_message_dedup_store),
+) -> GenerationManager:
+    return GenerationManager(
+        grace_period=config.ws_generation_grace_period,
+        dedup_store=dedup_store,
+    )
 
 
 def get_chat_service(
