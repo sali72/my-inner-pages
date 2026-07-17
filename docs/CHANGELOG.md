@@ -4,6 +4,12 @@ All notable changes to the backend will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **Rate Limiting**: Replaced custom in-memory rate limiter with slowapi + Redis.
+  - Redis backend for shared state across blue/green containers (production).
+  - Per-route decorators (`@limiter.limit("5/minute")`) replace manual dependency.
+  - Rate limit settings now env-configurable (`RATE_LIMIT_DEFAULT`, `REDIS_URL`).
+
 ### Added
 - **User Model**: Persistent structured memory per user — compact JSON summary of patterns, tone, thinking style, and conversation guidelines
 - **User Model Updater**: Background LLM-driven updates triggered every N entries or M words (env-configurable)

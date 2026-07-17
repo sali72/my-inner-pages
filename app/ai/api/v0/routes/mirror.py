@@ -6,7 +6,8 @@ from app.ai.services.mirror_service import MirrorService
 from app.ai.deps import get_mirror_service
 from app.core.deps.auth import get_current_user
 from app.core.deps.settings import get_settings
-from app.core.rate_limit import rate_limiter
+from limits import RateLimitItemPerMinute
+from app.core.rate_limit import limiter
 from app.core.config import Settings
 from app.auth.db.models import User
 from app.core.logging import get_logger
@@ -49,7 +50,7 @@ async def get_mirror_reflection(
     settings = get_settings()
     if settings.is_production:
         user_id = str(current_user.id)
-        if not rate_limiter.check_rate_limit(f"user:{user_id}", 10, 60):
+        if not limiter.limiter.hit(RateLimitItemPerMinute(10), f"user:{user_id}"):
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Rate limit exceeded. Maximum 10 requests per minute."

@@ -82,9 +82,9 @@ async def test_db_client(test_settings: Settings) -> AsyncGenerator[AsyncIOMotor
     from app.core.deps.database import create_motor_client
     create_motor_client.cache_clear()
     
-    # Clear rate limiter to avoid rate limit issues between tests
-    from app.core.rate_limit import rate_limiter
-    rate_limiter.requests.clear()
+    # Reset rate limiter state to avoid interference between tests
+    from app.core.rate_limit import limiter
+    limiter.reset()
     
     client = AsyncIOMotorClient(test_settings.mongo_url)
     

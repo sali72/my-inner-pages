@@ -15,6 +15,9 @@ from app.chat.api.v0.routes import chat_rest as chat_rest_router
 from app.core.deps.database import get_client, init_database
 from app.core.deps.settings import get_settings
 from app.core.logging import configure_logging, get_logger
+from app.core.rate_limit import limiter, configure_limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from app.journals.api.v0.routes import journals as journals_router
 
 # Configure logging
@@ -96,6 +99,21 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Rate limiting — slowapi
+    configure_limiter(settings)
+    app.state.limiter = limiter
+
+    from slowapi.errors import RateLimitExceeded as SlowapiRateLimitExceeded
+    from fastapi.responses import JSONResponse
+    @app.exception_handler(SlowapiRateLimitExceeded)
+    async def rate_limit_handler(request, exc):
+        return JSONResponse(
+            status_code=429,
+            content={"detail": str(exc)},
+        )
+
+    app.add_middleware(SlowAPIMiddleware)
 
     # Global handler to mask internal details on 5xx
     from starlette.exceptions import HTTPException as StarletteHTTPException

@@ -22,8 +22,11 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     
     # Rate Limiting Configuration
-    rate_limit_max_requests: int = 5
-    rate_limit_window_seconds: int = 60
+    rate_limit_enabled: bool = True
+    rate_limit_default: str = "60/minute"
+
+    # Redis Configuration
+    redis_url: str | None = None
 
     # CORS Configuration
     cors_allowed_origins: tuple[str, ...] = ("http://localhost:5173",)

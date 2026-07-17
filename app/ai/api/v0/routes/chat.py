@@ -13,7 +13,7 @@ from app.chat.config import ChatModuleConfig
 from app.chat.deps import get_chat_config
 from app.core.deps.services import get_jwt_service
 from app.core.logging import get_logger
-from app.core.rate_limit import rate_limiter
+from app.core.rate_limit import check_ws_rate_limit
 from app.core.services.jwt_service import JWTService
 
 logger = get_logger(__name__)
@@ -60,8 +60,8 @@ async def chat_websocket(
         await websocket.close(code=4001)
         return
 
-    if not rate_limiter.check_rate_limit(f"ws:{str(user.id)}", 5, 60):
-        await websocket.close(code=4001)
+    if not check_ws_rate_limit(f"ws:{str(user.id)}", 5):
+        await websocket.close(code=4003)
         return
 
     await connection_manager.connect(websocket, str(user.id))

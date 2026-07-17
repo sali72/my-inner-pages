@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 
 from app.auth.api.v0.schemas.request import RegisterRequest, LoginRequest, ResetPasswordRequest, UpdatePreferencesRequest
 from app.auth.api.v0.schemas.response import (
@@ -10,7 +10,7 @@ from app.auth.facade.auth_facade import AuthFacade
 from app.auth.deps import get_auth_facade
 from app.auth.db.models import User
 from app.core.deps.auth import get_current_user
-from app.core.rate_limit import check_rate_limit
+from app.core.rate_limit import limiter
 from app.auth.api.config import AuthRoutes
 
 
@@ -24,8 +24,10 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
 )
+@limiter.limit("5/minute")
 async def register(
-    request: RegisterRequest,
+    request: Request,
+    register_request: RegisterRequest,
     facade: AuthFacade = Depends(get_auth_facade)
 ) -> MessageResponse:
     """
@@ -37,12 +39,12 @@ async def register(
     """
     try:
         # Validate passwords match
-        request.validate_passwords_match()
+        register_request.validate_passwords_match()
         
         # Register user
         await facade.register(
-            email=request.email,
-            password=request.password
+            email=register_request.email,
+            password=register_request.password
         )
         
         return MessageResponse(
@@ -59,10 +61,11 @@ async def register(
     AuthRoutes.LOGIN,
     response_model=LoginResponse,
     summary="Login user",
-    dependencies=[Depends(check_rate_limit)]
 )
+@limiter.limit("5/minute")
 async def login(
-    request: LoginRequest,
+    request: Request,
+    login_request: LoginRequest,
     facade: AuthFacade = Depends(get_auth_facade)
 ) -> LoginResponse:
     """
@@ -75,8 +78,8 @@ async def login(
     """
     try:
         access_token, user = await facade.login(
-            email=request.email,
-            password=request.password
+            email=login_request.email,
+            password=login_request.password
         )
         
         return LoginResponse(
@@ -113,8 +116,10 @@ async def get_current_user_info(
     response_model=MessageResponse,
     summary="Request password reset"
 )
+@limiter.limit("5/minute")
 async def reset_password(
-    request: ResetPasswordRequest,
+    request: Request,
+    reset_request: ResetPasswordRequest,
     facade: AuthFacade = Depends(get_auth_facade)
 ) -> MessageResponse:
     """
@@ -124,7 +129,7 @@ async def reset_password(
     
     Note: Always returns success to prevent email enumeration.
     """
-    await facade.reset_password(request.email)
+    await facade.reset_password(reset_request.email)
     
     return MessageResponse(
         message="If an account with this email exists, a password reset link has been sent."
