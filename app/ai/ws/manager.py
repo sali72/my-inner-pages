@@ -17,6 +17,14 @@ class ConnectionInfo:
     last_activity: float = field(default_factory=time.monotonic)
     last_pong: float = field(default_factory=time.monotonic)
 
+    def __hash__(self) -> int:
+        return id(self.ws)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ConnectionInfo):
+            return NotImplemented
+        return id(self.ws) == id(other.ws)
+
 
 class ConnectionManager:
     MAX_CONNECTIONS_PER_USER = 5
