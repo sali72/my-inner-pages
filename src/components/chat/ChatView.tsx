@@ -455,6 +455,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                           <div className="min-w-0">
                             {msg.content ? (
                               <MarkdownRenderer content={msg.content} isDark={isDark} />
+                            ) : msg.id === 'streaming' && isStreaming ? (
+                              <p className="text-sm leading-relaxed text-muted animate-pulse">
+                                Generating<span className="dots-animation" />
+                              </p>
                             ) : (
                               <p className="text-sm leading-relaxed animate-pulse">▊</p>
                             )}

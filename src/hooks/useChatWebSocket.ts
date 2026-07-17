@@ -108,6 +108,57 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     }, delay);
   }, []);
 
+  const drainQueue = useCallback(() => {
+    const queue = pendingQueueRef.current;
+    if (queue.length === 0) return;
+
+    const sendNext = () => {
+      if (queue.length === 0) return;
+      const item = queue[0];
+      const ws = wsRef.current;
+
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        return;
+      }
+
+      const msg: WSClientMessage = item.type === 'edit'
+        ? { type: 'edit', content: item.content, message_index: item.message_index!, id: item.id }
+        : { type: 'message', content: item.content, id: item.id };
+
+      ws.send(JSON.stringify(msg));
+
+      setState(prev => ({
+        ...prev,
+        messages: prev.messages.map(m =>
+          m.id === item.id ? { ...m, status: 'sending' as MessageStatus } : m
+        ),
+      }));
+
+      const ackTimer = setTimeout(() => {
+        if (item.retries < 1) {
+          item.retries += 1;
+          sendNext();
+        } else {
+          queue.shift();
+          setState(prev => ({
+            ...prev,
+            messages: prev.messages.map(m =>
+              m.id === item.id ? { ...m, status: 'failed' as MessageStatus } : m
+            ),
+          }));
+          sendNext();
+        }
+      }, ACK_TIMEOUT_MS);
+
+      if (ackWaitRef.current !== null) {
+        clearTimeout(ackWaitRef.current.timer);
+      }
+      ackWaitRef.current = { messageId: item.id, timer: ackTimer };
+    };
+
+    sendNext();
+  }, []);
+
   const connect = useCallback((targetChatId?: string | null, isReconnect: boolean = false) => {
     cleanup();
 
@@ -239,6 +290,11 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
               m.id === data.message_id ? { ...m, status: 'delivered' as MessageStatus } : m
             ),
           }));
+          const queue = pendingQueueRef.current;
+          if (queue.length > 0 && queue[0].id === data.message_id) {
+            queue.shift();
+            drainQueue();
+          }
           break;
         }
 
@@ -262,58 +318,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
         }
       }
     };
-  }, [cleanup, scheduleReconnect]);
-
-  const drainQueue = useCallback(() => {
-    const queue = pendingQueueRef.current;
-    if (queue.length === 0) return;
-
-    const sendNext = () => {
-      if (queue.length === 0) return;
-      const item = queue[0];
-      const ws = wsRef.current;
-
-      if (!ws || ws.readyState !== WebSocket.OPEN) {
-        return;
-      }
-
-      const msg: WSClientMessage = item.type === 'edit'
-        ? { type: 'edit', content: item.content, message_index: item.message_index!, id: item.id }
-        : { type: 'message', content: item.content, id: item.id };
-
-      ws.send(JSON.stringify(msg));
-
-      setState(prev => ({
-        ...prev,
-        messages: prev.messages.map(m =>
-          m.id === item.id ? { ...m, status: 'sending' as MessageStatus } : m
-        ),
-      }));
-
-      const ackTimer = setTimeout(() => {
-        if (item.retries < 1) {
-          item.retries += 1;
-          sendNext();
-        } else {
-          queue.shift();
-          setState(prev => ({
-            ...prev,
-            messages: prev.messages.map(m =>
-              m.id === item.id ? { ...m, status: 'failed' as MessageStatus } : m
-            ),
-          }));
-          sendNext();
-        }
-      }, ACK_TIMEOUT_MS);
-
-      if (ackWaitRef.current !== null) {
-        clearTimeout(ackWaitRef.current.timer);
-      }
-      ackWaitRef.current = { messageId: item.id, timer: ackTimer };
-    };
-
-    sendNext();
-  }, []);
+  }, [cleanup, scheduleReconnect, drainQueue]);
 
   const disconnect = useCallback(() => {
     cleanup();
@@ -416,10 +421,11 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       const alreadyQueued = pending.some(q => q.id === msgId);
       if (!alreadyQueued) {
         pending.push({ id: msgId, content, type: 'message', retries: 0 });
+        drainQueue();
       }
     }, ACK_TIMEOUT_MS);
     ackWaitRef.current = { messageId: msgId, timer: ackTimer };
-  }, []);
+  }, [drainQueue]);
 
   const stopStreaming = useCallback(() => {
     const partialContent = currentAssistantMsg.current;
@@ -502,10 +508,11 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       const alreadyQueued = pending.some(q => q.id === msgId);
       if (!alreadyQueued) {
         pending.push({ id: msgId, content, type: 'edit', message_index: messageIndex, retries: 0 });
+        drainQueue();
       }
     }, ACK_TIMEOUT_MS);
     ackWaitRef.current = { messageId: msgId, timer: ackTimer };
-  }, []);
+  }, [drainQueue]);
 
   const regenerate = useCallback(() => {
     const idx = getLastUserIndex();
