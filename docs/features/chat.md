@@ -120,7 +120,7 @@ Three-state in-memory dedup for message IDs. Singleton via `@lru_cache` in deps.
 
 | Method | Description |
 |---|---|
-| `check_or_set(message_id, user_id, chat_id)` | Returns `(is_duplicate, status)`. Atomically marks `pending` on first call. |
+| `check_or_set(message_id, user_id, chat_id)` | Returns `DedupResult(is_duplicate, status)`. Atomically marks `pending` on first call. |
 | `mark_processing(message_id)` | Transition `pending → processing` |
 | `mark_completed(message_id)` | Transition → `completed`. Future duplicates with same ID are skipped. |
 | `mark_aborted(message_id)` | Transition → `aborted`. Duplicates are allowed to reprocess. |

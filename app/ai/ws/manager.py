@@ -1,7 +1,6 @@
 import asyncio
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 from fastapi import WebSocket
 
@@ -12,6 +11,8 @@ logger = get_logger(__name__)
 
 @dataclass
 class ConnectionInfo:
+    """Tracks a single WebSocket connection's metadata."""
+
     ws: WebSocket
     user_id: str
     connected_at: float = field(default_factory=time.monotonic)
@@ -28,18 +29,21 @@ class ConnectionInfo:
 
 
 class ConnectionManager:
-    MAX_CONNECTIONS_PER_USER = 5
+    """Manages WebSocket connections per user with cap/eviction, zombie cleanup, and ping/pong."""
 
-    def __init__(self) -> None:
+    def __init__(self, max_connections_per_user: int = 5) -> None:
+        self._max_connections_per_user = max_connections_per_user
         self._connections: dict[str, set[ConnectionInfo]] = {}
         self._ws_to_info: dict[int, ConnectionInfo] = {}
-        self._sweep_task: Optional[asyncio.Task] = None
+        self._sweep_task: asyncio.Task | None = None
 
     def start_zombie_sweep(self) -> None:
+        """Start the periodic zombie cleanup loop (idempotent)."""
         if self._sweep_task is None:
             self._sweep_task = asyncio.create_task(self._zombie_sweep_loop())
 
     async def stop_zombie_sweep(self) -> None:
+        """Cancel and await the zombie sweep loop."""
         if self._sweep_task is not None:
             self._sweep_task.cancel()
             try:
@@ -49,11 +53,13 @@ class ConnectionManager:
             self._sweep_task = None
 
     async def _zombie_sweep_loop(self) -> None:
+        """Periodic loop: close connections idle longer than 5 minutes."""
         while True:
             await asyncio.sleep(60)
             await self._cleanup_zombies(max_idle_seconds=300)
 
     async def _cleanup_zombies(self, max_idle_seconds: float = 300) -> int:
+        """Close and remove connections idle longer than max_idle_seconds."""
         now = time.monotonic()
         to_close: list[WebSocket] = []
         for conn_id, info in list(self._ws_to_info.items()):
@@ -87,13 +93,20 @@ class ConnectionManager:
         user_id: str,
         is_resume: bool = False,
     ) -> None:
+        """Accept and register a new WebSocket connection.
+
+        Args:
+            ws: The WebSocket to register.
+            user_id: Authenticated user ID.
+            is_resume: If True, skip the per-user connection cap.
+        """
         await ws.accept()
 
         info = ConnectionInfo(ws=ws, user_id=user_id)
 
         if not is_resume:
             user_conns = self._connections.setdefault(user_id, set())
-            if len(user_conns) >= self.MAX_CONNECTIONS_PER_USER:
+            if len(user_conns) >= self._max_connections_per_user:
                 oldest = min(user_conns, key=lambda c: c.connected_at)
                 user_conns.discard(oldest)
                 self._ws_to_info.pop(id(oldest.ws), None)
@@ -116,6 +129,7 @@ class ConnectionManager:
         )
 
     async def disconnect(self, ws: WebSocket, user_id: str) -> None:
+        """Remove a WebSocket from all tracking structures."""
         conn_id = id(ws)
         info = self._ws_to_info.pop(conn_id, None)
         if info:
@@ -128,6 +142,7 @@ class ConnectionManager:
         logger.info("ws_disconnected", user_id=user_id, conn_id=conn_id)
 
     async def send_json(self, ws: WebSocket, data: dict) -> None:
+        """Send JSON and update last_activity on success."""
         try:
             await ws.send_json(data)
             info = self._ws_to_info.get(id(ws))
@@ -141,6 +156,7 @@ class ConnectionManager:
             )
 
     async def send_ping(self, ws: WebSocket) -> bool:
+        """Send a ping frame. Returns True on success."""
         try:
             await ws.send_json({"type": "ping"})
             return True
@@ -148,13 +164,15 @@ class ConnectionManager:
             return False
 
     def record_pong(self, ws: WebSocket) -> None:
+        """Record a pong response — updates both last_activity and last_pong."""
         info = self._ws_to_info.get(id(ws))
         if info:
             now = time.monotonic()
             info.last_activity = now
             info.last_pong = now
 
-    def get_info(self, ws: WebSocket) -> Optional[ConnectionInfo]:
+    def get_info(self, ws: WebSocket) -> ConnectionInfo | None:
+        """Look up ConnectionInfo for a WebSocket."""
         return self._ws_to_info.get(id(ws))
 
     def update_activity(self, ws: WebSocket) -> None:

@@ -147,10 +147,14 @@ app/journals/
 ### AI Module
 ```
 app/ai/
-├── api/v0/routes/mirror.py     # Routes (uses Depends)
+├── api/v0/routes/
+│   ├── chat.py                 # WS route — authenticates, rate-limits, delegates to ChatFacade
+│   └── mirror.py               # REST route — delegates to MirrorService
+├── facade/
+│   └── chat_facade.py          # WebSocket chat session orchestrator (business logic)
 ├── services/
-│   ├── llm_service.py          # LLM integration
-│   └── mirror_service.py       # Mirror logic
+│   ├── chat_service.py         # LLM prompt building + streaming (reusable, not chat-SPA-specific)
+│   └── mirror_service.py       # Mirror reflection logic
 ├── config.py                   # Module config
 └── deps.py                     # Dependency providers ⭐
 ```
@@ -261,10 +265,16 @@ Test Function
 ## Key Design Principles
 
 1. **Single Responsibility**: Each layer has one job
-   - Routes: HTTP handling
-   - Facades: Business logic
+   - Routes: HTTP handling (glue — auth, validate, delegate, translate errors)
+   - Facades: Business logic (orchestration + domain rules)
    - Repositories: Data access
-   - Services: Shared utilities
+   - Services: Reusable utilities not specific to a single business flow (cross-cutting helpers, integrations)
+
+   > *Facade vs Service*: A facade owns business logic (it orchestrates multiple steps and
+   > enforces domain rules). A service holds reusable functionality that is not tied to
+   > one specific business flow, such as JWT signing, password hashing, or LLM client
+   > wrappers. If you're debating where something goes: does it orchestrate? does it
+   > enforce a domain rule? → facade. Otherwise → service.
 
 2. **Dependency Inversion**: High-level modules don't depend on low-level
    - Routes depend on abstractions (facades)

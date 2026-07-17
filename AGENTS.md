@@ -29,6 +29,8 @@ Python 3.11+ FastAPI server with MongoDB/Beanie, LangChain AI, JWT auth.
 - **Errors:** facades raise `ValueError`; routes catch → `HTTPException`
 - **Imports:** stdlib → third-party → local (absolute from `app.`)
 - **Testing:** async tests (`@pytest.mark.asyncio`), fresh test DB per test, mock LLM enforced
+- **Routes are glue:** authenticate, validate, call a facade/service, translate errors — no business logic, no orchestration
+- **Facade vs Service:** a *facade* owns business logic (orchestration + domain rules); a *service* holds reusable functionality that is not specific to a single business flow (helpers, cross-cutting concerns). If it orchestrates multiple steps or enforces domain rules, it belongs in a facade.
 
 ## AI-specific notes
 - `USE_MOCK_LLM=true` in `.env` for offline dev — avoids API costs

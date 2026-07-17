@@ -3,6 +3,7 @@
 from typing import Optional
 
 from slowapi import Limiter
+from starlette.requests import Request
 from limits import RateLimitItemPerMinute
 
 from app.core.logging import get_logger
@@ -10,7 +11,7 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 
-def custom_key_func(request) -> str:
+def custom_key_func(request: Request) -> str:
     """Key function for rate limiting.
 
     Priority:

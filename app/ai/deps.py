@@ -6,6 +6,7 @@ from app.ai.config import AIModuleConfig
 from app.ai.integrations.base import LLMClient
 from app.ai.integrations.mock_llm_client import MockLLMClient
 from app.ai.integrations.litellm_client import LiteLLMClient
+from app.ai.facade.chat_facade import ChatFacade
 from app.ai.services.chat_service import ChatService
 from app.ai.services.mirror_service import MirrorService
 from app.ai.ws.dedup import MessageDedupStore
@@ -13,6 +14,8 @@ from app.ai.ws.generation_manager import GenerationManager
 from app.ai.ws.manager import ConnectionManager
 from app.journals.deps import get_journal_repository
 from app.journals.db.repository import JournalRepository
+from app.chat.deps import get_chat_persistence_service
+from app.chat.service import ChatPersistenceService
 from app.memory.deps import get_memory_service
 from app.memory.service import MemoryService
 
@@ -112,7 +115,8 @@ def get_mirror_service(
 
 @lru_cache
 def get_connection_manager() -> ConnectionManager:
-    return ConnectionManager()
+    config = get_ai_config()
+    return ConnectionManager(max_connections_per_user=config.ws_max_connections_per_user)
 
 
 @lru_cache
@@ -128,6 +132,7 @@ def get_generation_manager(
     return GenerationManager(
         grace_period=config.ws_generation_grace_period,
         dedup_store=dedup_store,
+        stale_threshold=config.ws_stale_threshold,
     )
 
 
@@ -141,5 +146,23 @@ def get_chat_service(
         llm_client=llm_client,
         memory_service=memory_service,
         journal_repository=journal_repository,
+        config=config,
+    )
+
+
+def get_chat_facade(
+    chat_service: ChatService = Depends(get_chat_service),
+    chat_persistence: ChatPersistenceService = Depends(get_chat_persistence_service),
+    connection_manager: ConnectionManager = Depends(get_connection_manager),
+    generation_manager: GenerationManager = Depends(get_generation_manager),
+    dedup_store: MessageDedupStore = Depends(get_message_dedup_store),
+    config: AIModuleConfig = Depends(get_ai_config),
+) -> ChatFacade:
+    return ChatFacade(
+        chat_service=chat_service,
+        chat_persistence=chat_persistence,
+        connection_manager=connection_manager,
+        generation_manager=generation_manager,
+        dedup_store=dedup_store,
         config=config,
     )
