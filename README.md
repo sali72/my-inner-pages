@@ -50,7 +50,10 @@ VITE_API_URL=http://localhost:8000/api/v0
   - Closes when clicking outside sidebar
 - **AI Chat** - Real-time WebSocket chat with the AI. Conversations persisted
   (survive sessions), browsable via right sidebar. Lazy-created on first message.
-  Auto-title from first user message. Access via list icon in top-right corner
+  Auto-title from first user message. Auto-reconnect with exponential backoff
+  on disconnection. Per-message delivery status (sending/delivered/failed/queued).
+  Connection state indicator. Cancel streaming without disconnecting. Resumes
+  interrupted generations on reconnect. Access via list icon in top-right corner
   (chat section). Preserved across view switches within a session.
 - **Mirror** - AI reflections in 4 modes (emotional, cognitive, behavioral, relational)
 - **Themes** - Vintage, minimal, dark
