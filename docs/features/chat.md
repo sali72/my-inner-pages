@@ -78,52 +78,79 @@ app/chat/
 
 ```
 app/ai/
-├── ws/manager.py                 # ConnectionManager — user→WebSocket registry
+├── ws/
+│   ├── manager.py                # ConnectionManager — user→WebSocket registry
+│   ├── dedup.py                  # MessageDedupStore — three-state dedup
+│   └── generation_manager.py     # GenerationManager — active LLM generations
 ├── services/chat_service.py      # Chat orchestration (context + streaming)
 ├── prompts/chat.py               # System prompt template + formatter
+├── config.py                     # AIModuleConfig (WS settings, model params)
+├── deps.py                       # DI for AI services + WS singletons
 └── api/v0/routes/chat.py         # WS endpoint with JWT auth + persistence
 ```
 
-### Connection Manager (`app/ai/ws/manager.py`)
+### ConnectionManager (`app/ai/ws/manager.py`)
 
-In-memory dict mapping `user_id → set[WebSocket]`. Singleton via `@lru_cache` in
-deps. Supports multiple connections per user (e.g., multiple tabs).
+In-memory dict mapping `user_id → set[ConnectionInfo]`. Singleton via `@lru_cache` in
+deps. Supports multiple connections per user (e.g., multiple tabs) with a per-user cap
+of 5 (oldest evicted on cap hit).
+
+Each `ConnectionInfo` tracks `last_activity` (any data flow) and `last_pong` (heartbeat
+response only) separately — heartbeat timeout only triggers if both go silent.
 
 | Method | Description |
 |---|---|
-| `connect(ws, user_id)` | Accept WS, register |
+| `connect(ws, user_id, is_resume)` | Accept WS, register, evict oldest if at cap |
 | `disconnect(ws, user_id)` | Unregister, clean up empty sets |
-| `send_json(ws, data)` | Safe send (catches disconnect) |
+| `send_json(ws, data)` | Safe send, updates `last_activity` on success |
+| `send_ping(ws)` | Send `{"type": "ping"}`, does NOT update `last_pong` |
+| `record_pong(ws)` | Update both `last_activity` and `last_pong` |
+| `get_info(ws)` | Lookup `ConnectionInfo` by ws id |
+| `update_activity(ws)` | Touch `last_activity` only |
+| `cleanup_zombies(max_idle_seconds)` | Close connections idle >5min |
+| `start_zombie_sweep()` | Launch 60s periodic cleanup task |
+| `active_count` | Property — total active connections |
+| `connections_per_user` | Property — dict of user_id → count |
 
-### Chat Persistence Service (`app/chat/service.py`)
+### MessageDedupStore (`app/ai/ws/dedup.py`)
+
+Three-state in-memory dedup for message IDs. Singleton via `@lru_cache` in deps.
+
+**States:** `pending → processing → completed | aborted`
 
 | Method | Description |
 |---|---|
-| `create_chat(user_id, linked_entry_id)` | Create a new empty chat document |
-| `get_or_create_chat(user_id, chat_id, linked_entry_id)` | Load existing or create new |
-| `append_message(chat_id, user_id, role, content)` | Persist message + auto-title on 1st |
-| `get_chat(chat_id, user_id)` | Fetch single chat with messages |
-| `get_history_for_context(chat_id, user_id)` | Get sliding-window history for LLM |
-| `list_chats(user_id, page, page_size)` | Paginated list with summary |
-| `delete_chat(chat_id, user_id)` | Delete chat document |
+| `check_or_set(message_id, user_id, chat_id)` | Returns `(is_duplicate, status)`. Atomically marks `pending` on first call. |
+| `mark_processing(message_id)` | Transition `pending → processing` |
+| `mark_completed(message_id)` | Transition → `completed`. Future duplicates with same ID are skipped. |
+| `mark_aborted(message_id)` | Transition → `aborted`. Duplicates are allowed to reprocess. |
 
-### AI Chat Service (`app/ai/services/chat_service.py`)
+- TTL: 5 minutes on all entries (periodic cleanup via `cleanup_expired`)
+- `aborted` state allows retry (unlike `completed` which silently drops)
+- Used to protect against: ack-timeout retransmits, user double-click, reconnect resends
+
+### GenerationManager (`app/ai/ws/generation_manager.py`)
+
+Tracks active LLM generations decoupled from their WebSocket connections. Singleton
+via `@lru_cache` in deps.
+
+Key concept: when a WebSocket drops, the LLM generation continues into a **token buffer**
+for a **grace period** (10s). If the client reconnects with `resume=true` within that
+window, the buffered tokens are replayed and streaming continues from where it left off.
 
 | Method | Description |
 |---|---|
-| `build_system_prompt(user_id, history=None)` | Fetch recent journals + optional chat history, format prompt |
-| `chat_stream(system_prompt, user_message, history)` | Format conversation, stream LLM tokens, yield events |
+| `start_generation(...)` | Launch LLM task, register `ActiveGeneration` by `(user_id, chat_id)` |
+| `attach_to_generation(user_id, chat_id, ws)` | Reattach a new WS to an active generation, send `generation_resumed` + drain buffer |
+| `cancel_generation(user_id, chat_id)` | Cancel the LLM task, mark dedup as `aborted` |
+| `on_connection_lost(user_id, chat_id)` | Start grace timer (cancel if already running) |
+| `is_active(user_id, chat_id)` | Check if generation is running and not cancelled |
+| `active_count` | Property — total active generations |
 
-Uses `MemoryService.build_journal_context()` (same as Mirror) to fetch the user's
-N most recent journals. The `history` parameter contains the sliding-window
-messages from the current chat.
-
-### Prompts (`app/ai/prompts/chat.py`)
-
-- `SYSTEM_PROMPT_TEMPLATE` — Base role prompt
-- `USER_PROMPT_WITH_CONTEXT` — Template that injects journal entries
-- `build_system_prompt(context, history)` — Combines base + context + chat history
-- `format_conversation_prompt(user_message, history)` — Flattens message history into text
+- Grace timer: 10s configurable via `ws_grace_period` in config
+- Buffer grows unbounded during grace (stops when LLM finishes or task is cancelled)
+- Zombie old-connection eviction: resume overwrites `gen.ws`, old zombie is detached
+- Resume sends `generation_resumed` before buffered tokens so the frontend can show a UI indicator
 
 ## REST API
 
@@ -184,20 +211,78 @@ All endpoints require JWT Bearer auth.
 ### Connection
 
 ```
-ws://host/api/v0/chat/ws?token=<jwt>[&chat_id=<id>]
+ws://host/api/v0/chat/ws?token=<jwt>[&chat_id=<id>][&resume=true]
 ```
 
-- Without `chat_id`: new session, chat is NOT created yet — waits for first user message
-- With `chat_id`: resumes an existing chat, past messages loaded from DB
+| Query Param | Required | Description |
+|---|---|---|
+| `token` | Yes | JWT access token (24h expiry) |
+| `chat_id` | No | Resume an existing chat; omit for new chat |
+| `resume` | No | `true` when reconnecting mid-generation to reattach |
 
-Server validates JWT, fetches journal context + optional chat history, accepts connection.
+Server validates JWT, fetches journal context + optional chat history, checks rate limit
+(20 connects/minute per user), accepts connection.
 
-### Message Flow
+On reconnect with `resume=true`, the server tries to reattach to an active generation
+(see "Resume Flow" below). If no active generation exists, it sends `generation_lost`
+and falls through to normal new-chat flow.
+
+### Close Codes
+
+| Code | Meaning | Client Action |
+|---|---|---|
+| 1000 | Normal close (server shutdown, idle timeout) | Reconnect with backoff |
+| 1001 | Server shutting down | Reconnect with backoff |
+| 1006 | Abnormal close (network loss) | Reconnect with backoff |
+| 4001 | Authentication failed (bad/expired JWT) | Stop, redirect to login |
+| 4003 | Rate limited (too many connects/min) | Reconnect with backoff, check `retry_after_seconds` |
+
+Before closing with 4003, the server sends a JSON error message with
+`retry_after_seconds` so the client knows how long to wait.
+
+### Client → Server Messages
+
+| Type | Payload | Description |
+|---|---|---|
+| `message` | `{"type": "message", "content": "...", "id": "uuid"}` | Send a new user message |
+| `edit` | `{"type": "edit", "content": "...", "message_index": N, "id": "uuid"}` | Edit a past message (truncates history from that index) |
+| `cancel` | `{"type": "cancel"}` | Stop the current LLM generation (non-destructive — connection stays open) |
+| `ping` | `{"type": "ping"}` | Response to server heartbeat (sent by client on receiving server `ping`) |
+| `pong` | `{"type": "pong"}` | Response to server heartbeat (sent by client on receiving server `ping`) |
+
+The `id` field on `message`/`edit` is a client-generated UUIDv4 used for:
+- **Dedup**: server deduplicates by ID — retransmits safe
+- **Ack**: server echoes it back so the client knows the message was received
+- **Retry**: same ID on retry → server skips duplicate processing (`aborted` entries allow reprocessing)
+
+### Server → Client Messages
+
+| Type | Payload | Description |
+|---|---|---|
+| `context_loaded` | `{"type": "context_loaded", "chat_id": string\|null}` | Connection ready, journal context loaded |
+| `ack` | `{"type": "ack", "message_id": "..."}` | Confirms receipt of a client message |
+| `token` | `{"type": "token", "content": "..."}` | Streaming LLM token |
+| `done` | `{"type": "done"}` or `{"type": "done", "chat_id": "...", "aborted": true}` | Stream complete |
+| `error` | `{"type": "error", "content": "...", "retry_after_seconds": N}` | Error, connection stays alive |
+| `ping` | `{"type": "ping"}` | Heartbeat probe |
+| `pong` | `{"type": "pong"}` | Heartbeat response |
+| `generation_lost` | `{"type": "generation_lost", "chat_id": "..."}` | Resume failed — no active generation found |
+| `generation_resumed` | `{"type": "generation_resumed"}` | Resume succeeded — buffered tokens follow |
+
+- `context_loaded.chat_id` is `null` when connecting without `chat_id` (no chat exists yet)
+- `done.chat_id` is included only on the first completed response of a newly-created chat
+- `done.aborted` is `true` when the stream was cancelled (client sent `cancel` or grace expired)
+- `error.retry_after_seconds` is included for rate limit errors
+- `generation_resumed` is sent BEFORE any buffered tokens so the frontend can show a UI indicator
+- Errors keep the connection alive — client can retry
+
+### Message Flow — New Chat
 
 ```
 ──► Connect (no chat_id)
 ◄── {"type": "context_loaded", "chat_id": null}
-──► {"type": "message", "content": "What patterns do you see?"}
+──► {"type": "message", "content": "What patterns do you see?", "id": "a1b2c3"}
+◄── {"type": "ack", "message_id": "a1b2c3"}
     [chat created in DB here]
 ◄── {"type": "token", "content": "I notice "}
 ◄── {"type": "token", "content": "you've been "}
@@ -205,33 +290,100 @@ Server validates JWT, fetches journal context + optional chat history, accepts c
 ◄── {"type": "done", "chat_id": "abc123"}          ◄── chat_id on first done
 ```
 
+### Message Flow — Existing Chat
+
 ```
 ──► Connect (with chat_id=abc123)
 ◄── {"type": "context_loaded", "chat_id": "abc123"}
-──► {"type": "message", "content": "Tell me more"}
+──► {"type": "message", "content": "Tell me more", "id": "d4e5f6"}
+◄── {"type": "ack", "message_id": "d4e5f6"}
 ◄── {"type": "token", "content": "Looking at your "}
 ◄── {"type": "done"}                                 ◄── no chat_id (already known)
 ```
 
-### Event Types
+### Cancel Flow
 
-| Event | Direction | Payload |
-|---|---|---|
-| `message` | Client→Server | `{"type": "message", "content": "..."}` |
-| `context_loaded` | Server→Client | `{"type": "context_loaded", "chat_id": string\|null}` |
-| `token` | Server→Client | `{"type": "token", "content": "..."}` |
-| `done` | Server→Client | `{"type": "done"}` or `{"type": "done", "chat_id": "..."}` |
-| `error` | Server→Client | `{"type": "error", "content": "..."}` |
+```
+──► {"type": "cancel"}
+    [server cancels LLM task, flushes buffer]
+◄── {"type": "done", "aborted": true}
+    [connection stays open, user can send a new message]
+```
 
-- `context_loaded.chat_id` is `null` when connecting without `chat_id` (no chat exists yet)
-- `done.chat_id` is included only on the first completed response of a newly-created chat
-- Errors keep the connection alive — client can retry
+### Resume Flow
+
+```
+──► Connect (token=..., chat_id=abc123, resume=true)
+    [server finds active generation in grace period]
+◄── {"type": "generation_resumed"}
+◄── {"type": "token", "content": "buffered tokens so far..."}
+◄── {"type": "token", "content": "new streaming tokens..."}
+◄── {"type": "done"}
+
+If no active generation:
+◄── {"type": "generation_lost", "chat_id": "abc123"}
+    [falls through to normal flow]
+◄── {"type": "context_loaded", "chat_id": "abc123"}
+```
+
+### Heartbeat
+
+Server runs a heartbeat loop per connection:
+
+1. Every **20s** (`ws_ping_interval`): send `{"type": "ping"}`
+2. If `last_pong` is older than **25s** (`ws_pong_timeout`): wait 2s, check again
+3. If still over 25s: close connection (triggers generation grace period)
+4. If `last_pong` is older than **30s** (`ws_connection_close_timeout`): close immediately
+
+Client responds to `ping` by sending `{"type": "pong"}`.
+
+`last_pong` is only updated on `pong` messages — data flow (`token`, `done`, etc.) does
+NOT extend the heartbeat timeout. This ensures liveness detection even during long
+streaming responses.
 
 ### Session Lifecycle
 
-1. **Connect** — JWT validated, connection registered, journals + optional chat history fetched, `context_loaded` sent
-2. **Message loop** — Each user message saved to DB, LLM response streamed, assistant message saved on completion
-3. **Disconnect** — Connection unregistered, in-memory state discarded (all data persisted)
+1. **Connect** — JWT validated, rate limit checked, connection registered, journals + optional chat history fetched, `context_loaded` sent
+2. **Message loop** — Each user message saved to DB (with ack + dedup), LLM response streamed, assistant message saved on completion
+3. **Cancel** — Non-destructive stop: LLM task cancelled, `aborted: true` done event sent, connection stays open
+4. **Disconnect** — Generation grace period starts (10s), connection unregistered. If client reconnects with `resume=true` within grace, tokens continue. Otherwise generation is cancelled.
+5. **Zombie cleanup** — Periodic sweep (60s) closes connections idle for >5min
+
+## Heartbeat & Rate Limiting
+
+| Setting | Default | Description |
+|---|---|---|
+| `ws_ping_interval` | 20s | How often server sends `ping` |
+| `ws_pong_timeout` | 25s | Max time without `pong` before suspect |
+| `ws_connection_close_timeout` | 30s | Max time without `pong` before close |
+| `ws_grace_period` | 10s | How long generation continues after WS drop |
+| `ws_max_connections_per_user` | 5 | Max simultaneous WS connections per user |
+| `ws_dedup_ttl` | 300s (5min) | Message dedup entry TTL |
+
+| Rate Limit | Window | Scope |
+|---|---|---|
+| WS connections | 20/min | Per user |
+| LLM calls (messages) | 10/min | Per user |
+
+When rate limited, the server sends an error JSON with `retry_after_seconds` before
+closing or rejecting the request.
+
+## Single-Process Constraint
+
+The WebSocket chat system uses **in-memory state** for three components that must be
+shared across all connections:
+
+- `MessageDedupStore` — message dedup entries
+- `GenerationManager` — active LLM generations with token buffers and grace timers
+- `ConnectionManager` — per-user connection registry
+
+These are all DI singletons via `@lru_cache` in `app/ai/deps.py`. If the backend scales
+horizontally, each instance would have its own in-memory state, breaking dedup, resume,
+and connection caps.
+
+**Before scaling**, migrate these to a shared Redis store. **Resume also requires sticky
+sessions** — a reconnect landing on a different process will not find the active generation
+and will silently fall back to a normal (non-resumed) generation.
 
 ## Configuration
 
@@ -248,6 +400,14 @@ MAX_JOURNALS_FOR_CHAT_CONTEXT=10
 # Chat persistence (optional, defaults shown)
 CHAT_MAX_MESSAGES_FOR_CONTEXT=20        # sliding window size
 CHAT_MAX_TITLE_LENGTH=100               # auto-title truncation
+
+# WebSocket tuning (optional, defaults shown)
+WS_PING_INTERVAL=20
+WS_PONG_TIMEOUT=25
+WS_CONNECTION_CLOSE_TIMEOUT=30
+WS_GRACE_PERIOD=10
+WS_MAX_CONNECTIONS_PER_USER=5
+WS_DEDUP_TTL=300
 ```
 
 ## Key Design Decisions
@@ -265,3 +425,9 @@ CHAT_MAX_TITLE_LENGTH=100               # auto-title truncation
 | **Streaming** | LLM tokens pushed as they arrive via `LLMClient.generate_stream()`. Low latency UX. |
 | **OpenAI-compatible client** | `ChatOpenAI` from LangChain works with OpenRouter, Ollama, LocalAI, etc. No provider lock-in. |
 | **ConnectionManager singleton** | `@lru_cache` on dep function. Zero-copy registry lookup. |
+| **Ack + dedup** | Every client message includes a UUID. Server acks immediately. Dedup prevents duplicate LLM calls on retransmit. Retry is safe because `aborted` entries allow reprocessing. |
+| **Cancel via WS message** | `{"type": "cancel"}` instead of closing the socket. Keeps connection alive, avoids reconnect overhead. |
+| **Grace period for generation** | After WS drop, LLM continues for 10s into a buffer. Reconnect with `resume=true` replays buffer and continues. Prevents losing a response in progress. |
+| **Heartbeat ping/pong** | App-level liveness detection (not TCP keepalive). `last_pong` tracked separately from `last_activity` so data flow doesn't mask a dead connection. |
+| **Per-user connection cap (5)** | Prevents resource exhaustion from runaway tabs. Oldest connection evicted on cap hit (not rejected) so the active tab always works. Resume connections bypass the cap. |
+| **Single-process in-memory state** | Dedup, generation manager, and connection manager are in-memory singletons. Simple, zero-downtime deploy via blue/green with sticky sessions. Redis migration needed for horizontal scaling. |
