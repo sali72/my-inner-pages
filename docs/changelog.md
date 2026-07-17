@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Backend Rate Limiting**: Replaced custom in-memory rate limiter with slowapi + Redis.
+  - Redis backend for shared rate limit state across blue/green containers (production).
+  - Per-route decorators (`@limiter.limit("5/minute")`) replace manual dependency.
+  - Rate limit settings env-configurable (`RATE_LIMIT_DEFAULT`, `REDIS_URL`, `RATE_LIMIT_ENABLED`).
+  - Custom key function prioritizes `X-Real-IP` (authoritative from nginx/Cloudflare).
+  - Per-user rate limiting for authenticated routes (stashes user on `request.state`).
+  - Mirror endpoint limited to 10/minute per user.
+  - `Retry-After` header on 429 responses.
+- **Frontend 429 Notifications**: Added `sonner` toast notifications for rate limit responses.
+  - Global toast in `api.ts` for all 429 responses.
+  - Context-specific toasts in `AuthContext.tsx` for login/register/reset-password rate limits.
+
+### Infrastructure
+- Added `redis:7.4-alpine` to `docker-compose.yml` and `docker-compose.prod.yml`.
+
 ## [v0.2.0-alpha] - 2026-07-10
 
 ### Added & Fixed
