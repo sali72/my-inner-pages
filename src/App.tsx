@@ -294,7 +294,7 @@ const App: React.FC = () => {
       <Toaster
         position="top-center"
         toastOptions={{
-          style: { background: 'var(--color-surface)', color: 'var(--color-base-text)', border: '1px solid var(--color-default)' },
+          style: { background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-default)' },
         }}
       />
     </ThemeProvider>
