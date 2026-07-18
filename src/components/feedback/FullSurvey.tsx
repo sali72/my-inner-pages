@@ -56,18 +56,18 @@ export const FullSurvey: React.FC<FullSurveyProps> = ({ onClose, sessionEntryCou
 
   if (submitted) {
     return (
-      <div className="max-w-lg mx-auto p-4 pt-6">
-        <div className="card p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-accent/10 flex items-center justify-center">
-            <Send className="w-8 h-8 text-accent" />
+      <div className="max-w-lg mx-auto p-4 pt-4">
+        <div className="card p-6 text-center">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-accent/10 flex items-center justify-center">
+            <Send className="w-7 h-7 text-accent" />
           </div>
-          <h2 className="text-2xl font-bold text-primary mb-2">Thank You!</h2>
-          <p className="text-secondary mb-8">
+          <h2 className="text-xl font-bold text-primary mb-2">Thank You!</h2>
+          <p className="text-sm text-secondary mb-6">
             Your feedback helps us make the app better for everyone.
           </p>
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-lg bg-accent text-white font-medium hover:bg-accent-hover transition-all"
+            className="px-5 py-2 rounded-lg bg-accent text-white font-medium text-sm hover:bg-accent-hover transition-all"
           >
             Back to app
           </button>
@@ -79,8 +79,8 @@ export const FullSurvey: React.FC<FullSurveyProps> = ({ onClose, sessionEntryCou
   const progress = ((step + 1) / STEPS.length) * 100;
 
   return (
-    <div className="max-w-lg mx-auto p-4 pt-6">
-      <div className="card p-6">
+    <div className="max-w-lg mx-auto p-4 pt-4">
+      <div className="card p-5">
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-xl font-bold text-primary">Help us improve</h1>
         <button
@@ -90,21 +90,21 @@ export const FullSurvey: React.FC<FullSurveyProps> = ({ onClose, sessionEntryCou
           <X className="w-5 h-5" />
         </button>
       </div>
-      <p className="text-sm text-secondary mb-4">
+      <p className="text-sm text-secondary mb-3">
         All questions are optional — share what you're comfortable with.
       </p>
 
-      <div className="w-full h-1.5 bg-base rounded-full mb-6">
+      <div className="w-full h-1 bg-base rounded-full mb-4">
         <div
           className="h-full bg-accent rounded-full transition-all duration-500"
           style={{ width: `${progress}%` }}
         />
       </div>
-      <p className="text-xs text-muted mb-6 text-center">
+      <p className="text-xs text-muted mb-3 text-center">
         Step {step + 1} of {STEPS.length} — {STEPS[step].title}
       </p>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {step === 0 && <UsageStep answers={answers} setAnswer={setAnswer} />}
         {step === 1 && <FeaturesStep answers={answers} setAnswer={setAnswer} />}
         {step === 2 && <UIUXStep answers={answers} setAnswer={setAnswer} />}
@@ -112,7 +112,7 @@ export const FullSurvey: React.FC<FullSurveyProps> = ({ onClose, sessionEntryCou
         {step === 4 && <OpenStep answers={answers} setAnswer={setAnswer} />}
       </div>
 
-      <div className="flex justify-between mt-8 pt-4 border-t border-default">
+      <div className="flex justify-between mt-6 pt-3 border-t border-default">
         <button
           onClick={() => setStep(s => Math.max(0, s - 1))}
           disabled={step === 0}
@@ -149,36 +149,32 @@ export const FullSurvey: React.FC<FullSurveyProps> = ({ onClose, sessionEntryCou
 
 type IconComponent = React.FC<{ className?: string }>;
 
-function VisualSelect({ label, options, value, onChange, columns }: {
+function VisualSelect({ label, options, value, onChange }: {
   label: string;
-  options: { value: string; label: string; icon: IconComponent; desc?: string }[];
+  options: { value: string; label: string; icon: IconComponent }[];
   value?: string;
   onChange: (v: string) => void;
-  columns?: 1 | 2;
 }) {
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       <p className="text-sm font-medium text-primary">{label}</p>
-      <div className={`grid ${columns === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
+      <div className="grid grid-cols-2 gap-1.5">
         {options.map(opt => {
           const Icon = opt.icon;
           return (
             <button
               key={opt.value}
               onClick={() => onChange(opt.value)}
-              className={`flex flex-col items-center gap-1.5 p-3.5 rounded-xl border text-center transition-all ${
+              className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${
                 value === opt.value
                   ? 'border-accent bg-accent-tint ring-1 ring-accent'
                   : 'border-default text-secondary hover:border-hover hover:bg-hover'
               }`}
             >
-              <Icon className={`w-6 h-6 ${value === opt.value ? 'text-accent' : 'text-muted'}`} />
+              <Icon className={`w-5 h-5 ${value === opt.value ? 'text-accent' : 'text-muted'}`} />
               <span className={`text-xs leading-tight ${value === opt.value ? 'text-accent font-medium' : ''}`}>
                 {opt.label}
               </span>
-              {opt.desc && (
-                <span className="text-[10px] text-muted leading-tight">{opt.desc}</span>
-              )}
             </button>
           );
         })}
@@ -187,12 +183,11 @@ function VisualSelect({ label, options, value, onChange, columns }: {
   );
 }
 
-function VisualMultiSelect({ label, options, value, onChange, columns }: {
+function VisualMultiSelect({ label, options, value, onChange }: {
   label: string;
   options: { value: string; label: string; icon: IconComponent }[];
   value?: string[];
   onChange: (v: string[]) => void;
-  columns?: 1 | 2;
 }) {
   const selected = value || [];
   const toggle = (opt: string) => {
@@ -203,9 +198,9 @@ function VisualMultiSelect({ label, options, value, onChange, columns }: {
     }
   };
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       <p className="text-sm font-medium text-primary">{label}</p>
-      <div className={`grid ${columns === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
+      <div className="grid grid-cols-2 gap-1.5">
         {options.map(opt => {
           const Icon = opt.icon;
           const isSelected = selected.includes(opt.value);
@@ -213,13 +208,13 @@ function VisualMultiSelect({ label, options, value, onChange, columns }: {
             <button
               key={opt.value}
               onClick={() => toggle(opt.value)}
-              className={`flex flex-col items-center gap-1.5 p-3.5 rounded-xl border text-center transition-all ${
+              className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${
                 isSelected
                   ? 'border-accent bg-accent-tint ring-1 ring-accent'
                   : 'border-default text-secondary hover:border-hover hover:bg-hover'
               }`}
             >
-              <Icon className={`w-6 h-6 ${isSelected ? 'text-accent' : 'text-muted'}`} />
+              <Icon className={`w-5 h-5 ${isSelected ? 'text-accent' : 'text-muted'}`} />
               <span className={`text-xs leading-tight ${isSelected ? 'text-accent font-medium' : ''}`}>
                 {opt.label}
               </span>
@@ -240,15 +235,15 @@ function VisualScale({ label, low, high, value, onChange }: {
 }) {
   const labels = ['', 'Poor', 'Okay', 'Good', 'Great', 'Excellent'];
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       <p className="text-sm font-medium text-primary">{label}</p>
-      <div className="flex items-center gap-1.5 justify-center">
-        <span className="text-[10px] text-muted w-14 text-right leading-tight">{low}</span>
+      <div className="flex items-center gap-1 justify-center">
+        <span className="text-[10px] text-muted w-12 text-right leading-tight">{low}</span>
         {[1, 2, 3, 4, 5].map(n => (
           <button
             key={n}
             onClick={() => onChange(n)}
-            className={`flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl border transition-all min-w-0 flex-1 ${
+            className={`flex flex-col items-center gap-0.5 px-1.5 py-1.5 rounded-xl border transition-all min-w-0 flex-1 ${
               value === n
                 ? 'border-accent bg-accent-tint ring-1 ring-accent'
                 : 'border-default text-secondary hover:border-hover hover:bg-hover'
@@ -260,7 +255,7 @@ function VisualScale({ label, low, high, value, onChange }: {
             </span>
           </button>
         ))}
-        <span className="text-[10px] text-muted w-14 leading-tight">{high}</span>
+        <span className="text-[10px] text-muted w-12 leading-tight">{high}</span>
       </div>
     </div>
   );
@@ -274,29 +269,29 @@ function VisualYesNo({ label, value, onChange, yesLabel, noLabel }: {
   noLabel?: string;
 }) {
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       <p className="text-sm font-medium text-primary">{label}</p>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1.5">
         <button
           onClick={() => onChange('Yes')}
-          className={`flex flex-col items-center gap-1.5 p-3.5 rounded-xl border text-center transition-all ${
+          className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${
             value === 'Yes'
               ? 'border-accent bg-accent-tint ring-1 ring-accent'
               : 'border-default text-secondary hover:border-hover hover:bg-hover'
           }`}
         >
-          <ThumbsUp className={`w-6 h-6 ${value === 'Yes' ? 'text-accent' : 'text-muted'}`} />
+          <ThumbsUp className={`w-5 h-5 ${value === 'Yes' ? 'text-accent' : 'text-muted'}`} />
           <span className={`text-xs ${value === 'Yes' ? 'text-accent font-medium' : ''}`}>{yesLabel || 'Yes'}</span>
         </button>
         <button
           onClick={() => onChange('No')}
-          className={`flex flex-col items-center gap-1.5 p-3.5 rounded-xl border text-center transition-all ${
+          className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${
             value === 'No'
               ? 'border-accent bg-accent-tint ring-1 ring-accent'
               : 'border-default text-secondary hover:border-hover hover:bg-hover'
           }`}
         >
-          <ThumbsDown className={`w-6 h-6 ${value === 'No' ? 'text-accent' : 'text-muted'}`} />
+          <ThumbsDown className={`w-5 h-5 ${value === 'No' ? 'text-accent' : 'text-muted'}`} />
           <span className={`text-xs ${value === 'No' ? 'text-accent font-medium' : ''}`}>{noLabel || 'No'}</span>
         </button>
       </div>
@@ -311,16 +306,16 @@ function VisualTernary({ label, options, value, onChange }: {
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       <p className="text-sm font-medium text-primary">{label}</p>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-1.5">
         {options.map(opt => {
           const Icon = opt.icon;
           return (
             <button
               key={opt.value}
               onClick={() => onChange(opt.value)}
-              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all ${
+              className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${
                 value === opt.value
                   ? 'border-accent bg-accent-tint ring-1 ring-accent'
                   : 'border-default text-secondary hover:border-hover hover:bg-hover'
@@ -344,28 +339,26 @@ function UsageStep({ answers, setAnswer }: { answers: Record<string, unknown>; s
   const blocker = answers.journaling_blocker as string | undefined;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <VisualSelect
         label="How often did you write during the test?"
-        columns={2}
         options={[
-          { value: 'Daily', label: 'Daily', icon: Sun, desc: 'Every single day' },
-          { value: 'A few times a week', label: 'A few times a week', icon: CalendarDays, desc: '2–5 times' },
-          { value: 'Once or twice', label: 'Once or twice', icon: Calendar, desc: 'Just a couple' },
-          { value: 'Just exploring', label: "Just exploring", icon: Compass, desc: "Didn't really journal" },
+          { value: 'Daily', label: 'Daily', icon: Sun },
+          { value: 'A few times a week', label: 'A few times a week', icon: CalendarDays },
+          { value: 'Once or twice', label: 'Once or twice', icon: Calendar },
+          { value: 'Just exploring', label: "Just exploring", icon: Compass },
         ]}
         value={answers.usage_frequency as string | undefined}
         onChange={v => setAnswer('usage_frequency', v)}
       />
       <VisualSelect
         label="What usually stops you from journaling more?"
-        columns={2}
         options={[
-          { value: 'No time', label: 'No time', icon: Clock, desc: 'Too busy' },
-          { value: "Didn't know what to write", label: "Didn't know what to write", icon: HelpCircle, desc: 'Writer\'s block' },
-          { value: 'Forgot the app existed', label: 'Forgot the app', icon: EyeOff, desc: 'Out of sight' },
-          { value: 'No reason to come back', label: 'No reason to return', icon: Frown, desc: 'Missing motivation' },
-          { value: 'Other', label: 'Other', icon: MoreHorizontal, desc: 'Something else' },
+          { value: 'No time', label: 'No time', icon: Clock },
+          { value: "Didn't know what to write", label: "Didn't know what to write", icon: HelpCircle },
+          { value: 'Forgot the app existed', label: 'Forgot the app', icon: EyeOff },
+          { value: 'No reason to come back', label: 'No reason to return', icon: Frown },
+          { value: 'Other', label: 'Other', icon: MoreHorizontal },
         ]}
         value={blocker}
         onChange={v => { setAnswer('journaling_blocker', v); if (v !== 'Other') setOtherText(''); }}
@@ -388,10 +381,9 @@ function UsageStep({ answers, setAnswer }: { answers: Record<string, unknown>; s
 /* ---- Step 2: Features Tried ---- */
 function FeaturesStep({ answers, setAnswer }: { answers: Record<string, unknown>; setAnswer: (k: string, v: unknown) => void }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <VisualMultiSelect
         label="Which of these did you try?"
-        columns={2}
         options={[
           { value: 'Writing entries', label: 'Writing entries', icon: FileText },
           { value: 'Mirror Reflections', label: 'Mirror Reflections', icon: Sparkles },
@@ -403,7 +395,6 @@ function FeaturesStep({ answers, setAnswer }: { answers: Record<string, unknown>
       />
       <VisualSelect
         label="Of the ones you tried, which felt most useful?"
-        columns={2}
         options={[
           { value: 'Writing entries', label: 'Writing entries', icon: FileText },
           { value: 'Mirror Reflections', label: 'Mirror Reflections', icon: Sparkles },
@@ -415,35 +406,32 @@ function FeaturesStep({ answers, setAnswer }: { answers: Record<string, unknown>
       />
       <VisualSelect
         label="Did the AI's responses feel specific to you or generic?"
-        columns={2}
         options={[
-          { value: 'Specific to me', label: 'Specific to me', icon: Sparkles, desc: 'Felt personal' },
-          { value: 'Somewhat personal', label: 'Somewhat personal', icon: Meh, desc: 'Kinda tailored' },
-          { value: 'Generic boilerplate', label: 'Generic', icon: Bot, desc: 'Felt copy-pasted' },
-          { value: "Didn't try AI", label: "Didn't try AI", icon: EyeOff, desc: 'Skipped AI features' },
+          { value: 'Specific to me', label: 'Specific to me', icon: Sparkles },
+          { value: 'Somewhat personal', label: 'Somewhat personal', icon: Meh },
+          { value: 'Generic boilerplate', label: 'Generic', icon: Bot },
+          { value: "Didn't try AI", label: "Didn't try AI", icon: EyeOff },
         ]}
         value={answers.ai_personalization as string | undefined}
         onChange={v => setAnswer('ai_personalization', v)}
       />
       <VisualSelect
         label="Did the Mirror Reflections feel accurate or generic?"
-        columns={2}
         options={[
-          { value: 'Accurate', label: 'Accurate', icon: ThumbsUp, desc: 'Felt personal' },
-          { value: 'A bit generic', label: 'A bit generic', icon: Meh, desc: 'Somewhat vague' },
-          { value: "Didn't try it", label: "Didn't try it", icon: EyeOff, desc: 'Skipped this' },
+          { value: 'Accurate', label: 'Accurate', icon: ThumbsUp },
+          { value: 'A bit generic', label: 'A bit generic', icon: Meh },
+          { value: "Didn't try it", label: "Didn't try it", icon: EyeOff },
         ]}
         value={answers.mirror_accuracy as string | undefined}
         onChange={v => setAnswer('mirror_accuracy', v)}
       />
       <VisualSelect
         label="Did the AI chat feel like a real conversation or more like a scripted bot?"
-        columns={2}
         options={[
-          { value: 'Real conversation', label: 'Real convo', icon: MessageCircle, desc: 'Felt natural' },
-          { value: 'Somewhere in between', label: 'In between', icon: Meh, desc: 'Mixed' },
-          { value: 'Scripted', label: 'Scripted', icon: Bot, desc: 'Felt robotic' },
-          { value: "Didn't try it", label: "Didn't try it", icon: EyeOff, desc: 'Skipped this' },
+          { value: 'Real conversation', label: 'Real convo', icon: MessageCircle },
+          { value: 'Somewhere in between', label: 'In between', icon: Meh },
+          { value: 'Scripted', label: 'Scripted', icon: Bot },
+          { value: "Didn't try it", label: "Didn't try it", icon: EyeOff },
         ]}
         value={answers.chat_realism as string | undefined}
         onChange={v => setAnswer('chat_realism', v)}
@@ -457,7 +445,7 @@ function UIUXStep({ answers, setAnswer }: { answers: Record<string, unknown>; se
   const [feltLostText, setFeltLostText] = useState('');
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <VisualScale
         label="Overall, how did the app feel to use?"
         low="Confusing"
@@ -483,7 +471,7 @@ function UIUXStep({ answers, setAnswer }: { answers: Record<string, unknown>; se
           <textarea
             value={feltLostText}
             onChange={e => { setFeltLostText(e.target.value); setAnswer('felt_lost_detail', e.target.value); }}
-            className="w-full px-3 py-2 rounded-lg border border-default bg-surface text-primary text-sm focus:border-accent min-h-[80px]"
+            className="w-full px-3 py-2 rounded-lg border border-default bg-surface text-primary text-sm focus:border-accent min-h-[60px]"
           />
         </div>
       )}
@@ -494,7 +482,7 @@ function UIUXStep({ answers, setAnswer }: { answers: Record<string, unknown>; se
 /* ---- Step 4: Retention & Pricing ---- */
 function RetentionStep({ answers, setAnswer }: { answers: Record<string, unknown>; setAnswer: (k: string, v: unknown) => void }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <VisualTernary
         label="Would you keep using this if it were free?"
         options={[
@@ -522,25 +510,25 @@ function RetentionStep({ answers, setAnswer }: { answers: Record<string, unknown
 /* ---- Step 5: Open Feedback ---- */
 function OpenStep({ answers, setAnswer }: { answers: Record<string, unknown>; setAnswer: (k: string, v: unknown) => void }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div>
-        <p className="text-sm font-medium text-primary mb-1.5">
+        <p className="text-sm font-medium text-primary mb-1">
           Anything that confused you, felt missing, or you wish worked differently?
         </p>
         <textarea
           value={(answers.confusion_or_missing as string) || ''}
           onChange={e => setAnswer('confusion_or_missing', e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border border-default bg-surface text-primary text-sm focus:border-accent min-h-[100px]"
+          className="w-full px-3 py-2 rounded-lg border border-default bg-surface text-primary text-sm focus:border-accent min-h-[80px]"
         />
       </div>
       <div>
-        <p className="text-sm font-medium text-primary mb-1.5">
+        <p className="text-sm font-medium text-primary mb-1">
           Any features you wish existed?
         </p>
         <textarea
           value={(answers.feature_wishlist as string) || ''}
           onChange={e => setAnswer('feature_wishlist', e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border border-default bg-surface text-primary text-sm focus:border-accent min-h-[100px]"
+          className="w-full px-3 py-2 rounded-lg border border-default bg-surface text-primary text-sm focus:border-accent min-h-[80px]"
         />
       </div>
     </div>

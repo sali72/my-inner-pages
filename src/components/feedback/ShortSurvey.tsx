@@ -45,17 +45,17 @@ export const ShortSurvey: React.FC<ShortSurveyProps> = ({ trigger, onClose, sess
   if (submitted) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-        <div className="card p-6 max-w-sm w-full text-center shadow-xl">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-accent/10 flex items-center justify-center">
-            <Send className="w-6 h-6 text-accent" />
+        <div className="card p-5 max-w-sm w-full text-center shadow-xl">
+          <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-accent/10 flex items-center justify-center">
+            <Send className="w-5 h-5 text-accent" />
           </div>
-          <h3 className="text-lg font-bold text-primary mb-1">Thanks!</h3>
-          <p className="text-sm text-secondary mb-4">
+          <h3 className="text-base font-bold text-primary mb-1">Thanks!</h3>
+          <p className="text-sm text-secondary mb-3">
             Want to share more? Tap 'Help us improve' anytime in the sidebar.
           </p>
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-lg bg-accent text-white font-medium text-sm hover:bg-accent-hover transition-all"
+            className="px-4 py-1.5 rounded-lg bg-accent text-white font-medium text-sm hover:bg-accent-hover transition-all"
           >
             Got it
           </button>
@@ -66,22 +66,22 @@ export const ShortSurvey: React.FC<ShortSurveyProps> = ({ trigger, onClose, sess
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="card p-6 max-w-sm w-full shadow-xl">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-primary">Quick feedback</h3>
+      <div className="card p-5 max-w-sm w-full shadow-xl">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-bold text-primary">Quick feedback</h3>
           <button
             onClick={handleDismiss}
-            className="p-1.5 text-muted hover:text-primary rounded-lg hover:bg-hover transition-all"
+            className="p-1 text-muted hover:text-primary rounded-lg hover:bg-hover transition-all"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-4">
           {/* Q1: overall_feel */}
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             <p className="text-sm font-medium text-primary">How's it going so far?</p>
-            <div className="flex items-center gap-1.5 justify-center">
+            <div className="flex items-center gap-1 justify-center">
               <span className="text-[10px] text-muted w-10 text-right leading-tight">Poor</span>
               {[1, 2, 3, 4, 5].map(n => {
                 const labels = ['', 'Poor', 'Okay', 'Good', 'Great', 'Excellent'];
@@ -89,7 +89,7 @@ export const ShortSurvey: React.FC<ShortSurveyProps> = ({ trigger, onClose, sess
                   <button
                     key={n}
                     onClick={() => setAnswer('overall_feel', n)}
-                    className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl border transition-all min-w-0 flex-1 ${
+                    className={`flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-xl border transition-all min-w-0 flex-1 ${
                       answers.overall_feel === n
                         ? 'border-accent bg-accent-tint ring-1 ring-accent'
                         : 'border-default text-secondary hover:border-hover hover:bg-hover'
@@ -108,9 +108,9 @@ export const ShortSurvey: React.FC<ShortSurveyProps> = ({ trigger, onClose, sess
 
           {/* Q2: journaling_blocker (exit_intent only) */}
           {trigger === 'exit_intent' && (
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <p className="text-sm font-medium text-primary">What stopped you from writing more today?</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-1.5">
                 {[
                   { value: 'No time', label: 'No time', icon: Clock },
                   { value: "Didn't know what", label: "Didn't know what", icon: HelpCircle },
@@ -123,7 +123,7 @@ export const ShortSurvey: React.FC<ShortSurveyProps> = ({ trigger, onClose, sess
                     <button
                       key={opt.value}
                       onClick={() => setAnswer('journaling_blocker', opt.value)}
-                      className={`flex flex-col items-center gap-1 p-3 rounded-xl border text-center transition-all ${
+                      className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${
                         isSelected
                           ? 'border-accent bg-accent-tint ring-1 ring-accent'
                           : 'border-default text-secondary hover:border-hover hover:bg-hover'
@@ -141,18 +141,18 @@ export const ShortSurvey: React.FC<ShortSurveyProps> = ({ trigger, onClose, sess
           )}
 
           {/* Q3: open_note */}
-          <div className="space-y-1.5">
-            <p className="text-sm font-medium text-primary">Anything you want to tell us?</p>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-primary mb-0.5">Anything you want to tell us?</p>
             <textarea
               value={(answers.open_note as string) || ''}
               onChange={e => setAnswer('open_note', e.target.value)}
               placeholder="Optional..."
-              className="w-full px-3 py-2 rounded-lg border border-default bg-surface text-primary text-sm focus:border-accent min-h-[60px]"
+              className="w-full px-3 py-2 rounded-lg border border-default bg-surface text-primary text-sm focus:border-accent min-h-[50px]"
             />
           </div>
         </div>
 
-        <div className="flex gap-2 mt-5 pt-3 border-t border-default">
+        <div className="flex gap-2 mt-4 pt-2.5 border-t border-default">
           <button
             onClick={handleDismiss}
             className="flex-1 py-2 rounded-lg border border-default text-sm text-secondary hover:text-primary hover:bg-hover transition-all"
