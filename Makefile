@@ -1,7 +1,9 @@
+GIT_TAG := $(shell git describe --tags --always 2>/dev/null || echo "dev")
+
 .PHONY: run backend frontend stop
 
 backend:
-	cd backend && uv run uvicorn app.main:app --reload
+	cd backend && APP_VERSION=$(GIT_TAG) uv run uvicorn app.main:app --reload
 
 frontend:
 	cd frontend && npm run dev

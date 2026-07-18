@@ -67,7 +67,8 @@ jobs:
             -t my-inner-pages-frontend \
             ./frontend
 
-          echo "Building backend image..."
+          GIT_TAG=$(git describe --tags --always)
+          echo "Building backend image (version: $GIT_TAG)..."
           docker build \
             -t my-inner-pages-backend:$SHA \
             -t my-inner-pages-backend \
@@ -201,10 +202,14 @@ jobs:
 
             docker rm -f backend-\$NEW_COLOR 2>/dev/null || true
 
+            GIT_TAG=\$(git describe --tags --always)
+            echo "Deploying version: \$GIT_TAG"
+
             docker run -d \
               --name backend-\$NEW_COLOR \
               --network my-inner-pages_app-network \
               --env-file ./backend/.env \
+              -e APP_VERSION=\$GIT_TAG \
               -p 127.0.0.1:\$NEW_PORT:8000 \
               --restart unless-stopped \
               -m 512m \
