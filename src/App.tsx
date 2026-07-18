@@ -29,6 +29,7 @@ const AppInner: React.FC = () => {
   const [chatContext, setChatContext] = useState<{ type: 'journal'; title: string } | { type: 'mirror'; mode: string } | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [shortSurveyTrigger, setShortSurveyTrigger] = useState<'session_nudge' | 'exit_intent' | null>(null);
+  const sessionEntryCount = useRef(0);
   const isDark = resolvedMode === 'dark';
   const wasAuthenticated = useRef(isAuthenticated);
   const syncCancelRef = useRef(false);
@@ -172,6 +173,7 @@ const AppInner: React.FC = () => {
 
   const handleSaveNewEntry = async (title: string, content: string, tags: string[], created_at?: string) => {
     hasEditedEntry.current = true;
+    sessionEntryCount.current += 1;
     const created = await addEntry({
       date: created_at
         ? new Date(created_at).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
@@ -266,7 +268,7 @@ const AppInner: React.FC = () => {
             isLoadingMore={isLoadingMore}
             hasMore={hasMore}
             onLoadMore={loadMore}
-            onUpdateEntry={(...args) => { hasEditedEntry.current = true; return updateEntry(...args); }}
+            onUpdateEntry={(...args) => { hasEditedEntry.current = true; sessionEntryCount.current += 1; return updateEntry(...args); }}
             onDeleteEntry={handleDeleteEntry}
             onSaveNewEntry={handleSaveNewEntry}
             onStartChat={handleStartChat}
@@ -315,7 +317,7 @@ const AppInner: React.FC = () => {
         )}
 
         {activeView === 'feedback' && (
-          <FullSurvey onClose={() => updateNavigationState({ activeView: 'journal' })} />
+          <FullSurvey onClose={() => updateNavigationState({ activeView: 'journal' })} sessionEntryCount={sessionEntryCount.current} />
         )}
       </main>
 
@@ -323,6 +325,7 @@ const AppInner: React.FC = () => {
         <ShortSurvey
           trigger={shortSurveyTrigger}
           onClose={() => setShortSurveyTrigger(null)}
+          sessionEntryCount={sessionEntryCount.current}
         />
       )}
 

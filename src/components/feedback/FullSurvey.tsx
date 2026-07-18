@@ -19,9 +19,10 @@ const STEPS = [
 
 interface FullSurveyProps {
   onClose: () => void;
+  sessionEntryCount?: number;
 }
 
-export const FullSurvey: React.FC<FullSurveyProps> = ({ onClose }) => {
+export const FullSurvey: React.FC<FullSurveyProps> = ({ onClose, sessionEntryCount = 0 }) => {
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -40,7 +41,11 @@ export const FullSurvey: React.FC<FullSurveyProps> = ({ onClose }) => {
         variant: 'full',
         trigger: 'button',
         answers,
-        context: {},
+        questionnaire_version: '1.0',
+        context: {
+          locale: navigator.language,
+          session_entry_count: sessionEntryCount,
+        },
       });
       setSubmitted(true);
     } catch {

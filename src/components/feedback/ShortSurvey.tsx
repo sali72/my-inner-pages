@@ -5,9 +5,10 @@ import { api } from '@/utils/api';
 interface ShortSurveyProps {
   trigger: 'session_nudge' | 'exit_intent';
   onClose: () => void;
+  sessionEntryCount?: number;
 }
 
-export const ShortSurvey: React.FC<ShortSurveyProps> = ({ trigger, onClose }) => {
+export const ShortSurvey: React.FC<ShortSurveyProps> = ({ trigger, onClose, sessionEntryCount = 0 }) => {
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -30,7 +31,11 @@ export const ShortSurvey: React.FC<ShortSurveyProps> = ({ trigger, onClose }) =>
         variant: 'short',
         trigger,
         answers,
-        context: {},
+        questionnaire_version: '1.0',
+        context: {
+          locale: navigator.language,
+          session_entry_count: sessionEntryCount,
+        },
       });
       await api.post('/feedback/dismiss', { trigger });
     } catch {}

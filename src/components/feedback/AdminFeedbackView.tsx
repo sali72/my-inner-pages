@@ -23,7 +23,9 @@ interface FeedbackItem {
   variant: string;
   trigger: string;
   answers: Record<string, unknown>;
-  context: { entry_count: number; days_since_signup: number; current_view: string | null };
+  context: { entry_count: number; days_since_signup: number; current_view: string | null; locale: string; session_entry_count: number };
+  questionnaire_version: string;
+  app_version: string;
   created_at: string;
 }
 
@@ -260,9 +262,13 @@ export const AdminFeedbackView: React.FC = () => {
                 <div className="mt-3 pt-3 border-t border-default space-y-3">
                   <div className="grid grid-cols-2 gap-2 text-xs text-secondary">
                     <div>User: <span className="text-primary font-mono">{item.user_id.slice(-8)}</span></div>
-                    <div>Entries: <span className="text-primary">{item.context.entry_count}</span></div>
+                    <div>Session entries: <span className="text-primary">{item.context.session_entry_count}</span></div>
+                    <div>Total entries: <span className="text-primary">{item.context.entry_count}</span></div>
+                    <div>Locale: <span className="text-primary">{item.context.locale || '-'}</span></div>
                     <div>Days since signup: <span className="text-primary">{item.context.days_since_signup}</span></div>
                     <div>View: <span className="text-primary">{item.context.current_view || '-'}</span></div>
+                    <div>Questionnaire: <span className="text-primary font-mono">v{item.questionnaire_version}</span></div>
+                    <div>App version: <span className="text-primary font-mono">{item.app_version || '?'}</span></div>
                   </div>
                   <div className="space-y-1">
                     {Object.entries(item.answers).map(([qid, val]) => (
