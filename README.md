@@ -66,6 +66,13 @@ See `.env.example` for all options.
 ### REST
 - **Auth** (`/api/v0/auth`) — register, login, me, verify
 - **Journals** (`/api/v0/journals`) — CRUD (JWT required)
+  - `GET /journals?tags=growth&tags=personal&tag_mode=and` — filter by tags (OR/AND)
+- **Tags** (`/api/v0/tags`) — tag registry management (JWT required)
+  - `GET /tags?q=gro&limit=10` — prefix search for autocomplete
+  - `GET /tags/all` — all tags with usage counts and colors
+  - `PUT /tags/{name}` — rename tag across all journals
+  - `PATCH /tags/{name}` — update tag metadata (color)
+  - `DELETE /tags/{name}` — delete tag from all journals
 - **Mirror** (`/api/v0/mirror`) — AI reflections (JWT required)
   - `GET /reflection?mode=emotional|cognitive|behavioral|relational`
 - **Memory** (`/api/v0/memory`) — user model (dev only)

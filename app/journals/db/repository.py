@@ -82,9 +82,14 @@ class JournalRepository:
         user_id: str,
         cursor: Optional[str] = None,
         limit: int = 20,
+        tags: Optional[list[str]] = None,
+        tag_mode: str = "or",
     ) -> tuple[list[Journal], Optional[str]]:
         try:
             query: dict = {"user_id": user_id}
+            if tags:
+                operator = "$all" if tag_mode == "and" else "$in"
+                query["tags"] = {operator: tags}
             if cursor:
                 decoded = self._decode_cursor(cursor)
                 if decoded is None:

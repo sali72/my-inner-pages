@@ -20,6 +20,7 @@ from app.auth.api.config import AuthRoutes
 from tests.config import AUTH_PREFIX
 from app.auth.db.models import User
 from app.journals.db.models import Journal
+from app.journals.db.tag_model import Tag
 from app.memory.db.models import UserModel
 from app.chat.db.models import Chat
 
@@ -93,7 +94,7 @@ async def test_db_client(test_settings: Settings) -> AsyncGenerator[AsyncIOMotor
     # Initialize Beanie with test database
     await init_beanie(
         database=client[test_settings.database_name],
-        document_models=[User, Journal, UserModel, Chat, LLMProvider]
+        document_models=[User, Journal, Tag, UserModel, Chat, LLMProvider]
     )
     
     # Mark that Beanie is initialized to prevent re-initialization

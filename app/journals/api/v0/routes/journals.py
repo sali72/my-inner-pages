@@ -65,6 +65,8 @@ async def create_journal(
 async def list_journals(
     page_size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 20,
     cursor: Annotated[Optional[str], Query(description="Opaque cursor from previous page")] = None,
+    tags: Annotated[Optional[list[str]], Query(description="Filter by tags")] = None,
+    tag_mode: Annotated[str, Query(pattern="^(or|and)$", description="Tag filter mode: 'or' matches any tag, 'and' matches all tags")] = "or",
     current_user: User = Depends(get_current_user),
     facade: JournalFacade = Depends(get_journal_facade)
 ) -> JournalListResponse:
@@ -73,11 +75,15 @@ async def list_journals(
     
     - **page_size**: Items per page (default: 20, max: 100)
     - **cursor**: Opaque cursor string from the previous page response (omit for first page)
+    - **tags**: Filter by tags (repeatable: ?tags=growth&tags=personal)
+    - **tag_mode**: 'or' (default) matches any tag, 'and' matches all tags
     """
     journals, next_cursor = await facade.list_journals(
         user_id=str(current_user.id),
         cursor=cursor,
-        page_size=page_size
+        page_size=page_size,
+        tags=tags,
+        tag_mode=tag_mode,
     )
     
     return JournalListResponse.create(

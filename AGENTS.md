@@ -52,11 +52,5 @@ Python 3.11+ FastAPI server with MongoDB/Beanie, LangChain AI, JWT auth.
 
 ## Reference docs
 - `README.md` — setup guide, API endpoint reference, WebSocket protocol, .env config
-- `docs/architecture/ARCHITECTURE.md` — backend architecture deep-dive
-- `docs/architecture/DEPENDENCY_INJECTION.md` — DI wiring and overrides
-- `docs/architecture/DATABASE_DESIGN.md` — MongoDB schema, indexes, repository patterns
-- `docs/features/caching.md` — in-memory cache patterns
-- `docs/features/rate-limiting.md` — rate limiter design
-- `docs/features/chat.md` — chat service internals
-- `docs/features/user-model.md` — user model extraction pipeline
-- `docs/features/llm-providers.md` — database LLM configuration & failover routing
+- `docs/architecture/` — architecture deep-dives, DI wiring, database design
+- `docs/features/` — feature-specific docs (tag system, caching, rate limiting, chat, user model, LLM providers)

@@ -18,7 +18,7 @@ class CreateJournalRequest(BaseModel):
     
     title: Optional[str] = Field(default=None, max_length=200, description="Journal title")
     content: str = Field(..., max_length=50000, description="Journal content")
-    tags: Optional[list[str]] = Field(default=None, description="Optional tags for categorization")
+    tags: Optional[list[str]] = Field(default=None, description="Optional tags for categorization (max 20, max 50 chars each)")
     created_at: Optional[datetime] = Field(default=None, description="Override creation date")
     
     @field_validator("title", "content")
@@ -26,6 +26,27 @@ class CreateJournalRequest(BaseModel):
     def strip_whitespace(cls, v: Optional[str]) -> Optional[str]:
         """Strip leading/trailing whitespace."""
         return v.strip() if v else v
+    
+    @field_validator("tags")
+    @classmethod
+    def validate_tags(cls, v: Optional[list[str]]) -> Optional[list[str]]:
+        if v is None:
+            return v
+        if len(v) > 20:
+            raise ValueError("Maximum 20 tags allowed")
+        import re
+        for tag in v:
+            stripped = tag.strip()
+            if not stripped:
+                continue
+            if len(stripped) > 50:
+                raise ValueError(f"Tag exceeds maximum length of 50 characters: '{stripped[:30]}...'")
+            if not re.match(r'^[\w\s-]+$', stripped):
+                raise ValueError(
+                    f"Tag '{stripped}' contains invalid characters. "
+                    "Only letters, numbers, spaces, underscores, and hyphens are allowed."
+                )
+        return v
 
 
 class UpdateJournalRequest(BaseModel):
@@ -43,7 +64,7 @@ class UpdateJournalRequest(BaseModel):
     
     title: Optional[str] = Field(None, max_length=200, description="Updated title")
     content: Optional[str] = Field(None, max_length=50000, description="Updated content")
-    tags: Optional[list[str]] = Field(None, description="Updated tags")
+    tags: Optional[list[str]] = Field(None, description="Updated tags (max 20, max 50 chars each)")
     created_at: Optional[datetime] = Field(default=None, description="Override creation date")
     
     @field_validator("title", "content")
@@ -51,6 +72,27 @@ class UpdateJournalRequest(BaseModel):
     def strip_whitespace(cls, v: Optional[str]) -> Optional[str]:
         """Strip leading/trailing whitespace if provided."""
         return v.strip() if v else v
+    
+    @field_validator("tags")
+    @classmethod
+    def validate_tags(cls, v: Optional[list[str]]) -> Optional[list[str]]:
+        if v is None:
+            return v
+        if len(v) > 20:
+            raise ValueError("Maximum 20 tags allowed")
+        import re
+        for tag in v:
+            stripped = tag.strip()
+            if not stripped:
+                continue
+            if len(stripped) > 50:
+                raise ValueError(f"Tag exceeds maximum length of 50 characters: '{stripped[:30]}...'")
+            if not re.match(r'^[\w\s-]+$', stripped):
+                raise ValueError(
+                    f"Tag '{stripped}' contains invalid characters. "
+                    "Only letters, numbers, spaces, underscores, and hyphens are allowed."
+                )
+        return v
 
 
 class PaginationParams(BaseModel):

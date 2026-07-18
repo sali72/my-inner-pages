@@ -35,6 +35,7 @@ async def init_database() -> AsyncIOMotorClient:
     client = create_motor_client(settings)
 
     from app.journals.db.models import Journal
+    from app.journals.db.tag_model import Tag
     from app.auth.db.models import User
     from app.memory.db.models import UserModel
     from app.chat.db.models import Chat
@@ -43,7 +44,7 @@ async def init_database() -> AsyncIOMotorClient:
     logger.info("initializing_beanie", database=settings.database_name)
     await init_beanie(
         database=client[settings.database_name],
-        document_models=[Journal, User, UserModel, Chat, LLMProvider]
+        document_models=[Journal, Tag, User, UserModel, Chat, LLMProvider]
     )
     logger.info("beanie_initialized")
 
