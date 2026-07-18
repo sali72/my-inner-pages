@@ -7,6 +7,8 @@ class FeedbackContextResponse(BaseModel):
     entry_count: int = 0
     days_since_signup: int = 0
     current_view: Optional[str] = None
+    locale: str = ""
+    session_entry_count: int = 0
 
 
 class FeedbackResponse(BaseModel):
@@ -18,6 +20,8 @@ class FeedbackResponse(BaseModel):
     trigger: str = Field(..., description="Trigger type")
     answers: dict[str, object] = Field(default_factory=dict)
     context: FeedbackContextResponse = Field(default_factory=FeedbackContextResponse)
+    questionnaire_version: str = Field(..., description="Version of the question set")
+    app_version: str = Field(..., description="App version at submission time")
     created_at: datetime = Field(..., description="Submission timestamp")
 
     @classmethod
@@ -32,7 +36,11 @@ class FeedbackResponse(BaseModel):
                 entry_count=feedback.context.entry_count,
                 days_since_signup=feedback.context.days_since_signup,
                 current_view=feedback.context.current_view,
+                locale=feedback.context.locale,
+                session_entry_count=feedback.context.session_entry_count,
             ),
+            questionnaire_version=feedback.questionnaire_version,
+            app_version=feedback.app_version,
             created_at=feedback.created_at,
         )
 

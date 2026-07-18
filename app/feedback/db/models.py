@@ -8,6 +8,8 @@ class FeedbackContext(BaseModel):
     entry_count: int = 0
     days_since_signup: int = 0
     current_view: Optional[str] = None
+    locale: str = ""
+    session_entry_count: int = 0
 
 
 class Feedback(Document):
@@ -16,6 +18,8 @@ class Feedback(Document):
     trigger: str = Field(..., description="'button', 'session_nudge', or 'exit_intent'")
     answers: dict[str, object] = Field(default_factory=dict)
     context: FeedbackContext = Field(default_factory=FeedbackContext)
+    questionnaire_version: str = Field(default="1.0", description="Version of the question set")
+    app_version: str = Field(default="", description="App version at submission time, set server-side")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:

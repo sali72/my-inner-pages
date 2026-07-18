@@ -10,10 +10,11 @@ from app.feedback.api.v0.schemas.response import (
     QuestionDistribution,
 )
 from app.feedback.db.models import Feedback
-from app.feedback.config import FeedbackRoutes
+from app.feedback.config import FeedbackRoutes, QUESTIONNAIRE_VERSION
 from app.auth.db.models import User
 from app.auth.deps import get_current_user, get_current_admin_user
 from app.core.rate_limit import limiter
+from app.core.deps.settings import get_settings
 
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
@@ -49,12 +50,15 @@ async def create_feedback(
     body: CreateFeedbackRequest,
     current_user: User = Depends(get_current_user),
 ) -> FeedbackResponse:
+    settings = get_settings()
     feedback = Feedback(
         user_id=str(current_user.id),
         variant=body.variant,
         trigger=body.trigger,
         answers=body.answers,
         context=body.context.model_dump(),
+        questionnaire_version=body.questionnaire_version or QUESTIONNAIRE_VERSION,
+        app_version=settings.app_version,
     )
     await feedback.insert()
     return FeedbackResponse.from_document(feedback)
