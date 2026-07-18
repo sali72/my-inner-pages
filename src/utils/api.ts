@@ -70,6 +70,10 @@ export const api = {
     delete<T>(endpoint: string, schema?: z.ZodType<T>): Promise<T> {
         return request<T>(endpoint, { method: 'DELETE' }, schema);
     },
+
+    patch<T>(endpoint: string, data: unknown, schema?: z.ZodType<T>): Promise<T> {
+        return request<T>(endpoint, { method: 'PATCH', body: JSON.stringify(data) }, schema);
+    },
 };
 
 // --- Shared Zod schemas ---
@@ -136,3 +140,18 @@ export const chatResponseSchema = z.object({
 });
 
 export type ChatResponse = z.infer<typeof chatResponseSchema>;
+
+export const tagResponseSchema = z.object({
+  name: z.string(),
+  usage_count: z.number(),
+  color: z.string().nullable().optional(),
+});
+
+export type TagResponse = z.infer<typeof tagResponseSchema>;
+
+export const tagListResponseSchema = z.object({
+  tags: z.array(tagResponseSchema),
+  total: z.number(),
+});
+
+export type TagListResponse = z.infer<typeof tagListResponseSchema>;

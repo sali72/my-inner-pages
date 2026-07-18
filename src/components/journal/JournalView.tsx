@@ -1,9 +1,12 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Edit2 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
+import { TagResponse } from '@utils/api';
 import { JournalTimeline } from './JournalTimeline';
 import { JournalPage } from './JournalPage';
+import { TagManager } from './TagManager';
 import { getUnsyncedEntries, removeUnsyncedEntry, saveUnsyncedEntry, STORAGE_KEY } from '@utils/offlineStorage';
+import { useAllTags } from '@hooks/useTags';
 
 type SortOption = 'date-desc' | 'date-asc';
 
@@ -40,8 +43,8 @@ function makeDraftEntry(): JournalEntry {
 }
 
 function isEntrySynced(local: JournalEntry, backend: JournalEntry): boolean {
-  const localTags = local.tags || [];
-  const backendTags = backend.tags || [];
+  const localTags = (local.tags || []).map(t => t.toLowerCase()).sort();
+  const backendTags = (backend.tags || []).map(t => t.toLowerCase()).sort();
   const tagsMatch =
     localTags.length === backendTags.length &&
     localTags.every((t, i) => t === backendTags[i]);
@@ -102,8 +105,10 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagMode, setTagMode] = useState<'or' | 'and'>('or');
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [showFilters, setShowFilters] = useState(false);
+  const [showTagManager, setShowTagManager] = useState(false);
 
   const navigatedAwayRef = useRef(false);
   const localEntryRef = useRef<Map<string | number, JournalEntry> | null>(null);
@@ -146,8 +151,15 @@ export const JournalView: React.FC<JournalViewProps> = ({
     });
   }, [entries]);
 
+  const { data: serverTagResponses } = useAllTags();
+
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
+
+    if (serverTagResponses) {
+      serverTagResponses.forEach(t => tagSet.add(t.name));
+    }
+
     entries.forEach(entry => {
       entry.tags?.forEach(tag => tagSet.add(tag));
     });
@@ -155,7 +167,17 @@ export const JournalView: React.FC<JournalViewProps> = ({
       entry.tags?.forEach(tag => tagSet.add(tag));
     });
     return Array.from(tagSet).sort();
-  }, [entries, syncVersion]);
+  }, [entries, syncVersion, serverTagResponses]);
+
+  const tagColorMap = useMemo(() => {
+    const map: Record<string, string | null> = {};
+    if (serverTagResponses) {
+      serverTagResponses.forEach(t => {
+        if (t.color) map[t.name] = t.color;
+      });
+    }
+    return map;
+  }, [serverTagResponses]);
 
   const filteredEntries = useMemo(() => {
     const allEntriesMap = new Map<string | number, JournalEntry>();
@@ -176,7 +198,9 @@ export const JournalView: React.FC<JournalViewProps> = ({
         entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         entry.content.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesTags = selectedTags.length === 0 ||
-        selectedTags.some(tag => entry.tags?.includes(tag));
+        (tagMode === 'and'
+          ? selectedTags.every(tag => entry.tags?.includes(tag))
+          : selectedTags.some(tag => entry.tags?.includes(tag)));
       return matchesSearch && matchesTags;
     });
 
@@ -192,7 +216,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
     });
 
     return filtered;
-  }, [entries, searchQuery, selectedTags, sortBy, syncVersion]);
+  }, [entries, searchQuery, selectedTags, tagMode, sortBy, syncVersion]);
 
   const currentEntry = useMemo(() => {
     if (selectedEntryId === null) return null;
@@ -230,6 +254,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
           : new Date().toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
         created_at,
       });
+      setSyncVersion(v => v + 1);
       onSelectEntry(id, 'replace');
       return id;
     } catch (err) {
@@ -247,6 +272,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
       };
       saveUnsyncedEntry(localEntry);
       localEntryRef.current!.set(tempId, localEntry);
+      setSyncVersion(v => v + 1);
       onSelectEntry(tempId, 'replace');
       return tempId;
     }
@@ -261,12 +287,14 @@ export const JournalView: React.FC<JournalViewProps> = ({
         ...existing,
         ...updates,
       });
+      setSyncVersion(v => v + 1);
     }
     await onUpdateEntry(id, updates);
   }, [entries, onUpdateEntry]);
 
   const handleDeleteEntry = useCallback((id: number | string) => {
     localEntryRef.current!.delete(id);
+    setSyncVersion(v => v + 1);
     onDeleteEntry(id);
     onSelectEntry(null);
   }, [onDeleteEntry, onSelectEntry]);
@@ -289,6 +317,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
             fontSize={fontSize}
             isNew={isNewEntry}
             allAppTags={allTags}
+            tagColorMap={tagColorMap}
             onUpdateById={handleUpdateEntry}
             onUpdate={(updates) => handleUpdateEntry(displayEntry.id, updates)}
             onCreate={isNewEntry ? handleCreateEntry : undefined}
@@ -305,10 +334,12 @@ export const JournalView: React.FC<JournalViewProps> = ({
       <JournalTimeline
         entries={filteredEntries}
         allTags={allTags}
+        tagColorMap={tagColorMap}
         font={font}
         fontSize={fontSize}
         searchQuery={searchQuery}
         selectedTags={selectedTags}
+        tagMode={tagMode}
         sortBy={sortBy}
         showFilters={showFilters}
         onSearchChange={setSearchQuery}
@@ -317,9 +348,11 @@ export const JournalView: React.FC<JournalViewProps> = ({
             prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
           )
         }
+        onTagModeChange={setTagMode}
         onSortByChange={setSortBy}
         onFilterToggle={() => setShowFilters(prev => !prev)}
         onClearFilters={handleClearFilters}
+        onManageTags={() => setShowTagManager(true)}
         onSelectEntry={handleSelectEntry}
         onNewEntry={handleNewEntry}
         onStartChat={onStartChat}
@@ -335,6 +368,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
       >
         <Edit2 className="w-6 h-6" />
       </button>
+      <TagManager isOpen={showTagManager} onClose={() => setShowTagManager(false)} />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, Tag, Search, Filter, X, Loader2 } from 'lucide-react';
+import { Calendar, Tag, Search, Filter, X, Loader2, UnfoldVertical, Settings2 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { isEntryUnsynced } from '@utils/offlineStorage';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
@@ -8,21 +8,26 @@ import { EntryMenu } from './EntryMenu';
 import { ConfirmModal } from './ConfirmModal';
 
 type SortOption = 'date-desc' | 'date-asc';
+type TagMode = 'or' | 'and';
 
 interface JournalTimelineProps {
   entries: JournalEntry[];
   allTags: string[];
+  tagColorMap: Record<string, string | null>;
   font: FontStyle;
   fontSize: ContentFontSize;
   searchQuery: string;
   selectedTags: string[];
+  tagMode: TagMode;
   sortBy: SortOption;
   showFilters: boolean;
   onSearchChange: (query: string) => void;
   onTagToggle: (tag: string) => void;
+  onTagModeChange: (mode: TagMode) => void;
   onSortByChange: (sort: SortOption) => void;
   onFilterToggle: () => void;
   onClearFilters: () => void;
+  onManageTags: () => void;
   onSelectEntry: (id: number | string) => void;
   onNewEntry: () => void;
   onStartChat: (entry: JournalEntry) => void;
@@ -52,17 +57,21 @@ const getMoodDot = (mood?: string) => {
 export const JournalTimeline: React.FC<JournalTimelineProps> = ({
   entries,
   allTags,
+  tagColorMap,
   font,
   fontSize,
   searchQuery,
   selectedTags,
+  tagMode,
   sortBy,
   showFilters,
   onSearchChange,
   onTagToggle,
+  onTagModeChange,
   onSortByChange,
   onFilterToggle,
   onClearFilters,
+  onManageTags,
   onSelectEntry,
   onNewEntry,
   onStartChat,
@@ -176,34 +185,63 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
                 </select>
               </div>
 
-              {allTags.length > 0 && (
+                  {allTags.length > 0 && (
                 <div>
                   <label className="text-xs font-medium text-muted mb-1 block">
                     Filter by Tags
                   </label>
                   <div className="flex flex-wrap gap-1.5">
-                    {allTags.map(tag => (
-                      <button
-                        key={tag}
-                        onClick={() => onTagToggle(tag)}
-                        className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
-                          selectedTags.includes(tag)
-                            ? 'bg-accent text-white'
-                            : 'bg-surface-hover text-muted hover:text-accent'
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    ))}
+                    {allTags.map(tag => {
+                      const color = tagColorMap[tag];
+                      const isSelected = selectedTags.includes(tag);
+                      return (
+                        <button
+                          key={tag}
+                          onClick={() => onTagToggle(tag)}
+                          className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
+                            isSelected
+                              ? color ? 'text-white' : 'bg-accent text-white'
+                              : 'bg-surface-hover text-muted hover:text-accent'
+                          }`}
+                          style={isSelected && color ? { backgroundColor: color } : {}}
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
                   </div>
                   {selectedTags.length > 0 && (
-                    <button
-                      onClick={onClearFilters}
-                      className="text-xs mt-2 text-muted hover:underline"
-                    >
-                      Clear filters
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <button
+                        onClick={() => onTagModeChange(tagMode === 'or' ? 'and' : 'or')}
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors ${
+                          tagMode === 'and'
+                            ? 'bg-accent/10 text-accent border border-accent/30'
+                            : 'text-muted hover:text-accent border border-transparent'
+                        }`}
+                      >
+                        <UnfoldVertical className="w-3 h-3" />
+                        {tagMode === 'or' ? 'Match any (OR)' : 'Match all (AND)'}
+                      </button>
+                      <button
+                        onClick={onClearFilters}
+                        className="text-xs text-muted hover:underline"
+                      >
+                        Clear filters
+                      </button>
+                    </div>
                   )}
+                </div>
+              )}
+              {allTags.length > 0 && (
+                <div className="pt-2 border-t border-border-default">
+                  <button
+                    onClick={onManageTags}
+                    className="flex items-center gap-2 text-xs text-muted hover:text-accent transition-colors"
+                  >
+                    <Settings2 className="w-3 h-3" />
+                    Manage Tags
+                  </button>
                 </div>
               )}
             </div>
@@ -248,15 +286,27 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
 
                 {entry.tags && entry.tags.length > 0 && (
                   <div className="hidden sm:flex flex-wrap gap-1.5 mb-3">
-                    {entry.tags.slice(0, MAX_VISIBLE_TAGS).map((tag, i) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent-tint text-accent-tint"
-                      >
-                        <Tag className="w-3 h-3" />
-                        {tag}
-                      </span>
-                    ))}
+                    {entry.tags.slice(0, MAX_VISIBLE_TAGS).map((tag, i) => {
+                      const color = tagColorMap[tag];
+                      return color ? (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
+                          style={{ backgroundColor: `${color}20`, color }}
+                        >
+                          <Tag className="w-3 h-3" />
+                          {tag}
+                        </span>
+                      ) : (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent-tint/50 text-accent-tint"
+                        >
+                          <Tag className="w-3 h-3" />
+                          {tag}
+                        </span>
+                      );
+                    })}
                     {entry.tags.length > MAX_VISIBLE_TAGS && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs text-muted">
                         +{entry.tags.length - MAX_VISIBLE_TAGS}

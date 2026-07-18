@@ -22,6 +22,7 @@ interface JournalPageProps {
   fontSize: ContentFontSize;
   isNew?: boolean;
   allAppTags?: string[];
+  tagColorMap?: Record<string, string | null>;
   onUpdate?: (updates: Partial<JournalEntry>) => void;
   onUpdateById?: (id: string | number, updates: Partial<JournalEntry>) => Promise<void>;
   onCreate?: (title: string, content: string, tags: string[], created_at?: string) => Promise<number | string>;
@@ -52,13 +53,13 @@ const SaveIndicator: React.FC<{ status: SaveStatus; onRetry?: () => void }> = ({
 };
 
 function parseHashTags(text: string): string[] {
-  const matches = text.match(/#(\w+)/g);
+  const matches = text.match(/#([\w-]+)/g);
   if (!matches) return [];
   return [...new Set(matches.map(m => m.slice(1)))];
 }
 
 function stripHashTag(text: string, tag: string): string {
-  return text.replace(new RegExp(`#${tag}\\b`, 'g'), '').replace(/\s+/g, ' ').trim();
+  return text.replace(new RegExp(`#${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g'), '').replace(/\s+/g, ' ').trim();
 }
 
 function isRealId(v: string | number | null): boolean {
@@ -71,6 +72,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   fontSize,
   isNew = false,
   allAppTags = [],
+  tagColorMap = {},
   onUpdate,
   onUpdateById,
   onCreate,
@@ -88,6 +90,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   });
   const [showTagInput, setShowTagInput] = useState(false);
   const [tagInputValue, setTagInputValue] = useState('');
+  const [tagAutoActiveIndex, setTagAutoActiveIndex] = useState(0);
 
   const [entryDate, setEntryDate] = useState(() => {
     if (entry.created_at) {
@@ -135,7 +138,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     const { from } = ed.state.selection;
     const $from = ed.state.selection.$from;
     const textBefore = $from.parent.textBetween(0, $from.parentOffset);
-    const match = textBefore.match(/(?:^|\s)(#(\w*))$/);
+    const match = textBefore.match(/(?:^|\s)(#([\w-]*))$/);
 
     if (match) {
       setAutoQuery(match[2]);
@@ -230,6 +233,14 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       t.toLowerCase().includes(autoQuery.toLowerCase())
     );
   }, [showAuto, autoQuery, allAppTags]);
+
+  const filteredTagInputSuggestions = useMemo(() => {
+    if (!showTagInput || !tagInputValue) return [];
+    const q = tagInputValue.toLowerCase();
+    return allAppTags.filter(t =>
+      t.toLowerCase().includes(q) && !allTags.includes(t)
+    );
+  }, [showTagInput, tagInputValue, allAppTags, allTags]);
 
   useEffect(() => {
     if (showTagInput && tagInputRef.current) tagInputRef.current.focus();
@@ -467,7 +478,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   };
 
   const addTagDirect = (name: string) => {
-    const t = name.trim();
+    const t = name.trim().toLowerCase();
     if (t && !allTags.includes(t)) {
       setExplicitTags(prev => [...prev, t]);
     }
@@ -652,18 +663,33 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         />
 
         <div className="flex flex-wrap items-center gap-1.5 mb-6 min-h-[1.5rem]">
-          {allTags.map((tag) => (
-            <span key={tag}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-accent-tint/50 text-accent-tint group"
-            >
-              #{tag}
-              <button onClick={() => removeTag(tag)}
-                aria-label={`Remove tag ${tag}`}
-                className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 hover:text-red-500 transition-all">
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          ))}
+          {allTags.map((tag) => {
+            const color = tagColorMap[tag];
+            return color ? (
+              <span key={tag}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs group"
+                style={{ backgroundColor: `${color}20`, color }}
+              >
+                #{tag}
+                <button onClick={() => removeTag(tag)}
+                  aria-label={`Remove tag ${tag}`}
+                  className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 hover:text-red-500 transition-all">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ) : (
+              <span key={tag}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-accent-tint/50 text-accent-tint group"
+              >
+                #{tag}
+                <button onClick={() => removeTag(tag)}
+                  aria-label={`Remove tag ${tag}`}
+                  className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 hover:text-red-500 transition-all">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            );
+          })}
           {!showTagInput && (
             <button onClick={() => setShowTagInput(true)}
               className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs text-muted/30 hover:text-muted hover:bg-accent-tint/30 transition-colors">
@@ -671,19 +697,59 @@ export const JournalPage: React.FC<JournalPageProps> = ({
             </button>
           )}
           {showTagInput && (
-            <input
-              ref={tagInputRef}
-              type="text"
-              value={tagInputValue}
-              onChange={(e) => setTagInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') { addTagDirect(tagInputValue); e.preventDefault(); }
-                if (e.key === 'Escape') { setShowTagInput(false); setTagInputValue(''); }
-              }}
-              onBlur={() => addTagDirect(tagInputValue)}
-              placeholder="Tag"
-              className="px-2 py-0.5 rounded text-xs input-field w-20"
-            />
+            <div className="relative inline-block">
+              <input
+                ref={tagInputRef}
+                type="text"
+                value={tagInputValue}
+                onChange={(e) => { setTagInputValue(e.target.value); setTagAutoActiveIndex(0); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (filteredTagInputSuggestions.length > 0) {
+                      addTagDirect(filteredTagInputSuggestions[tagAutoActiveIndex]);
+                    } else {
+                      addTagDirect(tagInputValue);
+                    }
+                    e.preventDefault();
+                  }
+                  if (e.key === 'Escape') { setShowTagInput(false); setTagInputValue(''); }
+                  if (e.key === 'ArrowDown') {
+                    setTagAutoActiveIndex(i => Math.min(i + 1, filteredTagInputSuggestions.length - 1));
+                    e.preventDefault();
+                  }
+                  if (e.key === 'ArrowUp') {
+                    setTagAutoActiveIndex(i => Math.max(i - 1, 0));
+                    e.preventDefault();
+                  }
+                }}
+                onBlur={() => {
+                  // Delay to allow click on dropdown item
+                  setTimeout(() => addTagDirect(tagInputValue), 150);
+                }}
+                placeholder="Tag"
+                className="px-2 py-0.5 rounded text-xs input-field w-28"
+              />
+              {filteredTagInputSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 mt-1 z-50 card py-1 shadow-elevated min-w-[8rem] max-h-40 overflow-y-auto">
+                  {filteredTagInputSuggestions.map((tag, i) => {
+                    const color = tagColorMap[tag];
+                    return (
+                      <button
+                        key={tag}
+                        onMouseDown={(e) => { e.preventDefault(); addTagDirect(tag); }}
+                        onMouseEnter={() => setTagAutoActiveIndex(i)}
+                        className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
+                          i === tagAutoActiveIndex ? 'bg-accent-tint text-accent' : 'text-body hover:bg-accent-tint'
+                        }`}
+                      >
+                        {color && <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: color }} />}
+                        #{tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
         </div>
 
