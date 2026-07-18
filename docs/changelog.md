@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.3.0-alpha] - 2026-07-18
+
 ### Added
 - **Tag Registry (Phase 1)** — hybrid embedded+registry model:
   - `Tag` Beanie document collection with compound index `(user_id, name)`
@@ -65,6 +67,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Frontend 429 Notifications**: Added `sonner` toast notifications for rate limit responses.
   - Global toast in `api.ts` for all 429 responses.
   - Context-specific toasts in `AuthContext.tsx` for login/register/reset-password rate limits.
+- **Feedback System** — collect user feedback via two entry points:
+  - Full survey with 13 multi-step questions (visual card-style options, 2-column grid, no subtitles)
+  - Short contextual survey modal triggered by session nudge (2nd+ login or 3+ days) and exit intent (>20s dwell, no edits)
+  - Backend `POST /feedback` endpoint with Beanie document, rate-limited (5/min per user), stamps `app_version` server-side
+  - `questionnaire_version: "1.0"` for tracking question set changes
+  - `POST /feedback/dismiss` to record dismissed triggers per user
+- **Admin Feedback Panel**:
+  - `GET /feedback` (admin, paginated, filterable by variant/trigger)
+  - `GET /feedback/summary` with counts, breakdowns, average feel score, headline retention/pricing stats
+  - `AdminFeedbackView` frontend with Summary + Raw Responses tabs
+- **APP_VERSION auto-set from git tag** — Makefile passes `GIT_TAG` to backend; CI injects via `-e APP_VERSION=$GIT_TAG`; no hardcoded fallback in docker-compose
+- **Sidebar reorganization** — renamed "LLM Admin" to "Admin" (Shield icon), moved Settings + Admin below a separator, kept Help us improve at the bottom
 
 ### Infrastructure
 - Added `redis:7.4-alpine` to `docker-compose.yml` and `docker-compose.prod.yml`.
