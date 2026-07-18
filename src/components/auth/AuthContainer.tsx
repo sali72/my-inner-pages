@@ -8,7 +8,6 @@ import { EmailVerificationPage } from './EmailVerificationPage';
 export type AuthView = 'login' | 'register' | 'forgot-password' | 'verify-email';
 
 export interface AuthContainerProps {
-  isDark: boolean;
   onAuthSuccess: () => void;
   onBack?: () => void;
   initialView?: AuthView;
@@ -16,7 +15,6 @@ export interface AuthContainerProps {
 }
 
 export const AuthContainer: React.FC<AuthContainerProps> = ({
-  isDark,
   onAuthSuccess,
   onBack,
   initialView = 'login',
@@ -50,7 +48,6 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
       case 'login':
         return (
           <LoginPage
-            isDark={isDark}
             onLogin={handleLogin}
             onNavigateToRegister={() => setCurrentView('register')}
             onForgotPassword={() => setCurrentView('forgot-password')}
@@ -61,7 +58,6 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
       case 'register':
         return (
           <RegisterPage
-            isDark={isDark}
             onRegister={handleRegister}
             onNavigateToLogin={() => setCurrentView('login')}
             onBack={onBack}
@@ -71,7 +67,6 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
       case 'forgot-password':
         return (
           <ForgotPasswordPage
-            isDark={isDark}
             onResetPassword={handleResetPassword}
             onNavigateToLogin={() => setCurrentView('login')}
           />
@@ -80,7 +75,6 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
       case 'verify-email':
         return (
           <EmailVerificationPage
-            isDark={isDark}
             verificationToken={verificationToken}
             onVerifyEmail={handleVerifyEmail}
             onResendVerification={handleResendVerification}

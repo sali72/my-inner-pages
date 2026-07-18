@@ -18,7 +18,7 @@ import { useRouter } from '@hooks/useRouter';
 const AppInner: React.FC = () => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { mode, accent, fontStyle, fontSize, resolvedMode,
-    setMode, setAccent, setFontStyle, setFontSize, syncFromRemote, resetToDefaults } = useTheme();
+    setMode, setAccent, setFontStyle, setFontSize, syncFromRemote } = useTheme();
   
   const router = useRouter();
   const { showAuth, activeView, selectedEntryId, selectedChatId, navigate: updateNavigationState } = router;
@@ -55,8 +55,6 @@ const AppInner: React.FC = () => {
     if (authLoading) return;
     if (isAuthenticated && !wasAuthenticated.current) {
       syncFromRemote();
-    } else if (!isAuthenticated && wasAuthenticated.current) {
-      resetToDefaults();
     }
     wasAuthenticated.current = isAuthenticated;
 
@@ -93,7 +91,7 @@ const AppInner: React.FC = () => {
 
     // Sync hook state manually to trigger re-render
     router.setParams(nextParams);
-  }, [isAuthenticated, authLoading, syncFromRemote, resetToDefaults]);
+  }, [isAuthenticated, authLoading, syncFromRemote]);
 
   const { entries, loading, isLoadingMore, hasMore, loadMore, addEntry, updateEntry, deleteEntry, syncUnsyncedEntries } = useJournalEntries();
 
@@ -233,7 +231,6 @@ const AppInner: React.FC = () => {
     }
     return (
       <AuthContainer
-        isDark={isDark}
         onAuthSuccess={() => {}}
         onBack={() => updateNavigationState({ showAuth: false })}
       />

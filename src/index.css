@@ -245,3 +245,85 @@ html::-webkit-scrollbar-thumb { border-radius: 3px; background: var(--border-def
   outline: none;
 }
 
+/* ============================================================
+   Landing Page — amber brand identity, fixed to match the
+   amber accent defaults. Does NOT follow the user's chosen
+   accent — only respects light/dark mode.
+   ============================================================ */
+
+/* Backgrounds — fixed amber/structural, not affected by user accent */
+.landing-bg { background: #f5ede0; }
+.landing-surface { background: #fcf5ea; }
+.landing-surface-hover { background: #f0e8d8; }
+.landing-elevated { background: #ffffff; }
+
+/* Typography */
+.landing-hero { color: #78350f; }
+.landing-heading { color: #78350f; }
+.landing-body { color: #92400e; }
+.landing-muted { color: #b45309; }
+.landing-icon { color: #92400e; }
+.landing-icon-bg { background: #fef3c7; }
+
+/* Primary CTA */
+.landing-btn-primary {
+  background: #92400e;
+  color: #fffbeb;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+.landing-btn-primary:hover {
+  background: #78350f;
+}
+
+/* Secondary CTA */
+.landing-btn-secondary {
+  background: #ffffff;
+  color: #78350f;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+.landing-btn-secondary:hover {
+  background: #f0e8d8;
+}
+
+/* Lens icon colors */
+.landing-lens-rose { color: #be123c; }
+.landing-lens-indigo { color: #4338ca; }
+.landing-lens-emerald { color: #047857; }
+.landing-lens-amber { color: #b45309; }
+
+/* ======== Dark mode overrides ======== */
+[data-mode="dark"] .landing-bg { background: #0a0a09; }
+[data-mode="dark"] .landing-surface { background: #141412; }
+[data-mode="dark"] .landing-surface-hover { background: #1e1e1c; }
+[data-mode="dark"] .landing-elevated { background: #1e1e1c; }
+
+[data-mode="dark"] .landing-hero { color: #d48a50; }
+[data-mode="dark"] .landing-heading { color: #d48a50; }
+[data-mode="dark"] .landing-body { color: #b45309; }
+[data-mode="dark"] .landing-muted { color: #92400e; }
+[data-mode="dark"] .landing-icon { color: #d48a50; }
+[data-mode="dark"] .landing-icon-bg { background: #3a2010; }
+
+[data-mode="dark"] .landing-btn-primary {
+  background: #d48a50;
+  color: #1c1917;
+}
+[data-mode="dark"] .landing-btn-primary:hover {
+  background: #e09a60;
+}
+
+[data-mode="dark"] .landing-btn-secondary {
+  background: #1e1e1c;
+  color: #f0c080;
+}
+[data-mode="dark"] .landing-btn-secondary:hover {
+  background: #1e1e1c;
+}
+
+[data-mode="dark"] .landing-lens-rose { color: #fb7185; }
+[data-mode="dark"] .landing-lens-indigo { color: #818cf8; }
+[data-mode="dark"] .landing-lens-emerald { color: #34d399; }
+[data-mode="dark"] .landing-lens-amber { color: #d48a50; }
+
