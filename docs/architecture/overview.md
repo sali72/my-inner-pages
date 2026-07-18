@@ -25,7 +25,8 @@
 ┌──────────────────▼──────────────────────────────────────────┐
 │                      MongoDB                                │
 │  - User documents (credentials, profile, preferences)      │
-│  - Journal documents (entries with tags)                   │
+│  - Journal documents (entries with tags array)            │
+│  - Tag documents (registry: name, usage_count, color)     │
 │  - Chat documents (messages, metadata, linked entries)     │
 │  - UserModel documents (psychological profile)             │
 │  - Replica set for transactions                            │
@@ -78,6 +79,9 @@ App (root)
     ├── Sidebar (navigation menu)
     └── Main Content
         ├── JournalView (activeView === 'journal')
+        │   ├── JournalPage (editor with tag autocomplete, colored pills)
+        │   ├── JournalTimeline (entry cards with tag filters, AND/OR toggle)
+        │   ├── TagManager (modal: browse, rename, delete, color picker, cloud view)
         │   └── JournalNavigationSidebar (right overlay)
         ├── MirrorView (activeView === 'mirror')
         ├── ChatView (always mounted, hidden via CSS when not active)
@@ -124,6 +128,35 @@ When triggered:
 3. For existing entries: PUT /journals/{id} (update on backend)
 4. On success: dispatch journal:id-migrated event, remove from localStorage
 5. On failure: log error, retry on next cycle
+```
+
+### Tag Flow
+```
+Tags follow a hybrid embedded+registry model:
+
+1. **On journal create/update/delete** → JournalFacade syncs Tag registry:
+   - Upsert: increment usage_count or create Tag document
+   - Remove: decrement usage_count; delete if 0
+   - Replace: diff old vs new tags, apply upsert/remove
+
+2. **Tag display**:
+   - Timeline: entry cards show up to 2 tags with overflow +N
+   - Editor: colored pills with remove button, #hashtag autocomplete
+   - Filter panel: toggle buttons with OR/AND mode, colors from registry
+
+3. **Tag management** (TagManager modal):
+   - Browse all tags with usage_counts and colors
+   - Rename → PUT /tags/{name} (updates registry + all journal documents)
+   - Delete → DELETE /tags/{name} (removes registry + pulls from journals)
+   - Color → PATCH /tags/{name} { "color": "#e74c3c" }
+   - Cloud view: tags sized by usage_count
+
+4. **API endpoints**:
+   - GET  /tags?q=&limit=    — prefix search for autocomplete
+   - GET  /tags/all          — all tags with usage_count + color
+   - PUT  /tags/{name}       — rename tag (updates all journals)
+   - PATCH /tags/{name}      — update tag metadata (color)
+   - DELETE /tags/{name}     — delete tag (removes from all journals)
 ```
 
 ### Preferences Flow

@@ -10,6 +10,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Tag Registry (Phase 1)** — hybrid embedded+registry model:
+  - `Tag` Beanie document collection with compound index `(user_id, name)`
+  - Tag CRUD repository: upsert, remove, replace, list, get-all, rename, delete
+  - Tag sync on journal create/update/delete in `JournalFacade`
+  - `color` field on Tag model + `PATCH /tags/{name}` endpoint for color updates
+  - Tag normalization: lowercase, strip, dedup, `[\w\s-]` only, max 20 per journal, max 50 chars each
+  - Backend config: `max_tags_per_journal`, `max_tag_length`
+- **Tag Filtering (Phase 2)** — `GET /journals?tags=growth&tags=personal`:
+  - Backend: `tag_mode` query param (`or`/`and`) — `$in` vs `$all` MongoDB operator
+  - Frontend: OR/AND toggle in filter panel
+- **Frontend Tag Autocomplete (Phase 3)**:
+  - `useAllTags()` hook fetching `/tags/all` with 60s staleTime
+  - Server-backed `allTags` merge (server → entries → local unsynced)
+  - `#hashtag` regex extended to support hyphens: `#([\w-]+)`
+  - Case-insensitive `addTagDirect` and `isEntrySynced` fixes
+  - Autocomplete dropdown on the explicit `+` tag input with keyboard navigation
+- **Tag Management UI (Phase 4.1)**:
+  - `TagManager` modal: browse, rename, delete tags with usage counts
+  - Color picker with 10 presets per tag
+  - Tag cloud toggle (font-size proportional to `usage_count`)
+- **Tag Colors (Phase 5.2)**:
+  - Color propagation to timeline cards, editor tag pills, and filter buttons
+  - `tagColorMap` passed through JournalView → JournalTimeline/JournalPage
+- **Tag E2E Tests** — 11 new tests covering list, prefix search, rename (with merge), delete, nonexistent tags
 - **WebSocket Chat Robustness (Phases 1-4)**:
   - Three-state message dedup with ack protocol to prevent duplicate LLM calls
   - `cancel` message type for non-destructive stop streaming
