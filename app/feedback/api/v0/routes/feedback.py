@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from pydantic import BaseModel, Field
@@ -15,6 +16,7 @@ from app.auth.db.models import User
 from app.auth.deps import get_current_user, get_current_admin_user
 from app.core.rate_limit import limiter
 from app.core.deps.settings import get_settings
+from app.journals.db.models import Journal
 
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
@@ -51,12 +53,17 @@ async def create_feedback(
     current_user: User = Depends(get_current_user),
 ) -> FeedbackResponse:
     settings = get_settings()
+    entry_count = await Journal.find({"user_id": str(current_user.id)}).count()
+    days_since_signup = (datetime.now(timezone.utc) - current_user.created_at).days if current_user.created_at else 0
+    context = body.context.model_dump()
+    context["entry_count"] = entry_count
+    context["days_since_signup"] = days_since_signup
     feedback = Feedback(
         user_id=str(current_user.id),
         variant=body.variant,
         trigger=body.trigger,
         answers=body.answers,
-        context=body.context.model_dump(),
+        context=context,
         questionnaire_version=body.questionnaire_version or QUESTIONNAIRE_VERSION,
         app_version=settings.app_version,
     )
