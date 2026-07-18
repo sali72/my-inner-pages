@@ -158,7 +158,15 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   // 2. Initialize Tiptap Editor with Collaboration Support
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        heading: false,
+        bulletList: false,
+        orderedList: false,
+        blockquote: false,
+        code: false,
+        codeBlock: false,
+        horizontalRule: false,
+      }),
       Collaboration.configure({
         document: ydoc,
         field: 'content',
