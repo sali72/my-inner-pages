@@ -34,7 +34,9 @@ class UserResponse(BaseModel):
     is_verified: bool = Field(..., description="Whether email is verified")
     created_at: datetime = Field(..., description="Account creation timestamp")
     last_login: Optional[datetime] = Field(None, description="Last login timestamp")
+    login_count: int = Field(default=0, description="Number of times user has logged in")
     preferences: Optional[UserPreferencesResponse] = Field(None, description="User preferences")
+    feedback_triggers: dict[str, bool] = Field(default_factory=dict, description="Feedback trigger seen flags")
     
     @classmethod
     def from_document(cls, user) -> "UserResponse":
@@ -55,7 +57,9 @@ class UserResponse(BaseModel):
             is_verified=user.is_verified,
             created_at=user.created_at,
             last_login=user.last_login,
-            preferences=prefs
+            login_count=user.login_count,
+            preferences=prefs,
+            feedback_triggers=user.feedback_triggers,
         )
 
 

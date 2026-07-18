@@ -20,6 +20,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from app.journals.api.v0.routes import journals as journals_router
 from app.journals.api.v0.routes import tags as tags_router
+from app.feedback.api.v0.routes import feedback as feedback_router
 
 # Configure logging
 configure_logging()
@@ -149,6 +150,7 @@ def create_app() -> FastAPI:
     app.include_router(chat_router.router, prefix="/api/v0")
     app.include_router(chat_rest_router.router, prefix="/api/v0")
     app.include_router(tags_router.router, prefix="/api/v0")
+    app.include_router(feedback_router.router, prefix="/api/v0")
 
     # Dev-only memory management routes
     if not settings.is_production:

@@ -26,10 +26,14 @@ class User(Document):
     # Preferences
     preferences: UserPreferences = Field(default_factory=UserPreferences)
     
+    # Feedback trigger flags (at most once per trigger)
+    feedback_triggers: dict[str, bool] = Field(default_factory=dict)
+    
     # Timestamps
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_login: Optional[datetime] = None
+    login_count: int = Field(default=0)
     
     class Settings:
         name = "users"
@@ -51,3 +55,4 @@ class User(Document):
     def update_last_login(self) -> None:
         """Update the last login timestamp."""
         self.last_login = datetime.now(timezone.utc)
+        self.login_count += 1
