@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Sparkles, MessageCircle, Settings, Cpu } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, Settings, Cpu, HeartHandshake } from 'lucide-react';
 import { ViewType } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -75,6 +75,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           ))}
         </nav>
+
+        <div className="absolute bottom-6 left-6 right-6">
+          <button
+            onClick={() => handleViewClick('feedback')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeView === 'feedback'
+                ? 'bg-accent-muted text-accent'
+                : 'text-muted hover:bg-accent-tint'
+            }`}
+          >
+            <HeartHandshake className="w-5 h-5" />
+            Help us improve
+          </button>
+        </div>
       </aside>
     </>
   );

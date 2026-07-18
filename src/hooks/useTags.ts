@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { api, tagListResponseSchema, tagResponseSchema, TagResponse } from '@utils/api';
+import { api, tagListResponseSchema, tagResponseSchema } from '@utils/api';
 
 const ALL_TAGS_KEY = ['tags', 'all'] as const;
 const JOURNALS_KEY = ['journals'] as const;

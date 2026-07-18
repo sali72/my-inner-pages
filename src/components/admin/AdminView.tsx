@@ -13,10 +13,12 @@ import {
   Globe, 
   Key, 
   Zap, 
-  Cpu
+  Cpu,
+  MessageSquare,
 } from 'lucide-react';
 import { api } from '@/utils/api';
 import { ConfirmModal } from '@components/journal';
+import { AdminFeedbackView } from '@components/feedback';
 
 interface LiteLLMParams {
   model: string;
@@ -49,6 +51,7 @@ interface DiagnosticsResponse {
 }
 
 export const AdminView: React.FC = () => {
+  const [adminTab, setAdminTab] = useState<'llm' | 'feedback'>('llm');
   const [providers, setProviders] = useState<ProviderConfig[]>([]);
   const [testResults, setTestResults] = useState<Record<string, ProviderTestResult>>({});
   const [loading, setLoading] = useState(true);
@@ -255,6 +258,31 @@ export const AdminView: React.FC = () => {
     <>
       <div className="max-w-4xl mx-auto p-4 pt-6 space-y-6">
         
+        {/* Admin Tabs */}
+        <div className="flex gap-1 bg-base rounded-lg p-1 border border-default w-fit">
+          <button
+            onClick={() => setAdminTab('llm')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              adminTab === 'llm' ? 'bg-surface text-primary shadow-sm' : 'text-secondary hover:text-primary'
+            }`}
+          >
+            <Cpu className="w-4 h-4" />
+            LLM Providers
+          </button>
+          <button
+            onClick={() => setAdminTab('feedback')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              adminTab === 'feedback' ? 'bg-surface text-primary shadow-sm' : 'text-secondary hover:text-primary'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            Feedback
+          </button>
+        </div>
+
+        {adminTab === 'feedback' && <AdminFeedbackView />}
+
+        {adminTab === 'llm' && <>
         {/* Header and Controls */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -553,6 +581,7 @@ export const AdminView: React.FC = () => {
             })
           )}
         </div>
+      </>}
       </div>
 
       <ConfirmModal

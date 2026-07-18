@@ -9,6 +9,9 @@ export interface User {
   email: string;
   emailVerified: boolean;
   role: string;
+  created_at?: string;
+  login_count?: number;
+  feedback_triggers?: Record<string, boolean>;
 }
 
 export interface AuthContextType {
@@ -81,6 +84,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             email: userData.email,
             emailVerified: userData.is_verified || false,
             role: userData.role || 'user',
+            created_at: userData.created_at,
+            login_count: userData.login_count ?? 0,
+            feedback_triggers: userData.feedback_triggers || {},
           });
           setIsAuthenticated(true);
         } else {
@@ -131,6 +137,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       email: userData.email,
       emailVerified: userData.is_verified || false,
       role: userData.role || 'user',
+      created_at: userData.created_at,
+      login_count: userData.login_count ?? 0,
+      feedback_triggers: userData.feedback_triggers || {},
     };
     
     setUser(newUser);

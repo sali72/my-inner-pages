@@ -30,7 +30,7 @@ export function useRouter() {
     const viewParam = currentParams.get('view');
     const activeViewVal = nextState.activeView !== undefined 
       ? nextState.activeView 
-      : ((viewParam === 'mirror' || viewParam === 'chat' || viewParam === 'settings' || viewParam === 'admin') ? viewParam as ViewType : 'journal');
+      : ((viewParam === 'mirror' || viewParam === 'chat' || viewParam === 'settings' || viewParam === 'admin' || viewParam === 'feedback') ? viewParam as ViewType : 'journal');
     
     const nextParams = new URLSearchParams();
     if (showAuthVal) {
@@ -81,7 +81,7 @@ export function useRouter() {
   const showAuth = params.get('auth') === 'true';
   const viewParam = params.get('view');
   const activeView: ViewType =
-    viewParam === 'mirror' || viewParam === 'chat' || viewParam === 'settings' || viewParam === 'admin'
+    viewParam === 'mirror' || viewParam === 'chat' || viewParam === 'settings' || viewParam === 'admin' || viewParam === 'feedback'
       ? viewParam
       : 'journal';
   const selectedEntryId = params.get('entry');

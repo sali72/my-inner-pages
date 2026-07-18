@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Edit2 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
-import { TagResponse } from '@utils/api';
 import { JournalTimeline } from './JournalTimeline';
 import { JournalPage } from './JournalPage';
 import { TagManager } from './TagManager';
