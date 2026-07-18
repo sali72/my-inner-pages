@@ -54,7 +54,10 @@ async def create_feedback(
 ) -> FeedbackResponse:
     settings = get_settings()
     entry_count = await Journal.find({"user_id": str(current_user.id)}).count()
-    days_since_signup = (datetime.now(timezone.utc) - current_user.created_at).days if current_user.created_at else 0
+    created_at = current_user.created_at
+    if created_at is not None and created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+    days_since_signup = (datetime.now(timezone.utc) - created_at).days if created_at else 0
     context = body.context.model_dump()
     context["entry_count"] = entry_count
     context["days_since_signup"] = days_since_signup
