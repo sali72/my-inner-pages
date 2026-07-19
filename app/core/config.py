@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     # JWT Configuration
     jwt_secret_key: str  # No default — must be set via JWT_SECRET_KEY env
     
+    # Sentry Configuration
+    sentry_dsn: str | None = None
+
     @property
     def is_production(self) -> bool:
         return self.environment.lower() == "production"

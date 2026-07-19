@@ -21,6 +21,17 @@ Python 3.11+ FastAPI server with MongoDB/Beanie, LangChain AI, JWT auth.
 - **DI:** Routes use `Depends(get_*)` — never instantiate services directly
 - **Route prefix:** `/api/v0` set in `main.py`
 
+## Error monitoring (Sentry)
+- DSN configured via `SENTRY_DSN` env var (optional — if empty, Sentry is a no-op)
+- Initialized in `app/main.py` via `app/core/error_monitoring.py`
+- `init_sentry()` with FastAPI/Starlette integrations, configurable `traces_sample_rate` and `profiles_sample_rate`
+- Tags every event with `container_id` (for blue/green debugging) and `hostname`
+- Global 5xx exception handler in `main.py` captures request context (method, URL, client IP, query string) to Sentry
+- MongoDB connection retry exhaustion sends a Sentry event before raising
+- Slow requests (>5s) are reported as Sentry warnings from `RequestLoggingMiddleware`
+- `capture_exception()` utility in `error_monitoring.py` for manual reporting of handled-but-worthy errors
+- Development: Sentry is disabled locally unless `SENTRY_DSN` is set; use `sentry-sdk`'s no-op behavior
+
 ## Key conventions
 - **Type hints:** mandatory on all function signatures
 - **Docstrings:** Google-style with Args/Returns/Raises

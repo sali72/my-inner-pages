@@ -26,6 +26,15 @@ from app.feedback.api.v0.routes import feedback as feedback_router
 configure_logging()
 logger = get_logger(__name__)
 
+# Initialize Sentry error monitoring
+from app.core.error_monitoring import init_sentry
+settings = get_settings()
+init_sentry(
+    dsn=settings.sentry_dsn,
+    environment=settings.environment,
+    release=settings.app_version,
+)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -65,6 +74,11 @@ async def lifespan(app: FastAPI):
                 await asyncio.sleep(delay)
     if last_exception:
         logger.error("database_connection_failed", error=str(last_exception))
+        from app.core.error_monitoring import capture_exception
+        capture_exception(
+            last_exception,
+            {"context": "database_connection_retry_exhausted", "attempts": max_retries},
+        )
         raise last_exception
 
     logger.info("database_connected", database=settings.database_name)
@@ -73,6 +87,12 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
+    import sentry_sdk
+    sentry_sdk.add_breadcrumb(
+        message="application_shutdown",
+        category="lifecycle",
+        level="info",
+    )
     client.close()
     logger.info("application_shutdown")
 
@@ -136,6 +156,15 @@ def create_app() -> FastAPI:
         if isinstance(exc, StarletteHTTPException):
             raise exc
         logger.error("unhandled_exception", error=str(exc), error_type=type(exc).__name__)
+        import sentry_sdk
+        sentry_sdk.set_context("request", {
+            "method": request.method,
+            "url": str(request.url),
+            "path": request.url.path,
+            "query": str(request.url.query),
+            "client_ip": request.client.host if request.client else None,
+        })
+        sentry_sdk.capture_exception(exc)
         from fastapi.responses import JSONResponse
         return JSONResponse(
             status_code=500,
