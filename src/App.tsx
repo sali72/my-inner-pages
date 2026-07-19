@@ -14,9 +14,11 @@ import { AdminView } from '@components/admin';
 import { FullSurvey, ShortSurvey } from '@components/feedback';
 import { Toaster } from 'sonner';
 import { useRouter } from '@hooks/useRouter';
+import { useBackendHealth } from '@hooks/useBackendHealth';
 
 const AppInner: React.FC = () => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  useBackendHealth();
   const { mode, accent, fontStyle, fontSize, resolvedMode,
     setMode, setAccent, setFontStyle, setFontSize, syncFromRemote, resetToDefaults } = useTheme();
   
