@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import { z } from 'zod';
+import * as Sentry from '@sentry/react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
 
@@ -20,38 +21,137 @@ class ApiError extends Error {
     }
 }
 
+let consecutiveFailures = 0;
+
 async function request<T>(
     endpoint: string,
     options: RequestInit,
     schema?: z.ZodType<T>,
 ): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers: { ...getAuthHeaders(), ...(options.headers as Record<string, string>) },
-    });
+    const startTime = performance.now();
 
-    if (!response.ok) {
-        let detail = response.statusText;
-        try {
-            const body = await response.json();
-            detail = body.detail ?? detail;
-        } catch {}
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            ...options,
+            headers: { ...getAuthHeaders(), ...(options.headers as Record<string, string>) },
+        });
 
-        if (response.status === 401) {
-            localStorage.removeItem('authToken');
-            window.dispatchEvent(new CustomEvent('auth:expired'));
-        } else if (response.status === 429) {
-            toast.error('Too many requests — please slow down');
+        const duration = performance.now() - startTime;
+        const isAuth = !!localStorage.getItem('authToken');
+
+        if (!response.ok) {
+            consecutiveFailures++;
+
+            let detail = response.statusText;
+            try {
+                const body = await response.json();
+                detail = body.detail ?? detail;
+            } catch {}
+
+            if (response.status === 401) {
+                Sentry.addBreadcrumb({
+                    category: 'auth',
+                    message: 'Auth token expired',
+                    level: 'warning',
+                    data: { endpoint, duration_ms: Math.round(duration) },
+                });
+                localStorage.removeItem('authToken');
+                window.dispatchEvent(new CustomEvent('auth:expired'));
+            } else if (response.status === 429) {
+                toast.error('Too many requests — please slow down');
+            }
+
+            if (response.status >= 500) {
+                Sentry.captureEvent({
+                    message: `Backend 5xx: ${response.status} ${endpoint}`,
+                    level: 'error',
+                    tags: {
+                        endpoint,
+                        method: options.method || 'GET',
+                        status_code: String(response.status),
+                    },
+                    extra: {
+                        detail,
+                        duration_ms: Math.round(duration),
+                        consecutive_failures: consecutiveFailures,
+                        is_authenticated: isAuth,
+                    },
+                });
+            }
+
+            if (consecutiveFailures >= 3) {
+                Sentry.captureEvent({
+                    message: `Backend unreachable: ${consecutiveFailures} consecutive failures on ${endpoint}`,
+                    level: 'error',
+                    tags: {
+                        endpoint,
+                        method: options.method || 'GET',
+                        status_code: String(response.status),
+                    },
+                    extra: {
+                        consecutive_failures: consecutiveFailures,
+                        duration_ms: Math.round(duration),
+                        is_authenticated: isAuth,
+                    },
+                });
+            }
+
+            throw new ApiError(detail, response.status);
         }
 
-        throw new ApiError(detail, response.status);
-    }
+        consecutiveFailures = 0;
 
-    const data = await response.json();
-    if (schema) {
-        return schema.parse(data);
+        if (duration > 5000) {
+            Sentry.addBreadcrumb({
+                category: 'performance',
+                message: `Slow response: ${endpoint} (${Math.round(duration)}ms)`,
+                level: 'warning',
+                data: { endpoint, duration_ms: Math.round(duration) },
+            });
+        }
+
+        const data = await response.json();
+        if (schema) {
+            return schema.parse(data);
+        }
+        return data as T;
+    } catch (error) {
+        const duration = performance.now() - startTime;
+
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+            consecutiveFailures++;
+            Sentry.captureEvent({
+                message: `Network error fetching ${endpoint}`,
+                level: 'error',
+                tags: {
+                    endpoint,
+                    method: options.method || 'GET',
+                    error_type: 'network',
+                },
+                extra: {
+                    duration_ms: Math.round(duration),
+                    consecutive_failures: consecutiveFailures,
+                    is_authenticated: !!localStorage.getItem('authToken'),
+                    api_base_url: API_BASE_URL,
+                },
+            });
+
+            if (consecutiveFailures >= 3) {
+                Sentry.captureEvent({
+                    message: `Backend down: ${consecutiveFailures} consecutive network failures`,
+                    level: 'fatal',
+                    tags: { endpoint },
+                    extra: { consecutive_failures: consecutiveFailures },
+                });
+            }
+        }
+
+        if (!(error instanceof ApiError)) {
+            consecutiveFailures++;
+        }
+
+        throw error;
     }
-    return data as T;
 }
 
 export const api = {

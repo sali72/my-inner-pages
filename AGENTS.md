@@ -23,6 +23,19 @@ React 18 SPA with TypeScript, Vite, Tailwind CSS, TanStack Query, Playwright.
 - **Offline/Sync:** Keystrokes are instantly persisted locally to IndexedDB via Yjs + `y-indexeddb` per journal entry, making the local document the source of truth. Unsynced changes (including offline-created drafts starting with `draft-`) are written to `localStorage` and synced to the backend in the background by `App.tsx` when online, using dynamic ID migration to map drafts to MongoDB ObjectIds.
 - **Barrel exports:** each component directory has `index.ts`
 
+## Error monitoring (Sentry)
+- DSN configured via `VITE_SENTRY_DSN` env var (optional — if empty, Sentry is a no-op)
+- Initialized in `main.tsx` with `browserTracingIntegration` and `replayIntegration`
+- `Sentry.ErrorBoundary` wraps the app root with a fallback UI and automatic error reporting
+- `useBackendHealth` hook in `src/hooks/useBackendHealth.ts` — polls `/health` every 60s with exponential backoff, reports healthy→unhealthy/critical transitions to Sentry
+- `src/utils/api.ts` enhanced with Sentry event capture on:
+  - **Network errors** (`TypeError: Failed to fetch`) — tagged as `error_type: network` with full context
+  - **5xx responses** — tagged with endpoint, status code, method
+  - **3+ consecutive failures** — triggers a `backend_unreachable` event
+  - **Slow responses** (>5s) — breadcrumb added
+- WebSocket (`useWebSocketConnection.ts`) adds Sentry breadcrumbs on connect, reconnect, close, and error events
+- All events tagged with `endpoint`, `status_code`, `consecutive_failures`, `is_authenticated`
+
 ## UX principles
 - **Mobile-first:** design for phone screens first, then enhance for desktop
 

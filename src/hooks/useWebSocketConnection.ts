@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react';
+import * as Sentry from '@sentry/react';
 import type { WSServerMessage } from '@/types/chat';
 import { isTokenExpired } from './chatHelpers';
 
@@ -103,12 +104,31 @@ export function useWebSocketConnection() {
 
     ws.onopen = () => {
       reconnectAttemptRef.current = 0;
+      const wasReconnect = isReconnect;
+      Sentry.addBreadcrumb({
+        category: 'websocket',
+        message: wasReconnect ? 'WebSocket reconnected' : 'WebSocket connected',
+        level: 'info',
+        data: { chat_id: targetChatId, is_reconnect: wasReconnect },
+      });
       onStatusRef.current({ type: 'connected' });
     };
 
     ws.onclose = (event) => {
       wsRef.current = null;
       onStatusRef.current({ type: 'disconnected', code: event.code });
+
+      Sentry.addBreadcrumb({
+        category: 'websocket',
+        message: `WebSocket closed: code ${event.code}`,
+        level: event.code === 1000 ? 'info' : 'warning',
+        data: {
+          code: event.code,
+          reason: event.reason,
+          chat_id: targetChatId,
+          reconnect_attempt: reconnectAttemptRef.current,
+        },
+      });
 
       if (event.code === 4001) return;
 
@@ -125,7 +145,14 @@ export function useWebSocketConnection() {
       scheduleRef.current();
     };
 
-    ws.onerror = () => {};
+    ws.onerror = () => {
+      Sentry.addBreadcrumb({
+        category: 'websocket',
+        message: 'WebSocket error',
+        level: 'error',
+        data: { chat_id: targetChatId },
+      });
+    };
 
     ws.onmessage = (event) => {
       try {
