@@ -57,12 +57,14 @@ jobs:
         env:
           VITE_API_URL: https://innerpages.ir/api/v0
           VITE_WS_URL: wss://innerpages.ir/api/v0
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
         run: |
           SHA=${{ github.sha }}
           echo "Building frontend image..."
           docker build \
             --build-arg VITE_API_URL=$VITE_API_URL \
             --build-arg VITE_WS_URL=$VITE_WS_URL \
+            --build-arg VITE_SENTRY_DSN=$VITE_SENTRY_DSN \
             -t my-inner-pages-frontend:$SHA \
             -t my-inner-pages-frontend \
             ./frontend
