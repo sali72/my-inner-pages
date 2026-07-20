@@ -50,6 +50,14 @@ React 18 SPA with TypeScript, Vite, Tailwind CSS, TanStack Query, Playwright.
 - Workers: 1, retries: 1, traces on first retry
 - Helpers in `e2e/fixtures.ts`: `createUser()`, `loginAsUser()`
 
+## Adding a new environment variable
+
+To add a new `VITE_*` env var, update these 3 places:
+
+1. **`frontend/.env.example`** — document the default
+2. **`frontend/Dockerfile`** — add `ARG` + `ENV` line (with a sensible default so local Docker builds still work)
+3. **`.github/workflows/deploy-vps.yml`** — add to the `env:` block and as a `--build-arg` in the `docker build` command. If the value is sensitive, reference a GitHub secret.
+
 ## Boundaries
 - Do NOT add react-router — conditional rendering pattern is intentional
 - Do NOT use test IDs in E2E tests — use user-visible selectors

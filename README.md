@@ -29,11 +29,22 @@ src/
 └── utils/             # Helpers (theme, errorHandler, fonts, textDirection, api)
 ```
 
-## Configuration (.env)
+## Configuration (Environment Variables)
 
-```env
-VITE_API_URL=http://localhost:8000/api/v0
-```
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_URL` | `http://localhost:8000/api/v0` | Backend API base URL |
+| `VITE_WS_URL` | `ws://localhost:8000/api/v0` | WebSocket endpoint |
+| `VITE_SENTRY_DSN` | *(empty)* | Sentry DSN for error monitoring (optional) |
+| `VITE_ENV` | `development` | Environment label (`development`, `production`) |
+| `VITE_APP_VERSION` | `0.1.0` | App version label |
+
+For local dev, create `frontend/.env` (see `.env.example`). For production, new vars must be added to:
+1. `frontend/Dockerfile` — as `ARG` + `ENV`
+2. `.github/workflows/deploy-vps.yml` — in the `env:` block and `--build-arg`
+3. GitHub repo Secrets if the value is sensitive
+
+To add a new variable in production (e.g. `VITE_SENTRY_DSN`), you must also create a corresponding secret in **GitHub → Settings → Secrets and variables → Actions** with the same name.
 
 ## Features
 
