@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 from beanie import PydanticObjectId
+from pydantic import ValidationError
 from pymongo.errors import PyMongoError
 
 from app.chat.db.models import Chat, ChatMessage
@@ -59,15 +60,30 @@ class ChatRepository:
         limit: int = 50,
     ) -> list[Chat]:
         try:
-            return await self.model.find(
-                {"user_id": user_id}
-            ).sort("-updated_at").skip(skip).limit(limit).to_list()
+            collection = self.model.get_motor_collection()
+            cursor = collection.find({"user_id": user_id}).sort(
+                "updated_at", -1
+            ).skip(skip).limit(limit)
+            raw_docs = await cursor.to_list()
         except PyMongoError as e:
             logger.error("chat_list_failed", error=str(e), user_id=user_id)
             raise RepositoryException(
                 f"Failed to list chats: {str(e)}",
                 details={"user_id": user_id, "error": str(e)},
             )
+
+        chats: list[Chat] = []
+        for doc in raw_docs:
+            try:
+                chats.append(self.model.model_validate(doc))
+            except ValidationError as e:
+                logger.warning(
+                    "skipping_invalid_chat",
+                    chat_id=str(doc.get("_id")),
+                    error=str(e),
+                    user_id=user_id,
+                )
+        return chats
 
     async def count_by_user(
         self,

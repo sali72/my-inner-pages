@@ -100,7 +100,8 @@ class TestChatTitleGeneration:
 
     def test_truncates_long_content(self):
         title = self.service._generate_title("a" * 30)
-        assert title == "a" * 20 + "..."
+        assert len(title) <= 20
+        assert title == "a" * 17 + "..."
         assert title.endswith("...")
 
     def test_replaces_newlines_with_spaces(self):
@@ -118,7 +119,8 @@ class TestChatTitleGeneration:
 
     def test_content_one_over_boundary(self):
         title = self.service._generate_title("a" * 21)
-        assert title == "a" * 20 + "..."
+        assert len(title) <= 20
+        assert title == "a" * 17 + "..."
         assert title.endswith("...")
 
     def test_strips_whitespace(self):

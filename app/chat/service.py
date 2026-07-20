@@ -25,9 +25,11 @@ class ChatPersistenceService:
 
     def _generate_title(self, content: str) -> str:
         max_len = self.config.max_title_length
-        title = content.strip().replace("\n", " ")[:max_len]
-        if len(content) > max_len:
-            title = title.rstrip() + "..."
+        cleaned = content.strip().replace("\n", " ")
+        if len(cleaned) > max_len:
+            title = cleaned[:max_len - 3].rstrip() + "..."
+        else:
+            title = cleaned[:max_len]
         return title if title else "New chat"
 
     async def create_chat(
@@ -133,7 +135,8 @@ class ChatPersistenceService:
         title: str,
     ) -> Optional[Chat]:
         obj_id = PydanticObjectId(chat_id)
-        return await self.repository.update_title(obj_id, user_id, title)
+        truncated = title[:self.config.max_title_length]
+        return await self.repository.update_title(obj_id, user_id, truncated)
 
     async def delete_chat(
         self,
