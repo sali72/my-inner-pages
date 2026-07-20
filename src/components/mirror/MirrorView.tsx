@@ -7,11 +7,13 @@ import { api } from '@/utils/api';
 interface MirrorViewProps {
   isDark: boolean;
   onStartChat?: (reflection: string, mode: string) => void;
+  reflections: Record<MirrorMode, MirrorReflection | null>;
+  onReflectionChange: (mode: MirrorMode, reflection: MirrorReflection | null) => void;
 }
 
-export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat }) => {
-  const [reflection, setReflection] = useState<MirrorReflection | null>(null);
+export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat, reflections, onReflectionChange }) => {
   const [selectedMode, setSelectedMode] = useState<MirrorMode>('emotional');
+  const reflection = reflections[selectedMode];
   const [loading, setLoading] = useState(false);
   const [isRevealing, setIsRevealing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -35,18 +37,18 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat }) =
   const generateReflection = async () => {
     setLoading(true);
     setIsRevealing(true);
-    setReflection(null);
+    onReflectionChange(selectedMode, null);
     modeAtRequestRef.current = selectedMode;
 
     try {
       const data = await api.get<MirrorReflection>(`/mirror/reflection?mode=${selectedMode}`);
       if (!mountedRef.current || modeAtRequestRef.current !== selectedMode) return;
-      setReflection(data);
+      onReflectionChange(selectedMode, data);
       revealTimeoutRef.current = setTimeout(() => setSafeIsRevealing(false), 500);
     } catch (err) {
       if (!mountedRef.current) return;
       console.error('Error generating reflection:', err);
-      setReflection({
+      onReflectionChange(selectedMode, {
         reflection: 'Unable to generate reflection at this moment. Please try again.',
         mode: modeAtRequestRef.current,
         available_modes: ['emotional', 'cognitive', 'behavioral', 'relational'],
@@ -85,7 +87,6 @@ export const MirrorView: React.FC<MirrorViewProps> = ({ isDark, onStartChat }) =
                 key={mode}
                 onClick={() => {
                   setSelectedMode(mode);
-                  setReflection(null);
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
                   isActive

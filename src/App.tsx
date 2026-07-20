@@ -8,6 +8,7 @@ import { AuthContainer } from '@components/auth';
 import { Header, Sidebar } from '@components/layout';
 import { JournalView, ConfirmModal } from '@components/journal';
 import { MirrorView } from '@components/mirror';
+import { MirrorReflection, MirrorMode } from '@/types/mirror';
 import { ChatView } from '@components/chat';
 import { SettingsView } from '@components/settings';
 import { AdminView } from '@components/admin';
@@ -29,6 +30,15 @@ const AppInner: React.FC = () => {
   const [chatHistoryOpen, setChatHistoryOpen] = useState(false);
   const [chatInitialMessage, setChatInitialMessage] = useState<string | null>(null);
   const [chatContext, setChatContext] = useState<{ type: 'journal'; title: string } | { type: 'mirror'; mode: string } | null>(null);
+  const [mirrorReflections, setMirrorReflections] = useState<Record<MirrorMode, MirrorReflection | null>>({
+    emotional: null,
+    cognitive: null,
+    behavioral: null,
+    relational: null,
+  });
+  const handleMirrorReflectionChange = useCallback((mode: MirrorMode, reflection: MirrorReflection | null) => {
+    setMirrorReflections(prev => ({ ...prev, [mode]: reflection }));
+  }, []);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [shortSurveyTrigger, setShortSurveyTrigger] = useState<'session_nudge' | 'exit_intent' | null>(null);
   const sessionEntryCount = useRef(0);
@@ -276,7 +286,7 @@ const AppInner: React.FC = () => {
           />
         ) : null}
 
-        {activeView === 'mirror' && <MirrorView isDark={isDark} onStartChat={handleStartChatFromMirror} />}
+        {activeView === 'mirror' && <MirrorView isDark={isDark} onStartChat={handleStartChatFromMirror} reflections={mirrorReflections} onReflectionChange={handleMirrorReflectionChange} />}
 
         <div className={activeView === 'chat' ? '' : 'hidden'}>
           <ChatView
