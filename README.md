@@ -61,10 +61,22 @@ USE_MOCK_LLM=true              # fake responses, no deps needed
 
 See `.env.example` for all options.
 
+## Email Service (Resend)
+
+Verification and transactional emails are sent via [Resend](https://resend.com) from `support@innerpages.ir`.
+
+### Setup
+1. Create a Resend account and verify your domain (`innerpages.ir`)
+2. Set `RESEND_API_KEY=re_your-api-key` in `.env`
+3. Emails from `support@innerpages.ir` are automatically configured with Resend's DKIM/SPF
+
+### Disable verification for testing
+Set `EMAIL_VERIFICATION_REQUIRED=false` in `.env` to skip email verification and auto-verify users on registration.
+
 ## API Endpoints
 
 ### REST
-- **Auth** (`/api/v0/auth`) — register, login, me, verify
+- **Auth** (`/api/v0/auth`) — register, login, me, verify, verify-email, resend-verification
 - **Journals** (`/api/v0/journals`) — CRUD (JWT required)
   - `GET /journals?tags=growth&tags=personal&tag_mode=and` — filter by tags (OR/AND)
 - **Tags** (`/api/v0/tags`) — tag registry management (JWT required)

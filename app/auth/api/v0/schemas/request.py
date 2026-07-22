@@ -73,6 +73,26 @@ class LoginRequest(BaseModel):
         return v.lower().strip()
 
 
+class ResendVerificationRequest(BaseModel):
+    """Request schema for resending verification email."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "user@example.com"
+            }
+        }
+    )
+
+    email: EmailStr = Field(..., description="User email address")
+
+    @field_validator("email")
+    @classmethod
+    def lowercase_email(cls, v: str) -> str:
+        """Convert email to lowercase."""
+        return v.lower().strip()
+
+
 class ResetPasswordRequest(BaseModel):
     """Request schema for password reset."""
     

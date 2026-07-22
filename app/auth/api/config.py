@@ -11,5 +11,7 @@ class AuthRoutes:
     LOGIN: Final[str] = "/login"
     ME: Final[str] = "/me"
     VERIFY: Final[str] = "/verify"
+    VERIFY_EMAIL: Final[str] = "/verify-email/{token}"
+    RESEND_VERIFICATION: Final[str] = "/resend-verification"
     RESET_PASSWORD: Final[str] = "/reset-password"
     PREFERENCES: Final[str] = "/me/preferences"

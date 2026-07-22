@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional
-from beanie import Document
+from beanie import Document, Indexed
 from pydantic import BaseModel, Field, EmailStr
 
 
@@ -23,6 +23,10 @@ class User(Document):
     is_active: bool = Field(default=True)
     is_verified: bool = Field(default=False)
     
+    # Email verification
+    verification_token: Optional[str] = Field(default=None)
+    verification_token_expires_at: Optional[datetime] = Field(default=None)
+
     # Preferences
     preferences: UserPreferences = Field(default_factory=UserPreferences)
     
@@ -40,6 +44,7 @@ class User(Document):
         indexes = [
             "email",
             "created_at",
+            "verification_token",
             [("email", 1)],
         ]
     

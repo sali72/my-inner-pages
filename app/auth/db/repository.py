@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from beanie import PydanticObjectId
 from pymongo.errors import PyMongoError, DuplicateKeyError
@@ -134,3 +135,49 @@ class UserRepository:
     ) -> bool:
         user = await self.find_by_email(email)
         return user is not None
+
+    async def store_verification_token(
+        self,
+        user_id: PydanticObjectId,
+        expires_in_hours: int = 24,
+    ) -> tuple[str, User]:
+        user = await self.find_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        token = secrets.token_urlsafe(32)
+        await user.set({
+            "verification_token": token,
+            "verification_token_expires_at": datetime.now(timezone.utc) + timedelta(hours=expires_in_hours),
+            "updated_at": datetime.now(timezone.utc),
+        })
+        return token, user
+
+    async def find_by_verification_token(
+        self,
+        token: str,
+    ) -> Optional[User]:
+        try:
+            return await self.model.find_one({"verification_token": token})
+        except PyMongoError as e:
+            logger.error("user_find_by_token_failed", error=str(e))
+            raise RepositoryException(
+                f"Failed to find user by verification token: {str(e)}",
+                details={"error": str(e)}
+            )
+
+    async def clear_verification_token(
+        self,
+        user_id: PydanticObjectId,
+    ) -> Optional[User]:
+        user = await self.find_by_id(user_id)
+        if not user:
+            return None
+
+        await user.set({
+            "verification_token": None,
+            "verification_token_expires_at": None,
+            "is_verified": True,
+            "updated_at": datetime.now(timezone.utc),
+        })
+        return user

@@ -35,6 +35,13 @@ class Settings(BaseSettings):
     # JWT Configuration
     jwt_secret_key: str  # No default — must be set via JWT_SECRET_KEY env
     
+    # Resend Configuration
+    resend_api_key: str | None = None
+
+    # Email Configuration
+    from_email: str = "support@innerpages.ir"
+    verification_url_base: str = "http://localhost:5173?verify="
+
     # Sentry Configuration
     sentry_dsn: str | None = None
 

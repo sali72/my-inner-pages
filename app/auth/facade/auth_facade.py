@@ -9,6 +9,7 @@ from app.auth.db.models import User
 from app.auth.db.repository import UserRepository
 from app.core.exceptions import DuplicateDocumentException, RepositoryException
 from app.core.logging import get_logger
+from app.core.services.email_service import EmailService
 from app.core.services.jwt_service import JWTService
 from app.core.services.password_service import PasswordService
 
@@ -18,7 +19,7 @@ logger = get_logger(__name__)
 class AuthFacade:
     """
     Facade for authentication business logic and orchestration.
-    Coordinates between repository, JWT service, and password service.
+    Coordinates between repository, JWT service, password service, and email service.
     """
 
     def __init__(
@@ -26,11 +27,13 @@ class AuthFacade:
         repository: UserRepository,
         jwt_service: JWTService,
         password_service: PasswordService,
+        email_service: EmailService,
         config: AuthModuleConfig,
     ):
         self.repository = repository
         self.jwt_service = jwt_service
         self.password_service = password_service
+        self.email_service = email_service
         self.config = config
 
     async def register(self, email: str, password: str) -> User:
@@ -63,6 +66,15 @@ class AuthFacade:
             user = await self.repository.create(
                 email=email.lower(), hashed_password=hashed_password
             )
+
+            if self.config.email_verification_required:
+                token, _ = await self.repository.store_verification_token(
+                    user.id,
+                    expires_in_hours=self.config.verification_token_expire_hours,
+                )
+                self.email_service.send_verification_email(email, token)
+            else:
+                await self.repository.clear_verification_token(user.id)
 
             logger.info("user_registered", user_id=str(user.id), email=email)
             return user
@@ -191,6 +203,58 @@ class AuthFacade:
             raise ValueError("Failed to update preferences")
 
         return updated
+
+    async def verify_email(self, token: str) -> User:
+        """
+        Verify a user's email address using a verification token.
+
+        Args:
+            token: Verification token
+
+        Returns:
+            Verified user
+
+        Raises:
+            ValueError: If token is invalid or expired
+        """
+        user = await self.repository.find_by_verification_token(token)
+        if not user:
+            raise ValueError("Invalid verification token")
+
+        if user.verification_token_expires_at and user.verification_token_expires_at < datetime.now(timezone.utc):
+            raise ValueError("Verification token has expired")
+
+        updated = await self.repository.clear_verification_token(user.id)
+        if not updated:
+            raise ValueError("Failed to verify email")
+
+        logger.info("email_verified", user_id=str(user.id), email=user.email)
+        return updated
+
+    async def resend_verification(self, email: str) -> None:
+        """
+        Resend verification email.
+
+        Args:
+            email: User email address
+
+        Raises:
+            ValueError: If user not found or already verified
+        """
+        user = await self.repository.find_by_email(email)
+        if not user:
+            raise ValueError("No account found with this email")
+
+        if user.is_verified:
+            raise ValueError("Email is already verified")
+
+        token, _ = await self.repository.store_verification_token(
+            user.id,
+            expires_in_hours=self.config.verification_token_expire_hours,
+        )
+        self.email_service.send_verification_email(email, token)
+
+        logger.info("verification_resent", user_id=str(user.id), email=email)
 
     async def reset_password(self, email: str) -> bool:
         """

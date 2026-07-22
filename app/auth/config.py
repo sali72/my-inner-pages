@@ -14,3 +14,7 @@ class AuthModuleConfig(BaseModel):
     
     # Email settings
     max_email_length: int = 255
+
+    # Email verification
+    email_verification_required: bool = True
+    verification_token_expire_hours: int = 24

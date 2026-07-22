@@ -32,6 +32,15 @@ Python 3.11+ FastAPI server with MongoDB/Beanie, LangChain AI, JWT auth.
 - `capture_exception()` utility in `error_monitoring.py` for manual reporting of handled-but-worthy errors
 - Development: Sentry is disabled locally unless `SENTRY_DSN` is set; use `sentry-sdk`'s no-op behavior
 
+## Email verification
+- Implemented via Resend SDK (`resend` PyPI package)
+- `EmailService` in `app/core/services/email_service.py` wraps `resend.Emails.send()`
+- Verification tokens are 32-byte URL-safe random strings, stored on the `User` document
+- Token expiry configurable via `AuthModuleConfig.verification_token_expire_hours` (default: 24h)
+- Set `EMAIL_VERIFICATION_REQUIRED=false` in `.env` to skip verification in dev/test (auto-verifies on register)
+- `FROM_EMAIL` defaults to `support@innerpages.ir` — change via `.env`
+- `VERIFICATION_URL_BASE` controls the link in the email (default: `http://localhost:5173?verify=`)
+
 ## Key conventions
 - **Type hints:** mandatory on all function signatures
 - **Docstrings:** Google-style with Args/Returns/Raises
@@ -39,6 +48,7 @@ Python 3.11+ FastAPI server with MongoDB/Beanie, LangChain AI, JWT auth.
 - **Responses:** Pydantic schemas with `from_document()` classmethod
 - **Errors:** facades raise `ValueError`; routes catch → `HTTPException`
 - **Imports:** stdlib → third-party → local (absolute from `app.`)
+- **Email service:** `EmailService` is injected via DI (like `JWTService`) — configured in `core/deps/services.py`, used through `AuthFacade`
 - **Testing:** async tests (`@pytest.mark.asyncio`), fresh test DB per test, mock LLM enforced
 - **Routes are glue:** authenticate, validate, call a facade/service, translate errors — no business logic, no orchestration
 - **Facade vs Service:** a *facade* owns business logic (orchestration + domain rules); a *service* holds reusable functionality that is not specific to a single business flow (helpers, cross-cutting concerns). If it orchestrates multiple steps or enforces domain rules, it belongs in a facade.

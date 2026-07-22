@@ -5,9 +5,10 @@ from app.auth.facade.auth_facade import AuthFacade
 from app.auth.db.repository import UserRepository
 from app.auth.db.models import User
 from app.auth.config import AuthModuleConfig
+from app.core.services.email_service import EmailService
 from app.core.services.jwt_service import JWTService
 from app.core.services.password_service import PasswordService
-from app.core.deps.services import get_jwt_service, get_password_service
+from app.core.deps.services import get_email_service, get_jwt_service, get_password_service
 
 
 security = HTTPBearer()
@@ -27,6 +28,7 @@ def get_auth_facade(
     repository: UserRepository = Depends(get_user_repository),
     jwt_service: JWTService = Depends(get_jwt_service),
     password_service: PasswordService = Depends(get_password_service),
+    email_service: EmailService = Depends(get_email_service),
     config: AuthModuleConfig = Depends(get_auth_config)
 ) -> AuthFacade:
     """Get auth facade with all dependencies injected."""
@@ -34,6 +36,7 @@ def get_auth_facade(
         repository=repository,
         jwt_service=jwt_service,
         password_service=password_service,
+        email_service=email_service,
         config=config
     )
 

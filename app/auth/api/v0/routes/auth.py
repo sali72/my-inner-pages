@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Request
 
-from app.auth.api.v0.schemas.request import RegisterRequest, LoginRequest, ResetPasswordRequest, UpdatePreferencesRequest
+from app.auth.api.v0.schemas.request import RegisterRequest, LoginRequest, ResendVerificationRequest, ResetPasswordRequest, UpdatePreferencesRequest
 from app.auth.api.v0.schemas.response import (
     UserResponse,
     LoginResponse,
@@ -111,6 +111,60 @@ async def get_current_user_info(
     return UserResponse.from_document(current_user)
 
 
+@router.get(
+    AuthRoutes.VERIFY_EMAIL,
+    response_model=MessageResponse,
+    summary="Verify email address"
+)
+async def verify_email(
+    token: str,
+    facade: AuthFacade = Depends(get_auth_facade)
+) -> MessageResponse:
+    """
+    Verify email address using verification token.
+
+    - **token**: Verification token sent to user's email
+    """
+    try:
+        await facade.verify_email(token)
+        return MessageResponse(
+            message="Email verified successfully"
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post(
+    AuthRoutes.RESEND_VERIFICATION,
+    response_model=MessageResponse,
+    summary="Resend verification email"
+)
+@limiter.limit("3/minute")
+async def resend_verification(
+    request: Request,
+    resend_request: ResendVerificationRequest,
+    facade: AuthFacade = Depends(get_auth_facade)
+) -> MessageResponse:
+    """
+    Resend email verification link.
+
+    - **email**: User email address
+    """
+    try:
+        await facade.resend_verification(resend_request.email)
+        return MessageResponse(
+            message="Verification email sent"
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
 @router.post(
     AuthRoutes.RESET_PASSWORD,
     response_model=MessageResponse,
@@ -124,13 +178,13 @@ async def reset_password(
 ) -> MessageResponse:
     """
     Request password reset email.
-    
+
     - **email**: User email address
-    
+
     Note: Always returns success to prevent email enumeration.
     """
     await facade.reset_password(reset_request.email)
-    
+
     return MessageResponse(
         message="If an account with this email exists, a password reset link has been sent."
     )
