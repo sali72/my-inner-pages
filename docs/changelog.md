@@ -111,6 +111,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **APP_VERSION auto-set from git tag** — Makefile passes `GIT_TAG` to backend; CI injects via `-e APP_VERSION=$GIT_TAG`; no hardcoded fallback in docker-compose
 - **Sidebar reorganization** — renamed "LLM Admin" to "Admin" (Shield icon), moved Settings + Admin below a separator, kept Help us improve at the bottom
 
+### Tests & Code Quality
+- **Backend auth tests expanded:** from 20 → 43 tests covering:
+  - Login: non-existent email, Google-only account rejection (401)
+  - Register: duplicate email (400), short password (422), mismatched passwords (400)
+  - Token verify: expired JWT (401), tampered JWT (401), deleted user (401)
+  - Get me: deactivated user (403)
+  - Preferences: invalid mode/accent/fontSize (422), extra field ignored
+  - New `test_logout.py`: valid token clears cookies, without token succeeds, auth state cleared
+  - New `test_google_oauth.py`: mock service tests for redirect, invalid state, new user creation, existing email linking, returning user
+- **Fixed docstring mismatches:** `test_verify_token_invalid` and `test_get_current_user_without_auth` said "returns 403" but assert 401 (correct)
+- **Fixed frontend E2E fixture cookie paths:** `loginAsUser()` sets `access_token` with `path='/api/v0'` and `session_exists` with value `'1'` (matches backend)
+- **Fixed frontend logout test:** added `toBeVisible()` assertion on confirm dialog before clicking (race condition fix)
+- **Added frontend E2E tests:** invalid credentials error, session persistence on reload, Google Sign-In button presence, Forgot Password link, empty field validation, invalid email validation
+- **Fixed pre-existing TS errors:** removed unused `isCurrentAuthSession` import in `ThemeContext.tsx`; replaced `session.token` check with `session.generation === 0` in `useJournalEntries.ts`
+
 ### Infrastructure
 - Added `redis:7.4-alpine` to `docker-compose.yml` and `docker-compose.prod.yml`.
 
