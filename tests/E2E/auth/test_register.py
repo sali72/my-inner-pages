@@ -1,7 +1,7 @@
 """
 E2E tests for user registration.
 
-Tests the happy path for the POST /api/v0/auth/register endpoint.
+Tests the POST /api/v0/auth/register endpoint.
 """
 
 import pytest
@@ -108,3 +108,81 @@ async def test_register_user_email_normalization(client: AsyncClient):
     
     assert db_user is not None
     assert db_user.email == "testuser@example.com"
+
+
+@pytest.mark.asyncio
+async def test_register_duplicate_email(client: AsyncClient):
+    """
+    Test that registering with an already-taken email returns 400.
+    
+    Args:
+        client: HTTP client without authentication
+    """
+    # Arrange: Create first user
+    data = {
+        "email": "dupe@example.com",
+        "password": "SecurePass123!",
+        "confirm_password": "SecurePass123!"
+    }
+    response = await client.post(f"{AUTH_PREFIX}{AuthRoutes.REGISTER}", json=data)
+    assert response.status_code == 201
+    
+    # Act: Register again with same email
+    response = await client.post(f"{AUTH_PREFIX}{AuthRoutes.REGISTER}", json=data)
+    
+    # Assert: Should reject duplicate
+    assert response.status_code == 400
+    data = response.json()
+    assert "detail" in data
+    assert "already exists" in data["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_register_short_password(client: AsyncClient):
+    """
+    Test that a password shorter than 8 characters is rejected with 422.
+    
+    Args:
+        client: HTTP client without authentication
+    """
+    # Arrange: Too-short password
+    data = {
+        "email": "shortpass@example.com",
+        "password": "Ab1$",
+        "confirm_password": "Ab1$"
+    }
+    
+    # Act: Try to register
+    response = await client.post(
+        f"{AUTH_PREFIX}{AuthRoutes.REGISTER}", json=data
+    )
+    
+    # Assert: Verify 422 validation error
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_register_mismatched_passwords(client: AsyncClient):
+    """
+    Test that mismatched passwords are rejected with 400.
+    
+    Args:
+        client: HTTP client without authentication
+    """
+    # Arrange: Mismatched passwords
+    data = {
+        "email": "mismatch@example.com",
+        "password": "SecurePass123!",
+        "confirm_password": "DifferentPass456!"
+    }
+    
+    # Act: Try to register
+    response = await client.post(
+        f"{AUTH_PREFIX}{AuthRoutes.REGISTER}", json=data
+    )
+    
+    # Assert: Verify 400 error
+    assert response.status_code == 400
+    data = response.json()
+    assert "detail" in data
+    assert "match" in data["detail"].lower()

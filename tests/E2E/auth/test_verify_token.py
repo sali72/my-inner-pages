@@ -1,14 +1,19 @@
 """
 E2E tests for JWT token verification.
 
-Tests the happy path for the GET /api/v0/auth/verify endpoint.
+Tests the GET /api/v0/auth/verify endpoint.
 """
 
+import jwt as pyjwt
 import pytest
+import uuid
+import time
+from datetime import datetime, timedelta, timezone
 from httpx import AsyncClient
 
 from app.auth.api.config import AuthRoutes
 from app.auth.db.models import User
+from app.core.config import Settings
 from tests.config import AUTH_PREFIX
 
 
@@ -44,13 +49,92 @@ async def test_verify_token_valid(authenticated_client: AsyncClient, test_user: 
 @pytest.mark.asyncio
 async def test_verify_token_invalid(client: AsyncClient):
     """
-    Test verifying without a JWT token returns 403.
+    Test verifying without a JWT token returns 401.
     
     Args:
         client: HTTP client without authentication
     """
     # Act: Try to verify without token
     response = await client.get(f"{AUTH_PREFIX}{AuthRoutes.VERIFY}")
+    
+    # Assert: Verify 401 response
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_verify_token_expired(client: AsyncClient, test_user: dict, test_settings: Settings):
+    """
+    Test verifying an expired JWT token returns 401.
+    
+    Args:
+        client: HTTP client without authentication
+        test_user: Test user fixture with credentials
+        test_settings: Test settings (contains jwt_secret_key)
+    """
+    # Arrange: Create an expired token
+    expired_payload = {
+        "sub": test_user["user_id"],
+        "email": test_user["email"],
+        "type": "access",
+        "jti": str(uuid.uuid4()),
+        "exp": int(time.time()) - 3600,  # 1 hour ago
+    }
+    expired_token = pyjwt.encode(
+        expired_payload, test_settings.jwt_secret_key, algorithm="HS256"
+    )
+    
+    # Act: Verify with expired token (use Cookie header to avoid httpx jar issues)
+    response = await client.get(
+        f"{AUTH_PREFIX}{AuthRoutes.VERIFY}",
+        headers={"Cookie": f"access_token={expired_token}"},
+    )
+    
+    # Assert: Verify 401 response
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_verify_token_tampered(client: AsyncClient, test_user: dict):
+    """
+    Test verifying a tampered JWT returns 401.
+    
+    Args:
+        client: HTTP client without authentication
+        test_user: Test user fixture with credentials
+    """
+    # Arrange: Corrupt the last character of the token
+    original_token = test_user["access_token"]
+    tampered_token = original_token[:-1] + ("X" if original_token[-1] != "X" else "Y")
+    
+    # Act: Verify with tampered token (use Cookie header to avoid jar issues)
+    response = await client.get(
+        f"{AUTH_PREFIX}{AuthRoutes.VERIFY}",
+        headers={"Cookie": f"access_token={tampered_token}"},
+    )
+    
+    # Assert: Verify 401 response
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_verify_token_deleted_user(client: AsyncClient, test_user: dict):
+    """
+    Test that a valid JWT for a deleted user returns 401.
+    
+    Args:
+        client: HTTP client without authentication
+        test_user: Test user fixture with credentials
+    """
+    # Arrange: Delete the user from DB
+    user = await User.find_one(User.email == test_user["email"])
+    assert user is not None
+    await user.delete()
+    
+    # Act: Verify with token for deleted user
+    response = await client.get(
+        f"{AUTH_PREFIX}{AuthRoutes.VERIFY}",
+        headers={"Cookie": f"access_token={test_user['access_token']}"},
+    )
     
     # Assert: Verify 401 response
     assert response.status_code == 401

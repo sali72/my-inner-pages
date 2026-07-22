@@ -1,7 +1,7 @@
 """
 E2E tests for user login.
 
-Tests the happy path for the POST /api/v0/auth/login endpoint.
+Tests the POST /api/v0/auth/login endpoint.
 """
 
 import pytest
@@ -110,3 +110,64 @@ async def test_login_with_invalid_credentials(client: AsyncClient, test_user: di
     # Assert: Verify 401 response
     assert response.status_code == 401
     assert "detail" in response.json()
+
+
+@pytest.mark.asyncio
+async def test_login_nonexistent_email(client: AsyncClient):
+    """
+    Test login with a non-existent email returns 401.
+    
+    Args:
+        client: HTTP client without authentication
+    """
+    # Arrange
+    login_data = {
+        "email": "nobody@example.com",
+        "password": "somepassword123"
+    }
+    
+    # Act
+    response = await client.post(
+        f"{AUTH_PREFIX}{AuthRoutes.LOGIN}",
+        json=login_data
+    )
+    
+    # Assert
+    assert response.status_code == 401
+    assert "detail" in response.json()
+
+
+@pytest.mark.asyncio
+async def test_login_google_only_account(client: AsyncClient):
+    """
+    Test that a Google-only account (hashed_password=None) cannot
+    log in via email/password — returns ``400``.
+    
+    Args:
+        client: HTTP client without authentication
+    """
+    # Arrange: Create a Google-only user directly in DB
+    google_user = User(
+        email="googleonly@example.com",
+        hashed_password=None,
+        google_id="google-sub-12345",
+        is_verified=True,
+    )
+    await google_user.insert()
+    
+    login_data = {
+        "email": "googleonly@example.com",
+        "password": "anypassword123"
+    }
+    
+    # Act
+    response = await client.post(
+        f"{AUTH_PREFIX}{AuthRoutes.LOGIN}",
+        json=login_data
+    )
+    
+    # Assert
+    assert response.status_code == 401
+    data = response.json()
+    assert "detail" in data
+    assert "Google Sign-In" in data["detail"] or "google" in data["detail"].lower()

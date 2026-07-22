@@ -1,7 +1,7 @@
 """
 E2E tests for getting current user information.
 
-Tests the happy path for the GET /api/v0/auth/me endpoint.
+Tests the GET /api/v0/auth/me endpoint.
 """
 
 import pytest
@@ -47,7 +47,7 @@ async def test_get_current_user(authenticated_client: AsyncClient, test_user: di
 @pytest.mark.asyncio
 async def test_get_current_user_without_auth(client: AsyncClient):
     """
-    Test that getting current user without authentication returns 403.
+    Test that getting current user without authentication returns 401.
     
     Args:
         client: HTTP client without authentication
@@ -58,3 +58,30 @@ async def test_get_current_user_without_auth(client: AsyncClient):
     # Assert: Verify 401 response
     assert response.status_code == 401
     assert "detail" in response.json()
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_deactivated(client: AsyncClient, test_user: dict):
+    """
+    Test that a deactivated user gets 403.
+    
+    Args:
+        client: HTTP client without authentication
+        test_user: Test user fixture with credentials
+    """
+    # Arrange: Deactivate the user in DB
+    user = await User.find_one(User.email == test_user["email"])
+    assert user is not None
+    await user.set({"is_active": False})
+    
+    # Set the (still-valid) token on the client
+    client.cookies.set("access_token", test_user["access_token"])
+    
+    # Act: Try to get current user
+    response = await client.get(f"{AUTH_PREFIX}{AuthRoutes.ME}")
+    
+    # Assert: Verify 403 response
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+    assert "deactivated" in data["detail"].lower()

@@ -182,6 +182,92 @@ async def test_update_preferences_without_auth(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_update_preferences_invalid_value(authenticated_client: AsyncClient):
+    """
+    Test that invalid preference values are rejected with 422.
+    
+    Args:
+        authenticated_client: HTTP client with authentication headers
+    """
+    # Act: Set an invalid mode value
+    response = await authenticated_client.put(
+        f"{AUTH_PREFIX}{AuthRoutes.PREFERENCES}",
+        json={"mode": "invalid_mode_name"}
+    )
+
+    # Assert: Verify 422 validation error
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_update_preferences_invalid_accent(authenticated_client: AsyncClient):
+    """
+    Test that invalid accent values are rejected with 422.
+    
+    Args:
+        authenticated_client: HTTP client with authentication headers
+    """
+    # Act: Set an invalid accent value
+    response = await authenticated_client.put(
+        f"{AUTH_PREFIX}{AuthRoutes.PREFERENCES}",
+        json={"accent": "neon_green"}
+    )
+
+    # Assert: Verify 422 validation error
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_update_preferences_invalid_font_size(authenticated_client: AsyncClient):
+    """
+    Test that invalid fontSize values are rejected with 422.
+    
+    Args:
+        authenticated_client: HTTP client with authentication headers
+    """
+    # Act: Set an invalid font size
+    response = await authenticated_client.put(
+        f"{AUTH_PREFIX}{AuthRoutes.PREFERENCES}",
+        json={"fontSize": "huge"}
+    )
+
+    # Assert: Verify 422 validation error
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_update_preferences_extra_field(authenticated_client: AsyncClient, test_user: dict):
+    """
+    Test that extra / unknown preference fields are silently ignored
+    (``extra="ignore"`` on Settings) and the valid fields are still updated.
+    
+    Args:
+        authenticated_client: HTTP client with authentication headers
+        test_user: Test user fixture with credentials
+    """
+    # Act: Include an unknown field
+    response = await authenticated_client.put(
+        f"{AUTH_PREFIX}{AuthRoutes.PREFERENCES}",
+        json={"mode": "dark", "unknown_field": "should_be_ignored"}
+    )
+
+    # Assert: Response should be 200 with the valid field updated
+    assert response.status_code == 200
+    response_data = response.json()
+
+    assert response_data["preferences"]["mode"] == "dark"
+    # Other fields should remain at defaults
+    assert response_data["preferences"]["accent"] == DEFAULT_PREFERENCES["accent"]
+
+    # Verify in database: unknown_field was NOT stored
+    db_user = await User.find_one(User.email == test_user["email"])
+    assert db_user is not None
+    assert db_user.preferences.mode == "dark"
+    # The preferences model shouldn't have the extra field
+    assert not hasattr(db_user.preferences, "unknown_field")
+
+
+@pytest.mark.asyncio
 async def test_preferences_survive_login_logout(authenticated_client: AsyncClient, client: AsyncClient, test_user: dict):
     """
     Test that preferences persist across authentication sessions.
