@@ -10,7 +10,7 @@ from app.ai.ws.dedup import DedupStatus, MessageDedupStore
 from app.ai.ws.generation_manager import GenerationManager
 from app.ai.ws.manager import ConnectionManager
 from app.chat.history_manager import ChatHistoryManager
-from app.chat.service import ChatPersistenceService
+from app.chat.facade import ChatPersistenceFacade
 from app.core.logging import get_logger
 from app.core.rate_limit import check_ws_rate_limit
 
@@ -28,7 +28,7 @@ class ChatFacade:
     def __init__(
         self,
         chat_service: ChatService,
-        chat_persistence: ChatPersistenceService,
+        chat_persistence: ChatPersistenceFacade,
         connection_manager: ConnectionManager,
         generation_manager: GenerationManager,
         dedup_store: MessageDedupStore,

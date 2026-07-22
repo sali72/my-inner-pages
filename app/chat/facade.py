@@ -11,7 +11,7 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 
-class ChatPersistenceService:
+class ChatPersistenceFacade:
     def __init__(
         self,
         chat_repository: ChatRepository,

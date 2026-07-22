@@ -12,9 +12,9 @@ from app.ai.deps import (
 from app.ai.facade.chat_facade import ChatFacade
 from app.ai.ws.manager import ConnectionManager
 from app.auth.db.repository import UserRepository
-from app.chat.deps import get_chat_persistence_service
+from app.chat.deps import get_chat_facade as get_chat_persistence_facade
 from app.chat.history_manager import ChatHistoryManager
-from app.chat.service import ChatPersistenceService
+from app.chat.facade import ChatPersistenceFacade
 from app.core.deps.services import get_jwt_service
 from app.core.logging import get_logger
 from app.core.rate_limit import check_ws_rate_limit
@@ -39,7 +39,7 @@ async def chat_websocket(
     user_repository: UserRepository = Depends(get_user_repository),
     chat_facade: ChatFacade = Depends(get_chat_facade),
     connection_manager: ConnectionManager = Depends(get_connection_manager),
-    chat_persistence: ChatPersistenceService = Depends(get_chat_persistence_service),
+    chat_persistence: ChatPersistenceFacade = Depends(get_chat_persistence_facade),
     config: AIModuleConfig = Depends(get_ai_config),
 ):
     if not token:

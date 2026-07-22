@@ -8,7 +8,7 @@ exercised through the REST API E2E tests alone.
 from datetime import datetime
 
 from app.chat.history_manager import ChatHistoryManager
-from app.chat.service import ChatPersistenceService
+from app.chat.facade import ChatPersistenceFacade
 from app.chat.config import ChatModuleConfig
 from app.chat.db.repository import ChatRepository
 from app.chat.db.models import ChatMessage
@@ -87,12 +87,12 @@ class TestChatHistoryManager:
 
 
 class TestChatTitleGeneration:
-    """Tests for ChatPersistenceService._generate_title logic."""
+    """Tests for ChatPersistenceFacade._generate_title logic."""
 
     def setup_method(self):
         config = ChatModuleConfig(max_title_length=20)
         repo = ChatRepository()
-        self.service = ChatPersistenceService(chat_repository=repo, config=config)
+        self.service = ChatPersistenceFacade(chat_repository=repo, config=config)
 
     def test_normal_title(self):
         title = self.service._generate_title("Hello world")

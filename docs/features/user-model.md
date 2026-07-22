@@ -28,7 +28,7 @@ Journal created ──> BackgroundTasks
                │  → upsert to Mongo │
                └────────────────────┘
 
-Chat session ──> MemoryService
+Chat session ──> MemoryFacade
                       │
             ┌─────────▼──────────┐
             │  build_injected_   │
@@ -61,7 +61,7 @@ The LLM is instructed to:
 
 ## Context Injection
 
-`MemoryService.build_injected_context()` produces three labelled JSON blocks for LLM prompts:
+`MemoryFacade.build_injected_context()` produces three labelled JSON blocks for LLM prompts:
 
 ```
 --- user_model ---

@@ -7,8 +7,8 @@ from app.chat.api.v0.schemas.chat import (
     UpdateChatTitleRequest,
     MessageResponse,
 )
-from app.chat.deps import get_chat_persistence_service
-from app.chat.service import ChatPersistenceService
+from app.chat.deps import get_chat_facade
+from app.chat.facade import ChatPersistenceFacade
 from app.core.deps.auth import get_current_user
 
 from app.auth.db.models import User
@@ -25,7 +25,7 @@ async def list_chats(
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     page_size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
     current_user: User = Depends(get_current_user),
-    chat_persistence: ChatPersistenceService = Depends(get_chat_persistence_service),
+    chat_persistence: ChatPersistenceFacade = Depends(get_chat_facade),
 ) -> ChatListResponse:
     chats, total = await chat_persistence.list_chats(
         user_id=str(current_user.id),
@@ -48,7 +48,7 @@ async def list_chats(
 async def get_chat(
     chat_id: str,
     current_user: User = Depends(get_current_user),
-    chat_persistence: ChatPersistenceService = Depends(get_chat_persistence_service),
+    chat_persistence: ChatPersistenceFacade = Depends(get_chat_facade),
 ) -> ChatResponse:
     chat = await chat_persistence.get_chat(chat_id, str(current_user.id))
     if not chat:
@@ -67,7 +67,7 @@ async def get_chat(
 async def delete_chat(
     chat_id: str,
     current_user: User = Depends(get_current_user),
-    chat_persistence: ChatPersistenceService = Depends(get_chat_persistence_service),
+    chat_persistence: ChatPersistenceFacade = Depends(get_chat_facade),
 ) -> MessageResponse:
     deleted = await chat_persistence.delete_chat(chat_id, str(current_user.id))
     if not deleted:
@@ -87,7 +87,7 @@ async def update_chat_title(
     chat_id: str,
     request: UpdateChatTitleRequest,
     current_user: User = Depends(get_current_user),
-    chat_persistence: ChatPersistenceService = Depends(get_chat_persistence_service),
+    chat_persistence: ChatPersistenceFacade = Depends(get_chat_facade),
 ) -> ChatResponse:
     chat = await chat_persistence.update_title(
         chat_id, str(current_user.id), request.title

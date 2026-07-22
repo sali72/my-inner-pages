@@ -4,7 +4,7 @@ from app.ai.config import AIModuleConfig
 from app.ai.integrations.base import LLMClient
 from app.ai.prompts.mirror import create_reflection_prompt
 from app.core.logging import get_logger
-from app.memory.service import MemoryService
+from app.memory.facade import MemoryFacade
 
 logger = get_logger(__name__)
 
@@ -17,7 +17,7 @@ class MirrorService:
     def __init__(
         self,
         llm_client: LLMClient,
-        memory_service: MemoryService,
+        memory_service: MemoryFacade,
         config: AIModuleConfig,
     ):
         self.llm_client = llm_client

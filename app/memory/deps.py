@@ -1,8 +1,8 @@
 from fastapi import Depends
-from app.memory.service import MemoryService
+from app.memory.facade import MemoryFacade
 from app.memory.config import MemoryModuleConfig
 from app.memory.db.repository import UserModelRepository
-from app.memory.services.user_model_updater import UserModelUpdater
+from app.memory.user_model_updater import UserModelUpdater
 from app.journals.db.repository import JournalRepository
 from app.journals.deps import get_journal_repository
 
@@ -15,12 +15,12 @@ def get_user_model_repository() -> UserModelRepository:
     return UserModelRepository()
 
 
-def get_memory_service(
+def get_memory_facade(
     journal_repository: JournalRepository = Depends(get_journal_repository),
     user_model_repository: UserModelRepository = Depends(get_user_model_repository),
     config: MemoryModuleConfig = Depends(get_memory_config)
-) -> MemoryService:
-    return MemoryService(
+) -> MemoryFacade:
+    return MemoryFacade(
         journal_repository=journal_repository,
         user_model_repository=user_model_repository,
         config=config

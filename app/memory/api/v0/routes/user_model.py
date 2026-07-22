@@ -4,7 +4,7 @@ from app.core.deps.settings import get_settings
 from app.core.config import Settings
 from app.auth.db.models import User
 from app.memory.deps import get_user_model_updater
-from app.memory.services.user_model_updater import UserModelUpdater
+from app.memory.user_model_updater import UserModelUpdater
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)

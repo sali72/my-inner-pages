@@ -29,8 +29,8 @@ sliding-window history (20 turns) is fed into the LLM context.
                         │  └─────────┼─────────────────┼──────────┘   │
                         │            │                 │              │
                         │  ┌─────────▼─────────────────▼──────────┐   │
-                        │  │        ChatPersistenceService        │   │
-                        │  │  (app/chat/service.py)              │   │
+                        │  │        ChatPersistenceFacade        │   │
+                        │  │  (app/chat/facade.py)              │   │
                         │  │  - append_message                   │   │
                         │  │  - get_or_create_chat               │   │
                         │  │  - list_chats, delete_chat          │   │
@@ -67,7 +67,7 @@ app/chat/
 │   ├── models.py                 # Chat Beanie document
 │   └── repository.py             # ChatRepository (CRUD)
 ├── history_manager.py            # Sliding-window history truncation
-├── service.py                    # ChatPersistenceService (business logic)
+├── facade.py                    # ChatPersistenceFacade (business logic)
 ├── deps.py                       # DI for chat services
 └── api/v0/
     ├── schemas/chat.py           # REST response/request models

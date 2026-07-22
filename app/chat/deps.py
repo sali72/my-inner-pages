@@ -2,7 +2,7 @@ from fastapi import Depends
 
 from app.chat.config import ChatModuleConfig
 from app.chat.db.repository import ChatRepository
-from app.chat.service import ChatPersistenceService
+from app.chat.facade import ChatPersistenceFacade
 
 
 def get_chat_config() -> ChatModuleConfig:
@@ -13,11 +13,11 @@ def get_chat_repository() -> ChatRepository:
     return ChatRepository()
 
 
-def get_chat_persistence_service(
+def get_chat_facade(
     chat_repository: ChatRepository = Depends(get_chat_repository),
     config: ChatModuleConfig = Depends(get_chat_config),
-) -> ChatPersistenceService:
-    return ChatPersistenceService(
+) -> ChatPersistenceFacade:
+    return ChatPersistenceFacade(
         chat_repository=chat_repository,
         config=config,
     )

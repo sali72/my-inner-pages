@@ -14,10 +14,10 @@ from app.ai.ws.generation_manager import GenerationManager
 from app.ai.ws.manager import ConnectionManager
 from app.journals.deps import get_journal_repository
 from app.journals.db.repository import JournalRepository
-from app.chat.deps import get_chat_persistence_service
-from app.chat.service import ChatPersistenceService
-from app.memory.deps import get_memory_service
-from app.memory.service import MemoryService
+from app.chat.deps import get_chat_facade
+from app.chat.facade import ChatPersistenceFacade
+from app.memory.deps import get_memory_facade
+from app.memory.facade import MemoryFacade
 
 
 def get_ai_config() -> AIModuleConfig:
@@ -102,7 +102,7 @@ async def reload_llm_client(
 
 def get_mirror_service(
     llm_client: LLMClient = Depends(get_llm_client),
-    memory_service: MemoryService = Depends(get_memory_service),
+    memory_service: MemoryFacade = Depends(get_memory_facade),
     config: AIModuleConfig = Depends(get_ai_config)
 ) -> MirrorService:
     """Get mirror service with all dependencies injected."""
@@ -138,7 +138,7 @@ def get_generation_manager(
 
 def get_chat_service(
     llm_client: LLMClient = Depends(get_llm_client),
-    memory_service: MemoryService = Depends(get_memory_service),
+    memory_service: MemoryFacade = Depends(get_memory_facade),
     journal_repository: JournalRepository = Depends(get_journal_repository),
     config: AIModuleConfig = Depends(get_ai_config),
 ) -> ChatService:
@@ -152,7 +152,7 @@ def get_chat_service(
 
 def get_chat_facade(
     chat_service: ChatService = Depends(get_chat_service),
-    chat_persistence: ChatPersistenceService = Depends(get_chat_persistence_service),
+    chat_persistence: ChatPersistenceFacade = Depends(get_chat_facade),
     connection_manager: ConnectionManager = Depends(get_connection_manager),
     generation_manager: GenerationManager = Depends(get_generation_manager),
     dedup_store: MessageDedupStore = Depends(get_message_dedup_store),

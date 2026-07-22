@@ -24,7 +24,7 @@ app/
 ├── chat/              # Chat persistence
 │   ├── db/            # Chat Beanie document + repository
 │   ├── api/v0/        # REST endpoints (list, get, delete)
-│   ├── service.py     # ChatPersistenceService
+│   ├── facade.py      # ChatPersistenceFacade
 │   └── history_manager.py  # Sliding-window history
 ├── ai/                # AI features
 │   ├── integrations/  # LLM clients (OpenRouter, Mock)

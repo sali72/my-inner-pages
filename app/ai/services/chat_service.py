@@ -7,7 +7,7 @@ from app.ai.prompts.chat import format_conversation_prompt
 from app.ai.rumination import RUMINATION_THRESHOLD
 from app.core.logging import get_logger
 from app.journals.db.repository import JournalRepository
-from app.memory.service import MemoryService
+from app.memory.facade import MemoryFacade
 
 logger = get_logger(__name__)
 
@@ -16,7 +16,7 @@ class ChatService:
     def __init__(
         self,
         llm_client: LLMClient,
-        memory_service: MemoryService,
+        memory_service: MemoryFacade,
         journal_repository: JournalRepository,
         config: AIModuleConfig,
     ) -> None:
