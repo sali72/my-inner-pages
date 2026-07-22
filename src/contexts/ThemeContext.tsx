@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useCallback, useMemo, useS
 import { Mode, Accent, FontStyle, ContentFontSize } from '@/types';
 import { buildThemeTokens } from '@/utils/themeTokens';
 import { getAuthSession } from '@/utils/authSession';
+import { api } from '@/utils/api';
 
 interface ThemeContextValue {
   mode: Mode;
@@ -18,7 +19,6 @@ interface ThemeContextValue {
   resetToDefaults: () => void;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
 const LOCAL_KEY = 'my-inner-pages-theme';
 
 interface PersistedSettings {
@@ -65,12 +65,7 @@ function writeLocal(settings: PersistedSettings) {
 
 async function fetchRemote(): Promise<PersistedSettings | null> {
   try {
-    const res = await fetch(`${API_URL}/auth/me`, {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
+    const data = await api.get<{ preferences?: PersistedSettings }>('/auth/me');
     if (data.preferences) {
       return validate(data.preferences);
     }
@@ -80,13 +75,8 @@ async function fetchRemote(): Promise<PersistedSettings | null> {
 
 async function saveRemote(settings: PersistedSettings, generation: number): Promise<boolean> {
   try {
-    const res = await fetch(`${API_URL}/auth/me/preferences`, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings),
-    });
-    return res.ok && generation === getAuthSession().generation;
+    await api.put('/auth/me/preferences', settings);
+    return generation === getAuthSession().generation;
   } catch {
     return false;
   }

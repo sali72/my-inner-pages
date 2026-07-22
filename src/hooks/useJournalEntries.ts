@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { JournalEntry } from '@/types';
-import { api, journalListResponseSchema, journalResponseSchema, type JournalResponse } from '@utils/api';
+import { api } from '@utils/api';
+import { journalListResponseSchema, journalResponseSchema, type JournalResponse } from '@/types/schemas';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCallback, useRef } from 'react';
 import { getUnsyncedEntries, removeUnsyncedEntry } from '@utils/offlineStorage';

@@ -1,6 +1,7 @@
 import { useReducer, useRef, useCallback, useEffect } from 'react';
 import type { ChatMessage, ConnectionState, WSClientMessage, WSServerMessage, MessageStatus } from '@/types/chat';
-import { api, chatResponseSchema } from '@utils/api';
+import { api } from '@utils/api';
+import { chatResponseSchema } from '@/types/schemas';
 import { chatReducer, initialChatState } from './chatReducer';
 import { useWebSocketConnection } from './useWebSocketConnection';
 import type { WsStatusEvent } from './useWebSocketConnection';

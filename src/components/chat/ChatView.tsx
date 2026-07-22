@@ -4,7 +4,8 @@ import { useChatWebSocket } from '@hooks/useChatWebSocket';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ChatHistorySidebar } from './ChatHistorySidebar';
 import { CopyButton } from './CopyButton';
-import { api, chatListResponseSchema } from '@utils/api';
+import { api } from '@utils/api';
+import { chatListResponseSchema } from '@/types/schemas';
 import type { ChatSummary } from '@/types/chat';
 
 const MAX_TEXTAREA_ROWS = 10;

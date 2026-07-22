@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { emitAuthSessionChanged } from '@/utils/authSession';
-
-// Backend API URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
+import { authService } from '@/services/authService';
 
 export interface User {
   id: string;
@@ -31,6 +29,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function clearSessionData() {
   localStorage.removeItem('chat_messages');
+}
+
+function mapUser(data: { id: string; email: string; is_verified?: boolean; role?: string; created_at?: string; login_count?: number; feedback_triggers?: Record<string, boolean> }): User {
+  return {
+    id: data.id,
+    email: data.email,
+    emailVerified: data.is_verified || false,
+    role: data.role || 'user',
+    created_at: data.created_at,
+    login_count: data.login_count ?? 0,
+    feedback_triggers: data.feedback_triggers || {},
+  };
 }
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -73,27 +83,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     try {
       if (!mountedRef.current) return;
-      const response = await fetch(`${API_URL}/auth/verify`, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const userData = await authService.checkStatus();
 
-      if (response.ok) {
+      if (userData) {
         if (!mountedRef.current || requestVersion !== authCheckVersionRef.current) return;
-
-        const userData = await response.json();
-        if (!mountedRef.current || requestVersion !== authCheckVersionRef.current) return;
-        setUser({
-          id: userData.id,
-          email: userData.email,
-          emailVerified: userData.is_verified || false,
-          role: userData.role || 'user',
-          created_at: userData.created_at,
-          login_count: userData.login_count ?? 0,
-          feedback_triggers: userData.feedback_triggers || {},
-        });
+        setUser(mapUser(userData));
         setIsAuthenticated(true);
-      } else if (response.status === 401) {
+      } else {
         clearSessionData();
         emitAuthSessionChanged(false);
         setUser(null);
@@ -101,8 +97,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch (error) {
       if (!mountedRef.current || requestVersion !== authCheckVersionRef.current) return;
-      // Network failures are common when a mobile tab resumes. Keep the
-      // current session; a later focus/online event will verify it again.
     } finally {
       if (mountedRef.current && requestVersion === authCheckVersionRef.current) setIsLoading(false);
     }
@@ -110,111 +104,51 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = useCallback(async (email: string, password: string): Promise<void> => {
     authCheckVersionRef.current += 1;
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
+    const data = await authService.login(email, password).catch((err) => {
+      if (err.message?.includes('429')) {
         toast.error('Too many login attempts — please wait a moment');
       }
-      const error = await response.json();
-      throw new Error(error.detail || 'Login failed');
-    }
-
-    const data = await response.json();
-    const userData = data.user;
+      throw err;
+    });
 
     emitAuthSessionChanged(true);
-
-    setUser({
-      id: userData.id,
-      email: userData.email,
-      emailVerified: userData.is_verified || false,
-      role: userData.role || 'user',
-      created_at: userData.created_at,
-      login_count: userData.login_count ?? 0,
-      feedback_triggers: userData.feedback_triggers || {},
-    });
+    setUser(mapUser(data.user));
     setIsAuthenticated(true);
   }, []);
 
   const register = useCallback(async (email: string, password: string, confirmPassword: string): Promise<void> => {
-    const response = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        email, 
-        password, 
-        confirm_password: confirmPassword 
-      }),
-    });
-    
-    if (!response.ok) {
-      if (response.status === 429) {
+    await authService.register(email, password, confirmPassword).catch((err) => {
+      if (err.message?.includes('429')) {
         toast.error('Too many registration attempts — please wait a moment');
       }
-      const error = await response.json();
-      throw new Error(error.detail || 'Registration failed');
-    }
+      throw err;
+    });
   }, []);
 
   const verifyEmail = useCallback(async (token: string): Promise<void> => {
-    const response = await fetch(`${API_URL}/auth/verify-email/${token}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Verification failed');
-    }
+    await authService.verifyEmail(token);
   }, []);
 
   const resendVerification = useCallback(async (email: string): Promise<void> => {
-    const response = await fetch(`${API_URL}/auth/resend-verification`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
+    await authService.resendVerification(email).catch((err) => {
+      if (err.message?.includes('429')) {
         toast.error('Too many requests — please wait a moment');
       }
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to resend verification email');
-    }
+      throw err;
+    });
   }, []);
 
   const resetPassword = useCallback(async (email: string): Promise<void> => {
-    const response = await fetch(`${API_URL}/auth/reset-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    
-    if (!response.ok) {
-      if (response.status === 429) {
+    await authService.resetPassword(email).catch((err) => {
+      if (err.message?.includes('429')) {
         toast.error('Too many password reset attempts — please wait a moment');
       }
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to send reset email');
-    }
+      throw err;
+    });
   }, []);
 
   const logout = useCallback(async (): Promise<void> => {
-    try {
-      await fetch(`${API_URL}/auth/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-    } catch {
-      // Proceed with local cleanup even if the server request fails.
-    }
+    await authService.logout();
     clearSessionData();
     emitAuthSessionChanged(false);
     setUser(null);
