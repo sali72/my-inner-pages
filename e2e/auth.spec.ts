@@ -42,11 +42,11 @@ test.describe('Auth flow', () => {
     await page.getByRole('button', { name: /sign in/i }).click();
 
     // Journal view loads
-    await expect(page.getByText('Your Journal')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Your Journal', exact: true })).toBeVisible({ timeout: 10000 });
 
     // Navigate to Settings via sidebar
     await page.locator('header button').first().click();
-    await page.getByText('Settings').click();
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(page.getByText('Appearance Mode')).toBeVisible();
   });
 
@@ -56,14 +56,14 @@ test.describe('Auth flow', () => {
     await loginAsUser(page, user);
 
     // Navigate to settings
-    await expect(page.getByText('Your Journal')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Your Journal', exact: true })).toBeVisible({ timeout: 10000 });
     await page.locator('header button').first().click();
-    await page.getByText('Settings').click();
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(page.getByText('Appearance Mode')).toBeVisible();
 
     // Click Logout and confirm
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByText('Logout').click();
+    await page.getByRole('dialog', { name: 'Logout' }).getByRole('button', { name: 'Logout', exact: true }).click();
 
     // Back on landing page
     await expect(page.getByText('Meet Yourself on the Page')).toBeVisible();

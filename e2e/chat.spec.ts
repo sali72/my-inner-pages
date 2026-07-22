@@ -25,7 +25,7 @@ test.describe('Chat core flows', () => {
     await page.goto('/');
     await page.evaluate((t) => localStorage.setItem('authToken', t), accessToken);
     await page.reload();
-    await expect(page.getByText('Your Journal')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Your Journal', exact: true })).toBeVisible({ timeout: 10000 });
   });
 
   test('navigates to chat view', async ({ page }) => {
@@ -48,7 +48,7 @@ test.describe('Chat core flows', () => {
     await page.locator('button[title="Chat History"]').click();
     await expect(page.locator('aside:has(h2)')).toContainText('Chat History');
 
-    await page.locator('div.fixed.inset-0[class*="bg-black"]').click();
+    await page.getByRole('button', { title: 'Chat History' }).click();
     await expect(page.locator('div.fixed.inset-0[class*="bg-black"]')).toHaveCount(0);
   });
 
@@ -136,7 +136,7 @@ test.describe('Chat core flows', () => {
     await page.locator('aside:has(h2) button:has(svg.lucide-plus)').click();
     await expect(page.getByText('Ask me anything')).toBeVisible({ timeout: 5000 });
 
-    await page.locator('div.fixed.inset-0[class*="bg-black"]').click();
+    await page.getByRole('button', { title: 'Chat History' }).click();
     await expect(page.getByPlaceholder('Type a message...')).toBeVisible({ timeout: 5000 });
 
     await page.fill('textarea[placeholder="Type a message..."]', 'Second chat message');
@@ -159,7 +159,7 @@ test.describe('Chat core flows', () => {
     await expect(page.locator('aside:has(h2)')).toContainText('Chat History');
 
     // Close sidebar
-    await page.locator('div.fixed.inset-0[class*="bg-black"]').click();
+    await page.getByRole('button', { title: 'Chat History' }).click();
     await expect(page.locator('div.fixed.inset-0[class*="bg-black"]')).toHaveCount(0);
 
     // Message still visible

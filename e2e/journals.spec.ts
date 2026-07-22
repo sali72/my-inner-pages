@@ -34,7 +34,7 @@ test.describe('Journal CRUD', () => {
     await page.goto('/');
     await page.evaluate((t) => localStorage.setItem('authToken', t), accessToken);
     await page.reload();
-    await expect(page.getByText('Your Journal')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Your Journal', exact: true })).toBeVisible({ timeout: 10000 });
   });
 
   test('creates a new journal entry', async ({ page }) => {
@@ -70,7 +70,7 @@ test.describe('Journal CRUD', () => {
     await page.getByRole('button', { name: 'Delete', exact: true }).click();
 
     // After deletion, we should be back on the timeline view
-    await expect(page.getByText('Your Journal')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Your Journal', exact: true })).toBeVisible();
     await expect(page.locator('h2').filter({ hasText: 'Entry to Delete' })).not.toBeVisible();
   });
 });

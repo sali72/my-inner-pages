@@ -32,7 +32,7 @@ test.describe('Local-first editor regressions', () => {
     await page.goto('/');
     await page.evaluate((t) => localStorage.setItem('authToken', t), accessToken);
     await page.reload();
-    await expect(page.getByText('Your Journal')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Your Journal', exact: true })).toBeVisible({ timeout: 10000 });
   });
 
   test('does not create duplicate entries from rapid save', async ({ page }) => {
@@ -75,11 +75,11 @@ test.describe('Local-first editor regressions', () => {
 
     // Navigate away (full page unload — React tree destroyed, Y.Doc destroyed)
     await page.goto('/?view=settings');
-    await expect(page.getByText('Settings')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible({ timeout: 10000 });
 
     // Navigate back (full page load — new React tree, new Y.Doc)
     await page.goto('/');
-    await expect(page.getByText('Your Journal')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Your Journal', exact: true })).toBeVisible({ timeout: 10000 });
 
     // Open the entry again (card shows original title from backend API)
     await page.locator('h2').filter({ hasText: title }).click();
@@ -109,9 +109,9 @@ test.describe('Local-first editor regressions', () => {
 
     // Navigate away and back
     await page.goto('/?view=settings');
-    await expect(page.getByText('Settings')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible({ timeout: 10000 });
     await page.goto('/');
-    await expect(page.getByText('Your Journal')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Your Journal', exact: true })).toBeVisible({ timeout: 10000 });
 
     // Open the entry
     await page.locator('h2').filter({ hasText: title }).click();
