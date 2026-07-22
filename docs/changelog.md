@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Email Verification System** — Full email verification flow using Resend:
+  - `POST /auth/verify-email/{token}` — verify email address via token link
+  - `POST /auth/resend-verification` — resend verification email
+  - `EmailService` wrapper around Resend SDK for transactional emails
+  - Verification tokens stored in MongoDB with 24h expiry
+  - Auto-verification on registration when `EMAIL_VERIFICATION_REQUIRED=false`
+  - `is_verified` field now actually set to `True` when user verifies
+  - New `AuthModuleConfig` settings: `email_verification_required`, `verification_token_expire_hours`
+  - New `Settings` fields: `resend_api_key`, `from_email`, `verification_url_base`
+  - Frontend: `AuthContainer` & `AuthContext` wired to real verify/resend API calls
+
 ## [v0.3.0-alpha] - 2026-07-18
 
 ### Added
