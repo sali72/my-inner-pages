@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import { Mode, Accent, FontStyle, ContentFontSize } from '@/types';
 import { buildThemeTokens } from '@/utils/themeTokens';
-import { getAuthSession, isCurrentAuthSession } from '@/utils/authSession';
+import { getAuthSession } from '@/utils/authSession';
 
 interface ThemeContextValue {
   mode: Mode;

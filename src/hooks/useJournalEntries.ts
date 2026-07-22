@@ -99,7 +99,7 @@ export const useJournalEntries = () => {
   const syncUnsyncedEntries = useCallback(async (onIdMigrate?: (oldId: string | number, newId: string | number) => void) => {
     if (syncInFlightRef.current) return syncInFlightRef.current;
     const session = getAuthSession();
-    if (!session.token) return;
+    if (session.generation === 0) return;
 
     const run = (async () => {
     const unsynced = getUnsyncedEntries();

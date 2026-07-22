@@ -39,8 +39,8 @@ export async function loginAsUser(page: Page, user: TestUser): Promise<void> {
 
   await page.goto('/');
   await page.context().addCookies([
-    { name: 'access_token', value: token, path: '/', domain: 'localhost' },
-    { name: 'session_exists', value: 'true', path: '/', domain: 'localhost' },
+    { name: 'access_token', value: token, path: '/api/v0', domain: 'localhost' },
+    { name: 'session_exists', value: '1', path: '/', domain: 'localhost' },
   ]);
   await page.reload();
 }
