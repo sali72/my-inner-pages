@@ -55,9 +55,6 @@ class AuthFacade:
             ValueError: If validation fails or email already exists
             RepositoryException: If database operation fails
         """
-        # Validate password
-        self._validate_password(password)
-
         try:
             # Check if email already exists
             if await self.repository.email_exists(email):
@@ -358,17 +355,4 @@ class AuthFacade:
         # Always return True to prevent email enumeration
         return True
 
-    def _validate_password(self, password: str) -> None:
-        """Validate password strength."""
-        if not password:
-            raise ValueError("Password cannot be empty")
 
-        if len(password) < self.config.min_password_length:
-            raise ValueError(
-                f"Password must be at least {self.config.min_password_length} characters"
-            )
-
-        if len(password) > self.config.max_password_length:
-            raise ValueError(
-                f"Password cannot exceed {self.config.max_password_length} characters"
-            )

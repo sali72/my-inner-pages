@@ -1,6 +1,10 @@
 from typing import Optional, Literal
 from pydantic import BaseModel, Field, EmailStr, field_validator, ConfigDict
 
+from app.auth.config import AuthModuleConfig
+
+_AUTH_CONFIG = AuthModuleConfig()
+
 
 class RegisterRequest(BaseModel):
     """Request schema for user registration."""
@@ -16,7 +20,12 @@ class RegisterRequest(BaseModel):
     )
     
     email: EmailStr = Field(..., description="User email address")
-    password: str = Field(..., min_length=8, max_length=72, description="User password")
+    password: str = Field(
+        ...,
+        min_length=_AUTH_CONFIG.min_password_length,
+        max_length=_AUTH_CONFIG.max_password_length,
+        description="User password",
+    )
     confirm_password: str = Field(..., description="Password confirmation")
     
     @field_validator("email")

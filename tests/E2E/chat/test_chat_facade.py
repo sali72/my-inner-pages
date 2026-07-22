@@ -92,7 +92,11 @@ class TestChatTitleGeneration:
     def setup_method(self):
         config = ChatModuleConfig(max_title_length=20)
         repo = ChatRepository()
-        self.service = ChatPersistenceFacade(chat_repository=repo, config=config)
+        self.service = ChatPersistenceFacade(
+            chat_repository=repo,
+            config=config,
+            history_manager=ChatHistoryManager(max_messages=config.max_messages_for_context),
+        )
 
     def test_normal_title(self):
         title = self.service._generate_title("Hello world")

@@ -16,12 +16,11 @@ class ChatPersistenceFacade:
         self,
         chat_repository: ChatRepository,
         config: ChatModuleConfig,
+        history_manager: ChatHistoryManager,
     ) -> None:
         self.repository = chat_repository
         self.config = config
-        self.history_manager = ChatHistoryManager(
-            max_messages=config.max_messages_for_context
-        )
+        self.history_manager = history_manager
 
     def _generate_title(self, content: str) -> str:
         max_len = self.config.max_title_length
