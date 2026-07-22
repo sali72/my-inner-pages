@@ -54,6 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <h1 className="text-2xl font-serif font-bold text-body flex items-center gap-2">
             <BookOpen className="w-7 h-7" />
             My Inner Pages
+            <span className="text-xs font-semibold text-accent bg-accent-muted px-2 py-0.5 rounded uppercase tracking-wider">Alpha</span>
           </h1>
           <p className="text-sm mt-1 text-muted">
             Your story, page by page

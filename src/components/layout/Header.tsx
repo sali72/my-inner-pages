@@ -34,8 +34,9 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Menu className="w-6 h-6 text-body" />
         </button>
-        <h1 className="ml-4 text-xl font-serif font-bold text-body">
+        <h1 className="ml-4 text-xl font-serif font-bold text-body flex items-center gap-2">
           {getViewTitle()}
+          <span className="text-xs font-semibold text-accent bg-accent-muted px-2 py-0.5 rounded uppercase tracking-wider">Alpha</span>
         </h1>
       </div>
 

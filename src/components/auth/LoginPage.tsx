@@ -58,8 +58,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
         {/* Logo/Title */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-serif font-bold text-accent mb-2">
+          <h1 className="text-4xl font-serif font-bold text-accent mb-2 flex items-center justify-center gap-3">
             My Inner Pages
+            <span className="text-sm font-semibold text-accent bg-accent-muted px-2.5 py-0.5 rounded uppercase tracking-wider">Alpha</span>
           </h1>
           <p className="text-sm text-secondary">
             Your personal journaling sanctuary

@@ -5,7 +5,7 @@ import { useJournalEntries } from '@hooks/useJournalEntries';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { LandingPage } from '@components/landing';
 import { AuthContainer } from '@components/auth';
-import { Header, Sidebar } from '@components/layout';
+import { Header, Sidebar, AlphaWarningModal } from '@components/layout';
 import { JournalView, ConfirmModal } from '@components/journal';
 import { MirrorView } from '@components/mirror';
 import { MirrorReflection, MirrorMode } from '@/types/mirror';
@@ -48,6 +48,7 @@ const AppInner: React.FC = () => {
   const hasEditedEntry = useRef(false);
   const appLoadTime = useRef(Date.now());
   const exitIntentShown = useRef(false);
+  const [showAlphaWarning, setShowAlphaWarning] = useState(false);
 
   // Intercept back button at index 0 to prevent exiting the app
   useEffect(() => {
@@ -67,6 +68,7 @@ const AppInner: React.FC = () => {
     if (authLoading) return;
     if (isAuthenticated && !wasAuthenticated.current) {
       syncFromRemote();
+      setShowAlphaWarning(true);
     }
     wasAuthenticated.current = isAuthenticated;
 
@@ -337,6 +339,11 @@ const AppInner: React.FC = () => {
           sessionEntryCount={sessionEntryCount.current}
         />
       )}
+
+      <AlphaWarningModal
+        isOpen={showAlphaWarning}
+        onDismiss={() => setShowAlphaWarning(false)}
+      />
 
       <ConfirmModal
         isOpen={deleteError !== null}
