@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Annotated
 
-from app.chat.api.v0.schemas.chat import (
+from app.chat.api.schemas.chat import (
     ChatResponse,
     ChatListResponse,
     UpdateChatTitleRequest,
@@ -9,7 +9,7 @@ from app.chat.api.v0.schemas.chat import (
 )
 from app.chat.deps import get_chat_facade
 from app.chat.facade import ChatPersistenceFacade
-from app.core.deps.auth import get_current_user
+from app.auth.deps import get_current_user
 
 from app.auth.db.models import User
 

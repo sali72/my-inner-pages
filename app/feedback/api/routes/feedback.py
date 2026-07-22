@@ -2,8 +2,8 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from pydantic import BaseModel, Field
 
-from app.feedback.api.v0.schemas.request import CreateFeedbackRequest
-from app.feedback.api.v0.schemas.response import (
+from app.feedback.api.schemas.request import CreateFeedbackRequest
+from app.feedback.api.schemas.response import (
     FeedbackResponse,
     FeedbackListResponse,
     FeedbackSummaryResponse,

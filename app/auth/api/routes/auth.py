@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Request, Response
 
-from app.auth.api.v0.schemas.request import RegisterRequest, LoginRequest, ResendVerificationRequest, ResetPasswordRequest, UpdatePreferencesRequest
-from app.auth.api.v0.schemas.response import (
+from app.auth.api.schemas.request import RegisterRequest, LoginRequest, ResendVerificationRequest, ResetPasswordRequest, UpdatePreferencesRequest
+from app.auth.api.schemas.response import (
     UserResponse,
     LoginResponse,
     MessageResponse
@@ -11,7 +11,7 @@ from app.auth.deps import get_auth_facade, get_cookie_service
 from app.auth.facade.auth_facade import AuthFacade
 from app.auth.services.cookie_service import CookieService
 from app.auth.db.models import User
-from app.core.deps.auth import get_current_user
+from app.auth.deps import get_current_user
 from app.core.rate_limit import limiter
 
 

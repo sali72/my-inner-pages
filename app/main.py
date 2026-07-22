@@ -7,21 +7,21 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.ai.api.v0.routes import mirror as mirror_router
-from app.ai.api.v0.routes import llm_admin as llm_admin_router
-from app.auth.api.v0.routes import auth as auth_router
-from app.auth.api.v0.routes import google as google_router
-from app.ai.api.v0.routes import chat as chat_router
-from app.chat.api.v0.routes import chat_rest as chat_rest_router
+from app.ai.api.routes import mirror as mirror_router
+from app.ai.api.routes import llm_admin as llm_admin_router
+from app.auth.api.routes import auth as auth_router
+from app.auth.api.routes import google as google_router
+from app.ai.api.routes import chat as chat_router
+from app.chat.api.routes import chat_rest as chat_rest_router
 from app.core.deps.database import get_client, init_database
 from app.core.deps.settings import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.core.rate_limit import limiter, configure_limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from app.journals.api.v0.routes import journals as journals_router
-from app.journals.api.v0.routes import tags as tags_router
-from app.feedback.api.v0.routes import feedback as feedback_router
+from app.journals.api.routes import journals as journals_router
+from app.journals.api.routes import tags as tags_router
+from app.feedback.api.routes import feedback as feedback_router
 
 # Configure logging
 configure_logging()
@@ -185,7 +185,7 @@ def create_app() -> FastAPI:
 
     # Dev-only memory management routes
     if not settings.is_production:
-        from app.memory.api.v0.routes import user_model as user_model_router
+        from app.memory.api.routes import user_model as user_model_router
         app.include_router(user_model_router.router, prefix="/api/v0")
         logger.info("memory_dev_routes_enabled")
 

@@ -10,11 +10,11 @@ from app.ai.deps import get_ai_config, reload_llm_client, get_llm_provider_repos
 from app.ai.db.models import LLMProvider
 from app.ai.db.repository import LLMProviderRepository
 from app.auth.db.models import User
-from app.core.deps.auth import get_current_admin_user
+from app.auth.deps import get_current_admin_user
 from app.core.logging import get_logger
 
 # Import separated schemas
-from app.ai.api.v0.schemas.llm_admin import (
+from app.ai.api.schemas.llm_admin import (
     ProviderConfigSchema,
     ProviderTestResult,
     DiagnosticsResponse,

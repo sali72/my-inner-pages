@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.core.deps.auth import get_current_user
+from app.auth.deps import get_current_user
 from app.core.deps.settings import get_settings
 from app.core.config import Settings
 from app.auth.db.models import User

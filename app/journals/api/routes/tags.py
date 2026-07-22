@@ -1,16 +1,16 @@
 from typing import Annotated, Optional
 from fastapi import APIRouter, HTTPException, Query, Depends, status
 
-from app.journals.api.v0.schemas.tag_schemas import (
+from app.journals.api.schemas.tag_schemas import (
     TagListResponse,
     TagResponse,
     RenameTagRequest,
     UpdateTagRequest,
 )
-from app.journals.api.v0.schemas.response import MessageResponse
+from app.journals.api.schemas.response import MessageResponse
 from app.journals.db.tag_repository import TagRepository
 from app.journals.deps import get_tag_repository
-from app.core.deps.auth import get_current_user
+from app.auth.deps import get_current_user
 from app.auth.db.models import User
 from app.core.exceptions import RepositoryException
 

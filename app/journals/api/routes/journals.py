@@ -1,8 +1,8 @@
 from typing import Annotated, Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status, Query, Depends
 
-from app.journals.api.v0.schemas.request import CreateJournalRequest, UpdateJournalRequest
-from app.journals.api.v0.schemas.response import (
+from app.journals.api.schemas.request import CreateJournalRequest, UpdateJournalRequest
+from app.journals.api.schemas.response import (
     JournalResponse,
     JournalListResponse,
     MessageResponse
@@ -11,7 +11,7 @@ from app.journals.facade.journal_facade import JournalFacade
 from app.journals.deps import get_journal_facade
 from app.memory.deps import get_user_model_updater
 from app.memory.user_model_updater import UserModelUpdater, trigger_update_if_needed
-from app.core.deps.auth import get_current_user
+from app.auth.deps import get_current_user
 from app.auth.db.models import User
 from app.journals.api.config import JournalRoutes
 

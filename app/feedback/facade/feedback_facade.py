@@ -4,8 +4,8 @@ from typing import Optional
 from app.core.config import Settings
 from app.core.logging import get_logger
 from app.feedback.config import QUESTIONNAIRE_VERSION
-from app.feedback.api.v0.schemas.request import CreateFeedbackRequest
-from app.feedback.api.v0.schemas.response import (
+from app.feedback.api.schemas.request import CreateFeedbackRequest
+from app.feedback.api.schemas.response import (
     FeedbackListResponse,
     FeedbackResponse,
     FeedbackSummaryResponse,

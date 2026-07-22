@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, status, Query, Depends, Request
 from typing import Annotated, Optional
 
-from app.ai.api.v0.schemas.response import MirrorReflectionResponse
+from app.ai.api.schemas.response import MirrorReflectionResponse
 from app.ai.services.mirror_service import MirrorService
 from app.ai.deps import get_mirror_service
-from app.core.deps.auth import get_current_user
+from app.auth.deps import get_current_user
 from app.core.rate_limit import limiter
 from app.auth.db.models import User
 from app.core.logging import get_logger

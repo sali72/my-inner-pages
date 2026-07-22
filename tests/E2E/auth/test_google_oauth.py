@@ -12,7 +12,7 @@ from httpx import AsyncClient
 from app.auth.api.config import AuthRoutes
 from app.auth.db.models import User
 from app.auth.services.google_oauth_service import GoogleTokens, GoogleUserInfo
-from app.auth.api.v0.routes.google import get_google_oauth_service
+from app.auth.api.routes.google import get_google_oauth_service
 from tests.config import AUTH_PREFIX
 
 
