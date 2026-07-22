@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, ReactNode } from 'react';
 import { toast } from 'sonner';
+import { emitAuthSessionChanged } from '@/utils/authSession';
 
 // Backend API URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
@@ -36,6 +37,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const mountedRef = useRef(true);
+  const authCheckVersionRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -47,8 +49,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   useEffect(() => {
-    const handleAuthExpired = () => {
+    const handleAuthExpired = (event: Event) => {
+      const expiredToken = (event as CustomEvent<{ token?: string }>).detail?.token;
+      // A delayed response from an older request must not sign out a newer login.
+      if (expiredToken && localStorage.getItem('authToken') !== expiredToken) return;
       clearSessionData();
+      emitAuthSessionChanged(null);
       setUser(null);
       setIsAuthenticated(false);
     };
@@ -65,8 +71,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const checkAuthStatus = async () => {
+    const requestVersion = ++authCheckVersionRef.current;
+    const token = localStorage.getItem('authToken');
+
     try {
-      const token = localStorage.getItem('authToken');
       if (token) {
         if (!mountedRef.current) return;
         const response = await fetch(`${API_URL}/auth/verify`, {
@@ -77,8 +85,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
         
         if (response.ok) {
-          if (!mountedRef.current) return;
+          // Ignore responses from checks superseded by a newer check or login.
+          if (!mountedRef.current || requestVersion !== authCheckVersionRef.current) return;
+
           const userData = await response.json();
+          if (!mountedRef.current || requestVersion !== authCheckVersionRef.current || localStorage.getItem('authToken') !== token) return;
           setUser({
             id: userData.id,
             email: userData.email,
@@ -89,9 +100,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             feedback_triggers: userData.feedback_triggers || {},
           });
           setIsAuthenticated(true);
-        } else {
-          if (!mountedRef.current) return;
+        } else if (response.status === 401 && localStorage.getItem('authToken') === token) {
           clearSessionData();
+          emitAuthSessionChanged(null);
           setUser(null);
           setIsAuthenticated(false);
         }
@@ -101,17 +112,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setIsAuthenticated(false);
       }
     } catch (error) {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || requestVersion !== authCheckVersionRef.current) return;
       console.error('Auth check failed:', error);
-      clearSessionData();
-      setUser(null);
-      setIsAuthenticated(false);
+      // Network failures are common when a mobile tab resumes. Keep the token
+      // and current session; a later focus/online event will verify it again.
     } finally {
-      if (mountedRef.current) setIsLoading(false);
+      if (mountedRef.current && requestVersion === authCheckVersionRef.current) setIsLoading(false);
     }
   };
 
   const login = useCallback(async (email: string, password: string): Promise<void> => {
+    // Prevent an in-flight verification for the previous token from changing
+    // state after this login completes.
+    authCheckVersionRef.current += 1;
     const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -131,6 +144,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const userData = data.user;
     
     localStorage.setItem('authToken', token);
+    emitAuthSessionChanged(token);
     
     const newUser = {
       id: userData.id,
@@ -184,6 +198,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = useCallback(async (): Promise<void> => {
     clearSessionData();
+    emitAuthSessionChanged(null);
     setUser(null);
     setIsAuthenticated(false);
   }, []);

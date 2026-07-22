@@ -29,6 +29,7 @@ async function request<T>(
     schema?: z.ZodType<T>,
 ): Promise<T> {
     const startTime = performance.now();
+    const requestToken = localStorage.getItem('authToken');
 
     try {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -55,8 +56,9 @@ async function request<T>(
                     level: 'warning',
                     data: { endpoint, duration_ms: Math.round(duration) },
                 });
-                localStorage.removeItem('authToken');
-                window.dispatchEvent(new CustomEvent('auth:expired'));
+                if (requestToken && localStorage.getItem('authToken') === requestToken) {
+                    window.dispatchEvent(new CustomEvent('auth:expired', { detail: { token: requestToken } }));
+                }
             } else if (response.status === 429) {
                 toast.error('Too many requests — please slow down');
             }

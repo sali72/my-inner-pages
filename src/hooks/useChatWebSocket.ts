@@ -6,6 +6,7 @@ import { useWebSocketConnection } from './useWebSocketConnection';
 import type { WsStatusEvent } from './useWebSocketConnection';
 import { startAckTimer, buildUserMessage, buildPlaceholder, isTokenExpired, ACK_TIMEOUT_MS } from './chatHelpers';
 import type { QueuedMessage } from './chatHelpers';
+import { getAuthSession, isCurrentAuthSession } from '@utils/authSession';
 
 interface UseChatWebSocketReturn {
   chatId: string | null;
@@ -30,6 +31,7 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     connect: wsConnect,
     cleanup: wsCleanup,
     wsRef,
+    reconnectTimerRef,
     onMessageRef,
     onStatusRef,
     tokenCheckRef,
@@ -95,8 +97,10 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       dispatch({ type: 'WS_FAILED', error: 'Session expired. Please log in again.' });
       return;
     }
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) return;
+    if (isReconnect && reconnectTimerRef.current !== null) return;
     wsConnect(targetChatId, isReconnect);
-  }, [wsConnect]);
+  }, [wsConnect, wsRef, reconnectTimerRef]);
 
   const disconnect = useCallback(() => {
     wsCleanup();
@@ -112,13 +116,14 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
 
   const loadChat = useCallback(async (targetChatId: string) => {
     const gen = ++loadGenRef.current;
+    const session = getAuthSession();
     wsCleanup();
     dispatch({ type: 'WS_DISCONNECTED' });
     dispatch({ type: 'LOAD_MESSAGES', messages: [] });
 
     try {
       const chat = await api.get(`/chats/${targetChatId}`, chatResponseSchema);
-      if (loadGenRef.current !== gen) return;
+      if (loadGenRef.current !== gen || !isCurrentAuthSession(session)) return;
       if (chat?.messages) {
         const loadedMessages: ChatMessage[] = chat.messages.map(
           (m: { role: string; content: string; created_at: string }) => ({
@@ -131,11 +136,11 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
         dispatch({ type: 'LOAD_MESSAGES', messages: loadedMessages });
       }
     } catch {
-      if (loadGenRef.current !== gen) return;
+      if (loadGenRef.current !== gen || !isCurrentAuthSession(session)) return;
       dispatch({ type: 'WS_FAILED', error: 'Failed to load chat' });
       return;
     }
-    if (loadGenRef.current !== gen) return;
+    if (loadGenRef.current !== gen || !isCurrentAuthSession(session)) return;
     connect(targetChatId, false);
   }, [wsCleanup, connect]);
 
@@ -281,7 +286,34 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
 
   useEffect(() => {
     connect(null, false);
-    return wsCleanup;
+    const handleSessionChange = () => {
+      const nextSession = getAuthSession();
+      loadGenRef.current += 1;
+      wsCleanup();
+      pendingQueueRef.current = [];
+      if (ackWaitRef.current) clearTimeout(ackWaitRef.current.timer);
+      ackWaitRef.current = null;
+      dispatch({ type: 'WS_RESET' });
+      if (nextSession.token) window.setTimeout(() => connect(null, false), 0);
+    };
+    window.addEventListener('auth:session-changed', handleSessionChange);
+    const recoverOnline = () => {
+      const token = localStorage.getItem('authToken');
+      if (!token || isTokenExpired(token)) return;
+      connect(chatIdRef.current, true);
+    };
+    const recoverVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      recoverOnline();
+    };
+    window.addEventListener('online', recoverOnline);
+    document.addEventListener('visibilitychange', recoverVisible);
+    return () => {
+      window.removeEventListener('online', recoverOnline);
+      document.removeEventListener('visibilitychange', recoverVisible);
+      window.removeEventListener('auth:session-changed', handleSessionChange);
+      wsCleanup();
+    };
   }, [connect, wsCleanup]);
 
   return {

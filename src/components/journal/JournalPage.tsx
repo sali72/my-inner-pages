@@ -449,8 +449,17 @@ export const JournalPage: React.FC<JournalPageProps> = ({
 
   useEffect(() => {
     const handleBeforeUnload = () => { persistLocally(); };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') persistLocally();
+    };
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [persistLocally]);
 
   useEffect(() => {

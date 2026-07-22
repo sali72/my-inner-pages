@@ -2,8 +2,9 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { JournalEntry } from '@/types';
 import { api, journalListResponseSchema, journalResponseSchema, type JournalResponse } from '@utils/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { getUnsyncedEntries, removeUnsyncedEntry } from '@utils/offlineStorage';
+import { getAuthSession, isCurrentAuthSession } from '@utils/authSession';
 
 const QUERY_KEY = ['journals'] as const;
 const PAGE_SIZE = 20;
@@ -28,6 +29,8 @@ function mapEntry(item: JournalResponse): JournalEntry {
 export const useJournalEntries = () => {
   const queryClient = useQueryClient();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const syncInFlightRef = useRef<Promise<void> | null>(null);
+  const entryInFlightRef = useRef<Set<string>>(new Set());
 
   const query = useInfiniteQuery({
     queryKey: QUERY_KEY,
@@ -94,12 +97,20 @@ export const useJournalEntries = () => {
   };
 
   const syncUnsyncedEntries = useCallback(async (onIdMigrate?: (oldId: string | number, newId: string | number) => void) => {
+    if (syncInFlightRef.current) return syncInFlightRef.current;
+    const session = getAuthSession();
+    if (!session.token) return;
+
+    const run = (async () => {
     const unsynced = getUnsyncedEntries();
     const ids = Object.keys(unsynced);
     if (ids.length === 0) return;
 
     for (const id of ids) {
+      if (!isCurrentAuthSession(session)) break;
+      if (entryInFlightRef.current.has(id.toString())) continue;
       const entry = unsynced[id];
+      entryInFlightRef.current.add(id.toString());
       try {
         if (id.toString().startsWith('draft-')) {
           // Create new entry on the backend
@@ -110,8 +121,9 @@ export const useJournalEntries = () => {
             created_at: entry.created_at,
           }, journalResponseSchema);
           
+          if (!isCurrentAuthSession(session)) break;
           removeUnsyncedEntry(id);
-          if (onIdMigrate) {
+          if (onIdMigrate && isCurrentAuthSession(session)) {
             onIdMigrate(id, created.id);
           }
         } else {
@@ -123,13 +135,18 @@ export const useJournalEntries = () => {
             tags: entry.tags,
             created_at: entry.created_at,
           });
-          removeUnsyncedEntry(id);
+          if (isCurrentAuthSession(session)) removeUnsyncedEntry(id);
         }
       } catch (error) {
         console.error(`Failed to sync entry ${id}:`, error);
+      } finally {
+        entryInFlightRef.current.delete(id.toString());
       }
     }
-    queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {});
+    if (isCurrentAuthSession(session)) queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {});
+    })();
+    syncInFlightRef.current = run;
+    try { await run; } finally { if (syncInFlightRef.current === run) syncInFlightRef.current = null; }
   }, [updateMutation, queryClient]);
 
   return {

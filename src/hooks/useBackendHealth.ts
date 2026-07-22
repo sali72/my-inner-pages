@@ -13,9 +13,15 @@ export function useBackendHealth() {
   const statusRef = useRef<HealthStatus>('unknown');
   const consecutiveFailuresRef = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const controllerRef = useRef<AbortController | null>(null);
+  const checkInFlightRef = useRef(false);
 
   const check = useCallback(async () => {
+    if (checkInFlightRef.current) return;
+    checkInFlightRef.current = true;
+    controllerRef.current?.abort();
     const controller = new AbortController();
+    controllerRef.current = controller;
     const timeout = setTimeout(() => controller.abort(), 10_000);
 
     try {
@@ -55,6 +61,9 @@ export function useBackendHealth() {
       } else {
         handleFailure(0, 'unknown');
       }
+    } finally {
+      if (controllerRef.current === controller) controllerRef.current = null;
+      if (controllerRef.current === null) checkInFlightRef.current = false;
     }
   }, []);
 
@@ -98,6 +107,7 @@ export function useBackendHealth() {
     check();
 
     const startInterval = () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
       const delay = Math.min(
         CHECK_INTERVAL_MS * Math.pow(2, consecutiveFailuresRef.current),
         MAX_BACKOFF_MS,
@@ -109,10 +119,8 @@ export function useBackendHealth() {
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-        }
-        check();
+        controllerRef.current?.abort();
+        window.setTimeout(() => check(), 0);
         startInterval();
       }
     };
@@ -123,6 +131,7 @@ export function useBackendHealth() {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      controllerRef.current?.abort();
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [check]);

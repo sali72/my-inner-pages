@@ -64,6 +64,7 @@ export function useWebSocketConnection() {
     onStatusRef.current({ type: 'reconnecting' });
 
     reconnectTimerRef.current = setTimeout(() => {
+      reconnectTimerRef.current = null;
       if (reconnectAttemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
         onStatusRef.current({ type: 'reconnect_failed' });
         return;
@@ -78,6 +79,8 @@ export function useWebSocketConnection() {
   }, []);
 
   const doConnect = useCallback((targetChatId?: string | null, isReconnect = false) => {
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) return;
+    if (reconnectTimerRef.current !== null) return;
     cleanup();
 
     const token = localStorage.getItem('authToken');
