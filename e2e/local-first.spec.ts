@@ -53,6 +53,73 @@ test.describe('Local-first editor regressions', () => {
     await expect(secondEntry).toHaveCount(1);
   });
 
+  test('coalesces simultaneous online and focus draft sync triggers', async ({ page }) => {
+    const draftId = `draft-playwright-${Date.now()}`;
+    const createdAt = new Date().toISOString();
+    let postCount = 0;
+
+    await page.route('**/api/v0/journals', async (route, request) => {
+      if (request.method() !== 'POST') {
+        await route.continue();
+        return;
+      }
+
+      postCount += 1;
+      await new Promise(resolve => setTimeout(resolve, 250));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: `migrated-${draftId}`,
+          title: 'Queued draft',
+          content: 'Created once',
+          tags: [],
+          created_at: createdAt,
+          updated_at: createdAt,
+        }),
+      });
+    });
+
+    await page.evaluate(({ draftId, createdAt }) => {
+      localStorage.setItem('my-inner-pages-unsynced-journals', JSON.stringify({
+        [draftId]: {
+          id: draftId,
+          title: 'Queued draft',
+          content: 'Created once',
+          tags: [],
+          date: createdAt,
+          created_at: createdAt,
+        },
+      }));
+      window.dispatchEvent(new Event('online'));
+      window.dispatchEvent(new Event('focus'));
+    }, { draftId, createdAt });
+
+    await expect.poll(() => postCount, { timeout: 5000 }).toBe(1);
+    await expect.poll(async () => page.evaluate(() =>
+      localStorage.getItem('my-inner-pages-unsynced-journals')
+    ), { timeout: 5000 }).toBe('{}');
+  });
+
+  test('persists an unsynced edit on pagehide', async ({ page }) => {
+    const title = 'Pagehide Persistence Entry';
+    const modifiedContent = 'This edit is saved before the page is hidden.';
+
+    await createEntry(page, title, 'Original content.');
+    await page.locator('h2').filter({ hasText: title }).click();
+    await page.waitForTimeout(1500);
+    await page.locator('.ProseMirror').fill(modifiedContent);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+
+    await expect.poll(async () => page.evaluate(() => {
+      const raw = localStorage.getItem('my-inner-pages-unsynced-journals');
+      if (!raw) return null;
+      const entries = Object.values(JSON.parse(raw)) as Array<{ content?: string }>;
+      return entries.find(entry => entry.content === 'This edit is saved before the page is hidden.')?.content ?? null;
+    }), { timeout: 5000 }).toBe(modifiedContent);
+  });
+
   test('persists content in IndexedDB across full page navigation', async ({ page }) => {
     // Regression: keystrokes must survive page unload/reload even when
     // no API save has occurred. Y.Doc + y-indexeddb should persist the
