@@ -23,7 +23,10 @@ test.describe('Chat core flows', () => {
     accessToken = data.access_token;
 
     await page.goto('/');
-    await page.evaluate((t) => localStorage.setItem('authToken', t), accessToken);
+    await page.context().addCookies([
+      { name: 'access_token', value: accessToken, path: '/', domain: 'localhost' },
+      { name: 'session_exists', value: 'true', path: '/', domain: 'localhost' },
+    ]);
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Your Journal', exact: true })).toBeVisible({ timeout: 10000 });
   });

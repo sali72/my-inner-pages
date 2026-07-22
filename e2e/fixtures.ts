@@ -38,6 +38,9 @@ export async function loginAsUser(page: Page, user: TestUser): Promise<void> {
   const token = data.access_token;
 
   await page.goto('/');
-  await page.evaluate((t) => localStorage.setItem('authToken', t), token);
+  await page.context().addCookies([
+    { name: 'access_token', value: token, path: '/', domain: 'localhost' },
+    { name: 'session_exists', value: 'true', path: '/', domain: 'localhost' },
+  ]);
   await page.reload();
 }

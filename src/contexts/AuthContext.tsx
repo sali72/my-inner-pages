@@ -30,7 +30,6 @@ export interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function clearSessionData() {
-  localStorage.removeItem('authToken');
   localStorage.removeItem('chat_messages');
 }
 
@@ -51,12 +50,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   useEffect(() => {
-    const handleAuthExpired = (event: Event) => {
-      const expiredToken = (event as CustomEvent<{ token?: string }>).detail?.token;
-      // A delayed response from an older request must not sign out a newer login.
-      if (expiredToken && localStorage.getItem('authToken') !== expiredToken) return;
+    const handleAuthExpired = () => {
       clearSessionData();
-      emitAuthSessionChanged(null);
+      emitAuthSessionChanged(false);
       setUser(null);
       setIsAuthenticated(false);
     };
@@ -74,65 +70,53 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const checkAuthStatus = async () => {
     const requestVersion = ++authCheckVersionRef.current;
-    const token = localStorage.getItem('authToken');
 
     try {
-      if (token) {
-        if (!mountedRef.current) return;
-        const response = await fetch(`${API_URL}/auth/verify`, {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          // Ignore responses from checks superseded by a newer check or login.
-          if (!mountedRef.current || requestVersion !== authCheckVersionRef.current) return;
+      if (!mountedRef.current) return;
+      const response = await fetch(`${API_URL}/auth/verify`, {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
 
-          const userData = await response.json();
-          if (!mountedRef.current || requestVersion !== authCheckVersionRef.current || localStorage.getItem('authToken') !== token) return;
-          setUser({
-            id: userData.id,
-            email: userData.email,
-            emailVerified: userData.is_verified || false,
-            role: userData.role || 'user',
-            created_at: userData.created_at,
-            login_count: userData.login_count ?? 0,
-            feedback_triggers: userData.feedback_triggers || {},
-          });
-          setIsAuthenticated(true);
-        } else if (response.status === 401 && localStorage.getItem('authToken') === token) {
-          clearSessionData();
-          emitAuthSessionChanged(null);
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-      } else {
-        if (!mountedRef.current) return;
+      if (response.ok) {
+        if (!mountedRef.current || requestVersion !== authCheckVersionRef.current) return;
+
+        const userData = await response.json();
+        if (!mountedRef.current || requestVersion !== authCheckVersionRef.current) return;
+        setUser({
+          id: userData.id,
+          email: userData.email,
+          emailVerified: userData.is_verified || false,
+          role: userData.role || 'user',
+          created_at: userData.created_at,
+          login_count: userData.login_count ?? 0,
+          feedback_triggers: userData.feedback_triggers || {},
+        });
+        setIsAuthenticated(true);
+      } else if (response.status === 401) {
+        clearSessionData();
+        emitAuthSessionChanged(false);
         setUser(null);
         setIsAuthenticated(false);
       }
     } catch (error) {
       if (!mountedRef.current || requestVersion !== authCheckVersionRef.current) return;
-      console.error('Auth check failed:', error);
-      // Network failures are common when a mobile tab resumes. Keep the token
-      // and current session; a later focus/online event will verify it again.
+      // Network failures are common when a mobile tab resumes. Keep the
+      // current session; a later focus/online event will verify it again.
     } finally {
       if (mountedRef.current && requestVersion === authCheckVersionRef.current) setIsLoading(false);
     }
   };
 
   const login = useCallback(async (email: string, password: string): Promise<void> => {
-    // Prevent an in-flight verification for the previous token from changing
-    // state after this login completes.
     authCheckVersionRef.current += 1;
     const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    
+
     if (!response.ok) {
       if (response.status === 429) {
         toast.error('Too many login attempts — please wait a moment');
@@ -140,15 +124,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const error = await response.json();
       throw new Error(error.detail || 'Login failed');
     }
-    
+
     const data = await response.json();
-    const token = data.access_token;
     const userData = data.user;
-    
-    localStorage.setItem('authToken', token);
-    emitAuthSessionChanged(token);
-    
-    const newUser = {
+
+    emitAuthSessionChanged(true);
+
+    setUser({
       id: userData.id,
       email: userData.email,
       emailVerified: userData.is_verified || false,
@@ -156,9 +138,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       created_at: userData.created_at,
       login_count: userData.login_count ?? 0,
       feedback_triggers: userData.feedback_triggers || {},
-    };
-    
-    setUser(newUser);
+    });
     setIsAuthenticated(true);
   }, []);
 
@@ -227,8 +207,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const logout = useCallback(async (): Promise<void> => {
+    try {
+      await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // Proceed with local cleanup even if the server request fails.
+    }
     clearSessionData();
-    emitAuthSessionChanged(null);
+    emitAuthSessionChanged(false);
     setUser(null);
     setIsAuthenticated(false);
   }, []);

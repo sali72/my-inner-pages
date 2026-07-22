@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import { Mode, Accent, FontStyle, ContentFontSize } from '@/types';
 import { buildThemeTokens } from '@/utils/themeTokens';
-import { getAuthSession, isCurrentAuthSession, type AuthSessionSnapshot } from '@/utils/authSession';
+import { getAuthSession, isCurrentAuthSession } from '@/utils/authSession';
 
 interface ThemeContextValue {
   mode: Mode;
@@ -63,32 +63,30 @@ function writeLocal(settings: PersistedSettings) {
   } catch {}
 }
 
-async function fetchRemote(session: AuthSessionSnapshot): Promise<PersistedSettings | null> {
-  const token = session.token;
-  if (!token) return null;
+async function fetchRemote(): Promise<PersistedSettings | null> {
   try {
     const res = await fetch(`${API_URL}/auth/me`, {
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
     });
-    if (!res.ok || !isCurrentAuthSession(session)) return null;
+    if (!res.ok) return null;
     const data = await res.json();
-    if (data.preferences && isCurrentAuthSession(session)) {
+    if (data.preferences) {
       return validate(data.preferences);
     }
   } catch {}
   return null;
 }
 
-async function saveRemote(settings: PersistedSettings, session: AuthSessionSnapshot): Promise<boolean> {
-  const token = session.token;
-  if (!token) return false;
+async function saveRemote(settings: PersistedSettings, generation: number): Promise<boolean> {
   try {
     const res = await fetch(`${API_URL}/auth/me/preferences`, {
       method: 'PUT',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings),
     });
-    return res.ok && isCurrentAuthSession(session);
+    return res.ok && generation === getAuthSession().generation;
   } catch {
     return false;
   }
@@ -134,10 +132,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const latest = pendingSettingsRef.current;
       pendingSettingsRef.current = null;
       if (!latest) return;
-      const session = getAuthSession();
-      if (session.generation !== sessionGenerationRef.current) return;
+      const gen = getAuthSession().generation;
+      if (gen !== sessionGenerationRef.current) return;
       saveChainRef.current = saveChainRef.current
-        .then(() => isCurrentAuthSession(session) ? saveRemote(latest, session) : false)
+        .then(() => gen === getAuthSession().generation ? saveRemote(latest, gen) : false)
         .catch(() => false);
     }, 400);
   }, []);
@@ -150,9 +148,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const syncFromRemote = useCallback(async () => {
-    const session = getAuthSession();
-    const remote = await fetchRemote(session);
-    if (remote && isCurrentAuthSession(session)) {
+    const gen = getAuthSession().generation;
+    const remote = await fetchRemote();
+    if (remote && gen === getAuthSession().generation) {
       writeLocal(remote);
       setSettings(remote);
     }

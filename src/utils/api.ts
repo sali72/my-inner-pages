@@ -4,14 +4,6 @@ import * as Sentry from '@sentry/react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
 
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('authToken');
-    return {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-    };
-};
-
 class ApiError extends Error {
     status: number;
     constructor(message: string, status: number) {
@@ -29,16 +21,18 @@ async function request<T>(
     schema?: z.ZodType<T>,
 ): Promise<T> {
     const startTime = performance.now();
-    const requestToken = localStorage.getItem('authToken');
 
     try {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...options,
-            headers: { ...getAuthHeaders(), ...(options.headers as Record<string, string>) },
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(options.headers as Record<string, string>),
+            },
         });
 
         const duration = performance.now() - startTime;
-        const isAuth = !!localStorage.getItem('authToken');
 
         if (!response.ok) {
             consecutiveFailures++;
@@ -52,13 +46,11 @@ async function request<T>(
             if (response.status === 401) {
                 Sentry.addBreadcrumb({
                     category: 'auth',
-                    message: 'Auth token expired',
+                    message: 'Session expired',
                     level: 'warning',
                     data: { endpoint, duration_ms: Math.round(duration) },
                 });
-                if (requestToken && localStorage.getItem('authToken') === requestToken) {
-                    window.dispatchEvent(new CustomEvent('auth:expired', { detail: { token: requestToken } }));
-                }
+                window.dispatchEvent(new CustomEvent('auth:expired'));
             } else if (response.status === 429) {
                 toast.error('Too many requests — please slow down');
             }
@@ -76,7 +68,6 @@ async function request<T>(
                         detail,
                         duration_ms: Math.round(duration),
                         consecutive_failures: consecutiveFailures,
-                        is_authenticated: isAuth,
                     },
                 });
             }
@@ -93,7 +84,6 @@ async function request<T>(
                     extra: {
                         consecutive_failures: consecutiveFailures,
                         duration_ms: Math.round(duration),
-                        is_authenticated: isAuth,
                     },
                 });
             }
@@ -133,7 +123,6 @@ async function request<T>(
                 extra: {
                     duration_ms: Math.round(duration),
                     consecutive_failures: consecutiveFailures,
-                    is_authenticated: !!localStorage.getItem('authToken'),
                     api_base_url: API_BASE_URL,
                 },
             });

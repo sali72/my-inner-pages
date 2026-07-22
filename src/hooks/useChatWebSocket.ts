@@ -4,9 +4,9 @@ import { api, chatResponseSchema } from '@utils/api';
 import { chatReducer, initialChatState } from './chatReducer';
 import { useWebSocketConnection } from './useWebSocketConnection';
 import type { WsStatusEvent } from './useWebSocketConnection';
-import { startAckTimer, buildUserMessage, buildPlaceholder, isTokenExpired, ACK_TIMEOUT_MS } from './chatHelpers';
+import { startAckTimer, buildUserMessage, buildPlaceholder, ACK_TIMEOUT_MS } from './chatHelpers';
 import type { QueuedMessage } from './chatHelpers';
-import { getAuthSession, isCurrentAuthSession } from '@utils/authSession';
+import { getAuthSession } from '@utils/authSession';
 
 interface UseChatWebSocketReturn {
   chatId: string | null;
@@ -34,7 +34,6 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
     reconnectTimerRef,
     onMessageRef,
     onStatusRef,
-    tokenCheckRef,
     chatIdRef,
   } = useWebSocketConnection();
 
@@ -43,11 +42,6 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
   const loadGenRef = useRef(0);
   const pendingQueueRef = useRef<QueuedMessage[]>([]);
   const ackWaitRef = useRef<{ messageId: string; timer: ReturnType<typeof setTimeout> } | null>(null);
-
-  tokenCheckRef.current = () => {
-    const token = localStorage.getItem('authToken');
-    return !!token && !isTokenExpired(token);
-  };
 
   const drainQueue = useCallback(() => {
     const queue = pendingQueueRef.current;
@@ -88,15 +82,6 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
   }, []);
 
   const connect = useCallback((targetChatId?: string | null, isReconnect = false) => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      dispatch({ type: 'WS_FAILED', error: 'Not authenticated' });
-      return;
-    }
-    if (isReconnect && isTokenExpired(token)) {
-      dispatch({ type: 'WS_FAILED', error: 'Session expired. Please log in again.' });
-      return;
-    }
     if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) return;
     if (isReconnect && reconnectTimerRef.current !== null) return;
     wsConnect(targetChatId, isReconnect);
@@ -116,14 +101,14 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
 
   const loadChat = useCallback(async (targetChatId: string) => {
     const gen = ++loadGenRef.current;
-    const session = getAuthSession();
+    const genSnapshot = getAuthSession().generation;
     wsCleanup();
     dispatch({ type: 'WS_DISCONNECTED' });
     dispatch({ type: 'LOAD_MESSAGES', messages: [] });
 
     try {
       const chat = await api.get(`/chats/${targetChatId}`, chatResponseSchema);
-      if (loadGenRef.current !== gen || !isCurrentAuthSession(session)) return;
+      if (loadGenRef.current !== gen || genSnapshot !== getAuthSession().generation) return;
       if (chat?.messages) {
         const loadedMessages: ChatMessage[] = chat.messages.map(
           (m: { role: string; content: string; created_at: string }) => ({
@@ -136,11 +121,11 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
         dispatch({ type: 'LOAD_MESSAGES', messages: loadedMessages });
       }
     } catch {
-      if (loadGenRef.current !== gen || !isCurrentAuthSession(session)) return;
+      if (loadGenRef.current !== gen || genSnapshot !== getAuthSession().generation) return;
       dispatch({ type: 'WS_FAILED', error: 'Failed to load chat' });
       return;
     }
-    if (loadGenRef.current !== gen || !isCurrentAuthSession(session)) return;
+    if (loadGenRef.current !== gen || genSnapshot !== getAuthSession().generation) return;
     connect(targetChatId, false);
   }, [wsCleanup, connect]);
 
@@ -221,12 +206,6 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
       case 'reconnecting':
         dispatch({ type: 'WS_RECONNECTING' });
         break;
-      case 'no_token':
-        dispatch({ type: 'WS_FAILED', error: 'Not authenticated' });
-        break;
-      case 'session_expired':
-        dispatch({ type: 'WS_FAILED', error: 'Session expired. Please log in again.' });
-        break;
       case 'reconnect_failed':
         dispatch({ type: 'WS_FAILED', error: 'Connection lost' });
         break;
@@ -285,21 +264,18 @@ export function useChatWebSocket(): UseChatWebSocketReturn {
   };
 
   useEffect(() => {
-    connect(null, false);
-    const handleSessionChange = () => {
-      const nextSession = getAuthSession();
+    const handleSessionChange = (event: Event) => {
+      const evt = event as CustomEvent<{ hasSession?: boolean }>;
       loadGenRef.current += 1;
       wsCleanup();
       pendingQueueRef.current = [];
       if (ackWaitRef.current) clearTimeout(ackWaitRef.current.timer);
       ackWaitRef.current = null;
       dispatch({ type: 'WS_RESET' });
-      if (nextSession.token) window.setTimeout(() => connect(null, false), 0);
+      if (evt.detail?.hasSession) window.setTimeout(() => connect(null, false), 0);
     };
     window.addEventListener('auth:session-changed', handleSessionChange);
     const recoverOnline = () => {
-      const token = localStorage.getItem('authToken');
-      if (!token || isTokenExpired(token)) return;
       connect(chatIdRef.current, true);
     };
     const recoverVisible = () => {

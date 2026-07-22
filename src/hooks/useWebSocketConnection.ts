@@ -1,18 +1,22 @@
 import { useRef, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import type { WSServerMessage } from '@/types/chat';
-import { isTokenExpired } from './chatHelpers';
 
-const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/api/v0';
 const MAX_RECONNECT_ATTEMPTS = 15;
 const BASE_RECONNECT_DELAY_MS = 1000;
 const MAX_RECONNECT_DELAY_MS = 30000;
+
+function getDefaultWsUrl(): string {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}/api/v0`;
+}
+
+const WS_BASE_URL = import.meta.env.VITE_WS_URL || getDefaultWsUrl();
+
 export type WsStatusEvent =
   | { type: 'connected' }
   | { type: 'disconnected'; code: number }
   | { type: 'rate_limited' }
-  | { type: 'no_token' }
-  | { type: 'session_expired' }
   | { type: 'reconnecting' }
   | { type: 'reconnect_failed' };
 
@@ -32,7 +36,6 @@ export function useWebSocketConnection() {
 
   const onMessageRef = useRef<(data: WSServerMessage) => void>(() => {});
   const onStatusRef = useRef<(event: WsStatusEvent) => void>(() => {});
-  const tokenCheckRef = useRef<() => boolean>(() => false);
   const chatIdRef = useRef<string | null>(null);
   const scheduleRef = useRef<() => void>(() => {});
 
@@ -69,10 +72,6 @@ export function useWebSocketConnection() {
         onStatusRef.current({ type: 'reconnect_failed' });
         return;
       }
-      if (!tokenCheckRef.current()) {
-        onStatusRef.current({ type: 'session_expired' });
-        return;
-      }
       reconnectAttemptRef.current += 1;
       doConnect(chatIdRef.current, true);
     }, delay);
@@ -83,21 +82,9 @@ export function useWebSocketConnection() {
     if (reconnectTimerRef.current !== null) return;
     cleanup();
 
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      onStatusRef.current(isReconnect ? { type: 'session_expired' } : { type: 'no_token' });
-      return;
-    }
-
-    if (isReconnect && isTokenExpired(token)) {
-      onStatusRef.current({ type: 'session_expired' });
-      return;
-    }
-
     chatIdRef.current = targetChatId ?? null;
 
     const params = new URLSearchParams();
-    params.set('token', token);
     if (targetChatId) params.set('chat_id', targetChatId);
     if (isReconnect && targetChatId) params.set('resume', 'true');
 
@@ -140,11 +127,6 @@ export function useWebSocketConnection() {
         return;
       }
 
-      if (event.code === 1000 || event.code === 1001) {
-        scheduleRef.current();
-        return;
-      }
-
       scheduleRef.current();
     };
 
@@ -177,7 +159,6 @@ export function useWebSocketConnection() {
     reconnectAttemptRef,
     onMessageRef,
     onStatusRef,
-    tokenCheckRef,
     chatIdRef,
   };
 }
