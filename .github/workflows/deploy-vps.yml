@@ -148,6 +148,9 @@ jobs:
             echo "=== Ensuring MongoDB is running ==="
             docker compose -p my-inner-pages -f docker-compose.yml -f docker-compose.prod.yml up -d mongodb --no-build
 
+            echo "=== Ensuring Redis is running ==="
+            docker compose -p my-inner-pages -f docker-compose.yml -f docker-compose.prod.yml up -d redis --no-build
+
             echo "=== Ensuring Docker network exists ==="
             docker network create my-inner-pages_app-network 2>/dev/null || true
 
@@ -212,6 +215,8 @@ jobs:
               --network my-inner-pages_app-network \
               --env-file ./backend/.env \
               -e APP_VERSION=\$GIT_TAG \
+              -e FRONTEND_URL=https://innerpages.ir \
+              -e GOOGLE_REDIRECT_URI=https://innerpages.ir/api/v0/auth/google/callback \
               -p 127.0.0.1:\$NEW_PORT:8000 \
               --restart unless-stopped \
               -m 512m \

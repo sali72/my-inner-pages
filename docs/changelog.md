@@ -10,6 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Google OAuth Sign-In** — Redirect-based Google Sign-In via Authorization Code flow:
+  - `GoogleOAuthService` — server-to-server code exchange, state JWT (CSRF), userinfo retrieval
+  - `GET /auth/google/login` — redirects to Google consent screen
+  - `GET /auth/google/callback` — code exchange, find-or-create user (link by email), sets HttpOnly cookies
+  - Google-only users (`hashed_password=None`) get `400` on email/password login: "This account uses Google Sign-In"
+- **HttpOnly Cookie Auth Transport** — JWT moved from `localStorage` to HttpOnly `access_token` cookie:
+  - `CookieService` — sets/clears auth + `session_exists` cookies
+  - `TokenBlacklistService` — Redis-backed JWT blacklist for immediate logout; graceful no-op when `redis_url=None`
+  - `get_current_user` reads only from `access_token` cookie (no `Authorization: Bearer` fallback)
+  - `POST /auth/logout` — blacklists token, clears cookies
+  - `User` model: `hashed_password` nullable, added `google_id` field
+  - `UserRepository`: `find_by_google_id()`, `link_google_account()`, `mark_verified()`
+- **Frontend Cookie Auth Migration**:
+  - `api.ts` — removed `Authorization: Bearer`, all requests use `credentials: 'include'`
+  - `authSession.ts` — generation-only snapshots (no token tracking)
+  - `AuthContext.tsx` — cookie-based verify, login, logout; no localStorage token storage
+  - `ThemeContext.tsx` — removed manual Bearer headers, uses `credentials: 'include'`
+  - `useWebSocketConnection.ts` — same-origin WS URL (via `window.location`), no `?token=` param
+  - `LoginPage.tsx` — "Sign in with Google" button with Google SVG icon, "or sign in with email" divider
 - **Email Verification System** — Full email verification flow using Resend:
   - `POST /auth/verify-email/{token}` — verify email address via token link
   - `POST /auth/resend-verification` — resend verification email
