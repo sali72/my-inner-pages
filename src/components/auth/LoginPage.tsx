@@ -60,7 +60,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         <div className="text-center mb-8">
           <h1 className="text-4xl font-serif font-bold text-accent mb-2 flex items-center justify-center gap-3">
             My Inner Pages
-            <span className="text-sm font-semibold text-accent bg-accent-muted px-2.5 py-0.5 rounded uppercase tracking-wider">Alpha</span>
+            <span className="text-xs font-medium text-accent bg-accent-tint px-1.5 py-0.5 rounded uppercase">Alpha</span>
           </h1>
           <p className="text-sm text-secondary">
             Your personal journaling sanctuary

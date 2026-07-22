@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
         <h1 className="ml-4 text-xl font-serif font-bold text-body flex items-center gap-2">
           {getViewTitle()}
-          <span className="text-xs font-semibold text-accent bg-accent-muted px-2 py-0.5 rounded uppercase tracking-wider">Alpha</span>
+          <span className="text-[10px] font-medium text-accent bg-accent-tint px-1.5 py-0.5 rounded uppercase">Alpha</span>
         </h1>
       </div>
 
