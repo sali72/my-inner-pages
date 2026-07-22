@@ -18,8 +18,8 @@ async function createEntry(page: Page, title: string, content: string) {
 test.describe('Journal CRUD', () => {
   let accessToken: string;
 
-  test.beforeAll(async ({ request }) => {
-    const email = `e2e-journal-${Date.now()}@test.com`;
+  test.beforeEach(async ({ page, request }) => {
+    const email = `e2e-journal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.com`;
     await request.post('/api/v0/auth/register', {
       data: { email, password: 'TestPassword123!', confirm_password: 'TestPassword123!' },
     });
@@ -28,9 +28,7 @@ test.describe('Journal CRUD', () => {
     });
     const data = await res.json();
     accessToken = data.access_token;
-  });
 
-  test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.evaluate((t) => localStorage.setItem('authToken', t), accessToken);
     await page.reload();

@@ -24,7 +24,7 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
     verificationToken ? 'verify-email' : initialView
   );
 
-  const { login, register, resetPassword } = useAuth();
+  const { login, register, resetPassword, verifyEmail, resendVerification } = useAuth();
 
   const handleLogin = async (email: string, password: string) => {
     await login(email, password);
@@ -35,9 +35,13 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
     await register(email, password, confirmPassword);
   };
 
-  const handleVerifyEmail = async (_token: string) => {};
+  const handleVerifyEmail = async (token: string) => {
+    await verifyEmail(token);
+  };
 
-  const handleResendVerification = async (_email: string) => {};
+  const handleResendVerification = async (email: string) => {
+    await resendVerification(email);
+  };
 
   const handleResetPassword = async (email: string) => {
     await resetPassword(email);

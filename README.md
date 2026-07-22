@@ -49,7 +49,7 @@ To add a new variable in production (e.g. `VITE_SENTRY_DSN`), you must also crea
 ## Features
 
 - **Landing Page** - Calm, reflective pre-auth page with app overview
-- **Authentication** - Login/Register (no email verification)
+- **Authentication** - Login/Register with email verification (via Resend)
 - **Journal** - Entries with tags, page flip animations
 - **Journal Navigation** - Right sidebar with search, sort, and filter capabilities
   - Access via list icon in top-right corner (journal section only)

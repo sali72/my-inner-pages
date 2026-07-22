@@ -48,7 +48,7 @@ test.describe('Chat core flows', () => {
     await page.locator('button[title="Chat History"]').click();
     await expect(page.locator('aside:has(h2)')).toContainText('Chat History');
 
-    await page.getByRole('button', { title: 'Chat History' }).click();
+    await page.locator('button[title="Chat History"]').click();
     await expect(page.locator('div.fixed.inset-0[class*="bg-black"]')).toHaveCount(0);
   });
 
@@ -57,13 +57,13 @@ test.describe('Chat core flows', () => {
 
     await page.fill('textarea[placeholder="Type a message..."]', 'This chat will be reset');
     await page.click('button:has(svg.lucide-send)');
-    await expect(page.getByText('This chat will be reset')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('This chat will be reset').first()).toBeVisible({ timeout: 5000 });
 
     await page.locator('button[title="Chat History"]').click();
     await page.locator('aside:has(h2) button:has(svg.lucide-plus)').click();
 
     await expect(page.getByText('Ask me anything')).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText('This chat will be reset')).not.toBeVisible();
+    await expect(page.locator('main div.chat-typography').getByText('This chat will be reset')).not.toBeVisible();
   });
 
   test('send button is disabled when input is empty', async ({ page }) => {
@@ -86,7 +86,7 @@ test.describe('Chat core flows', () => {
     await page.fill('textarea[placeholder="Type a message..."]', longMessage);
     await page.click('button:has(svg.lucide-send)');
 
-    await expect(page.getByText(longMessage)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(longMessage).first()).toBeVisible({ timeout: 5000 });
   });
 
   test('deletes a chat from sidebar', async ({ page }) => {
@@ -95,7 +95,7 @@ test.describe('Chat core flows', () => {
 
     await page.fill('textarea[placeholder="Type a message..."]', 'Delete me');
     await page.click('button:has(svg.lucide-send)');
-    await expect(page.getByText('Delete me')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Delete me').first()).toBeVisible({ timeout: 5000 });
 
     await expect.poll(async () => {
       const res = await page.request.get('/api/v0/chats', {
@@ -130,18 +130,18 @@ test.describe('Chat core flows', () => {
 
     await page.fill('textarea[placeholder="Type a message..."]', 'First chat message');
     await page.click('button:has(svg.lucide-send)');
-    await expect(page.getByText('First chat message')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('First chat message').first()).toBeVisible({ timeout: 5000 });
 
     await page.locator('button[title="Chat History"]').click();
     await page.locator('aside:has(h2) button:has(svg.lucide-plus)').click();
     await expect(page.getByText('Ask me anything')).toBeVisible({ timeout: 5000 });
 
-    await page.getByRole('button', { title: 'Chat History' }).click();
+    await page.locator('button[title="Chat History"]').click();
     await expect(page.getByPlaceholder('Type a message...')).toBeVisible({ timeout: 5000 });
 
     await page.fill('textarea[placeholder="Type a message..."]', 'Second chat message');
     await page.click('button:has(svg.lucide-send)');
-    await expect(page.getByText('Second chat message')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Second chat message').first()).toBeVisible({ timeout: 5000 });
 
     await page.locator('button[title="Chat History"]').click();
     await expect(page.locator('aside:has(h2)')).toContainText('2 chats');
@@ -152,17 +152,17 @@ test.describe('Chat core flows', () => {
 
     await page.fill('textarea[placeholder="Type a message..."]', 'Persist this message');
     await page.click('button:has(svg.lucide-send)');
-    await expect(page.getByText('Persist this message')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Persist this message').first()).toBeVisible({ timeout: 5000 });
 
     // Toggle sidebar open
     await page.locator('button[title="Chat History"]').click();
     await expect(page.locator('aside:has(h2)')).toContainText('Chat History');
 
     // Close sidebar
-    await page.getByRole('button', { title: 'Chat History' }).click();
+    await page.locator('button[title="Chat History"]').click();
     await expect(page.locator('div.fixed.inset-0[class*="bg-black"]')).toHaveCount(0);
 
     // Message still visible
-    await expect(page.getByText('Persist this message')).toBeVisible();
+    await expect(page.getByText('Persist this message').first()).toBeVisible();
   });
 });

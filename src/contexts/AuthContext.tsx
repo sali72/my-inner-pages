@@ -23,6 +23,8 @@ export interface AuthContextType {
   register: (email: string, password: string, confirmPassword: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  verifyEmail: (token: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -180,6 +182,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
+  const verifyEmail = useCallback(async (token: string): Promise<void> => {
+    const response = await fetch(`${API_URL}/auth/verify-email/${token}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Verification failed');
+    }
+  }, []);
+
+  const resendVerification = useCallback(async (email: string): Promise<void> => {
+    const response = await fetch(`${API_URL}/auth/resend-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        toast.error('Too many requests — please wait a moment');
+      }
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to resend verification email');
+    }
+  }, []);
+
   const resetPassword = useCallback(async (email: string): Promise<void> => {
     const response = await fetch(`${API_URL}/auth/reset-password`, {
       method: 'POST',
@@ -211,7 +241,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     register,
     logout,
     resetPassword,
-  }), [user, isAuthenticated, isLoading, login, register, logout, resetPassword]);
+    verifyEmail,
+    resendVerification,
+  }), [user, isAuthenticated, isLoading, login, register, logout, resetPassword, verifyEmail, resendVerification]);
 
   return (
     <AuthContext.Provider value={value}>

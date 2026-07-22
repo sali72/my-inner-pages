@@ -148,8 +148,8 @@ test.describe('Local-first editor regressions', () => {
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'Your Journal', exact: true })).toBeVisible({ timeout: 10000 });
 
-    // Open the entry again (card shows original title from backend API)
-    await page.locator('h2').filter({ hasText: title }).click();
+    // Open the entry again (card shows modified title from local-first state)
+    await page.locator('h2').filter({ hasText: modifiedTitle }).click();
     await page.waitForTimeout(2000);
 
     // Editor should restore the modified content from IndexedDB
@@ -181,7 +181,7 @@ test.describe('Local-first editor regressions', () => {
     await expect(page.getByRole('heading', { name: 'Your Journal', exact: true })).toBeVisible({ timeout: 10000 });
 
     // Open the entry
-    await page.locator('h2').filter({ hasText: title }).click();
+    await page.locator('h2').filter({ hasText: newTitle }).click();
     await page.waitForTimeout(2000);
 
     // Title must show the updated value from Y.Doc, not the backend value
