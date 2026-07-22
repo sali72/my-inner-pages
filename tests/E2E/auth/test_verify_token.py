@@ -52,8 +52,8 @@ async def test_verify_token_invalid(client: AsyncClient):
     # Act: Try to verify without token
     response = await client.get(f"{AUTH_PREFIX}{AuthRoutes.VERIFY}")
     
-    # Assert: Verify 403 response
-    assert response.status_code == 403
+    # Assert: Verify 401 response
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -64,13 +64,12 @@ async def test_verify_token_malformed(client: AsyncClient):
     Args:
         client: HTTP client without authentication
     """
-    # Arrange: Set malformed token
-    headers = {"Authorization": "Bearer invalid_token_format"}
+    # Arrange: Set malformed token as cookie
+    client.cookies.set("access_token", "invalid_token_format")
     
     # Act: Try to verify with malformed token
     response = await client.get(
         f"{AUTH_PREFIX}{AuthRoutes.VERIFY}",
-        headers=headers
     )
     
     # Assert: Verify 401 response

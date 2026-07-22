@@ -7,7 +7,7 @@ pytestmark = pytest.mark.asyncio
 async def test_unauthenticated_cannot_access_get_providers(client: AsyncClient):
     """Test that a request without any auth token is rejected."""
     response = await client.get("/api/v0/admin/llm/providers")
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 async def test_non_admin_cannot_access_get_providers(authenticated_client: AsyncClient):
     """Test that a regular authenticated user cannot access the admin providers endpoint."""

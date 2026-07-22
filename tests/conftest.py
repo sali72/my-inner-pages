@@ -196,18 +196,16 @@ async def test_user(client: AsyncClient) -> dict:
 @pytest_asyncio.fixture
 async def authenticated_client(client: AsyncClient, test_user: dict) -> AsyncClient:
     """
-    Create an authenticated HTTP client with authorization headers.
+    Create an authenticated HTTP client with the ``access_token`` cookie.
     
     Args:
         client: HTTP client fixture
         test_user: Test user fixture with access token
         
     Returns:
-        HTTP client with authorization headers set
+        HTTP client with the auth cookie set
     """
-    client.headers.update({
-        "Authorization": f"Bearer {test_user['access_token']}"
-    })
+    client.cookies.set("access_token", test_user["access_token"])
     return client
 
 
@@ -282,7 +280,5 @@ async def admin_user(client: AsyncClient) -> dict:
 @pytest_asyncio.fixture
 async def admin_client(client: AsyncClient, admin_user: dict) -> AsyncClient:
     """Create an authenticated HTTP client for an admin user."""
-    client.headers.update({
-        "Authorization": f"Bearer {admin_user['access_token']}"
-    })
+    client.cookies.set("access_token", admin_user["access_token"])
     return client

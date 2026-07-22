@@ -20,12 +20,16 @@ class UserRepository:
     async def create(
         self,
         email: str,
-        hashed_password: str,
+        hashed_password: Optional[str] = None,
+        google_id: Optional[str] = None,
+        is_verified: bool = False,
     ) -> User:
         try:
             user = User(
                 email=email.lower(),
-                hashed_password=hashed_password
+                hashed_password=hashed_password,
+                google_id=google_id,
+                is_verified=is_verified,
             )
             await user.insert()
             logger.info("user_created", user_id=str(user.id), email=email)
@@ -51,6 +55,65 @@ class UserRepository:
             raise RepositoryException(
                 f"Failed to find user by email: {str(e)}",
                 details={"email": email, "error": str(e)}
+            )
+
+    async def find_by_google_id(
+        self,
+        google_id: str,
+    ) -> Optional[User]:
+        try:
+            return await self.model.find_one({"google_id": google_id})
+        except PyMongoError as e:
+            logger.error("user_find_by_google_id_failed", error=str(e), google_id=google_id)
+            raise RepositoryException(
+                f"Failed to find user by google_id: {str(e)}",
+                details={"google_id": google_id, "error": str(e)}
+            )
+
+    async def link_google_account(
+        self,
+        user_id: PydanticObjectId,
+        google_id: str,
+    ) -> Optional[User]:
+        try:
+            user = await self.find_by_id(user_id)
+            if not user:
+                return None
+            await user.set({
+                "google_id": google_id,
+                "is_verified": True,
+                "updated_at": datetime.now(timezone.utc),
+            })
+            logger.info("google_account_linked", user_id=str(user_id), google_id=google_id)
+            return user
+        except PyMongoError as e:
+            logger.error("google_account_link_failed", error=str(e), user_id=str(user_id))
+            raise RepositoryException(
+                f"Failed to link Google account: {str(e)}",
+                details={"user_id": str(user_id), "error": str(e)}
+            )
+
+    async def mark_verified(
+        self,
+        user_id: PydanticObjectId,
+    ) -> Optional[User]:
+        try:
+            user = await self.find_by_id(user_id)
+            if not user:
+                return None
+            await user.set({
+                "is_verified": True,
+                "verification_token": None,
+                "verification_token_expires_at": None,
+                "updated_at": datetime.now(timezone.utc),
+            })
+            logger.info("user_marked_verified", user_id=str(user_id))
+            return user
+        except PyMongoError as e:
+            logger.error("user_mark_verified_failed", error=str(e), user_id=str(user_id))
+            raise RepositoryException(
+                f"Failed to mark user verified: {str(e)}",
+                details={"user_id": str(user_id), "error": str(e)}
             )
 
     async def find_by_id(

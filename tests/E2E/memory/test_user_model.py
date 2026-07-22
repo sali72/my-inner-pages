@@ -157,9 +157,7 @@ async def test_user_model_isolated_per_user(
     assert resp1.status_code == 200
 
     other_client = client
-    other_client.headers.update({
-        "Authorization": f"Bearer {another_test_user['access_token']}"
-    })
+    other_client.cookies.set("access_token", another_test_user["access_token"])
 
     await other_client.post(
         f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",

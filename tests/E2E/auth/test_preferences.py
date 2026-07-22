@@ -177,8 +177,8 @@ async def test_update_preferences_without_auth(client: AsyncClient):
         json={"mode": "dark"}
     )
 
-    # Assert: Verify 403 response
-    assert response.status_code == 403
+    # Assert: Verify 401 response
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -209,7 +209,7 @@ async def test_preferences_survive_login_logout(authenticated_client: AsyncClien
     new_token = login_response.json()["access_token"]
 
     fresh_client = client
-    fresh_client.headers.update({"Authorization": f"Bearer {new_token}"})
+    fresh_client.cookies.set("access_token", new_token)
     response = await fresh_client.get(f"{AUTH_PREFIX}{AuthRoutes.ME}")
 
     # Assert: Preferences from previous update are still there

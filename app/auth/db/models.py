@@ -16,7 +16,8 @@ class User(Document):
     """User document model for MongoDB."""
     
     email: EmailStr = Field(..., unique=True, max_length=255)
-    hashed_password: str = Field(...)
+    hashed_password: Optional[str] = Field(default=None)
+    google_id: Optional[str] = Field(default=None)
     
     # User metadata
     role: str = Field(default="user")

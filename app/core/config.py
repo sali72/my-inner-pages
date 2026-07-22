@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # CORS Configuration
     cors_allowed_origins: tuple[str, ...] = ("http://localhost:5173",)
-    cors_allow_credentials: bool = False
+    cors_allow_credentials: bool = True
 
     # JWT Configuration
     jwt_secret_key: str  # No default — must be set via JWT_SECRET_KEY env
@@ -44,6 +44,14 @@ class Settings(BaseSettings):
 
     # Sentry Configuration
     sentry_dsn: str | None = None
+
+    # Google OAuth Configuration
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:5173/api/v0/auth/google/callback"
+
+    # Frontend URL (for OAuth redirect)
+    frontend_url: str = "http://localhost:5173"
 
     @property
     def is_production(self) -> bool:

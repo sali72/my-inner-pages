@@ -6,7 +6,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_unauthenticated_cannot_test_providers(client: AsyncClient):
     response = await client.post("/api/v0/admin/llm/test")
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 async def test_non_admin_cannot_test_providers(authenticated_client: AsyncClient):
     response = await authenticated_client.post("/api/v0/admin/llm/test")

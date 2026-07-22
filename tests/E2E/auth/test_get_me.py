@@ -55,6 +55,6 @@ async def test_get_current_user_without_auth(client: AsyncClient):
     # Act: Try to get current user without auth
     response = await client.get(f"{AUTH_PREFIX}{AuthRoutes.ME}")
     
-    # Assert: Verify 403 response
-    assert response.status_code == 403
+    # Assert: Verify 401 response
+    assert response.status_code == 401
     assert "detail" in response.json()

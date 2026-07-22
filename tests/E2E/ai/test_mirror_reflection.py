@@ -279,8 +279,8 @@ async def test_get_reflection_without_auth(client: AsyncClient):
     # Act: Try to get reflection without auth
     response = await client.get(f"{MIRROR_PREFIX}{MirrorRoutes.REFLECTION}")
     
-    # Assert: Verify 403 response
-    assert response.status_code == 403
+    # Assert: Verify 401 response
+    assert response.status_code == 401
     assert "detail" in response.json()
 
 
@@ -350,7 +350,7 @@ async def test_get_reflection_llm_failure_returns_500(
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        client.headers.update({"Authorization": f"Bearer {test_user['access_token']}"})
+        client.cookies.set("access_token", test_user["access_token"])
         response = await client.get(f"{MIRROR_PREFIX}{MirrorRoutes.REFLECTION}")
 
     assert response.status_code == 500

@@ -7,6 +7,7 @@ from beanie import PydanticObjectId
 from app.auth.config import AuthModuleConfig
 from app.auth.db.models import User
 from app.auth.db.repository import UserRepository
+from app.auth.services.token_blacklist import TokenBlacklistService
 from app.core.exceptions import DuplicateDocumentException, RepositoryException
 from app.core.logging import get_logger
 from app.core.services.email_service import EmailService
@@ -19,7 +20,8 @@ logger = get_logger(__name__)
 class AuthFacade:
     """
     Facade for authentication business logic and orchestration.
-    Coordinates between repository, JWT service, password service, and email service.
+    Coordinates between repository, JWT service, password service, email service,
+    and token blacklist.
     """
 
     def __init__(
@@ -28,12 +30,14 @@ class AuthFacade:
         jwt_service: JWTService,
         password_service: PasswordService,
         email_service: EmailService,
+        token_blacklist: TokenBlacklistService,
         config: AuthModuleConfig,
     ):
         self.repository = repository
         self.jwt_service = jwt_service
         self.password_service = password_service
         self.email_service = email_service
+        self.token_blacklist = token_blacklist
         self.config = config
 
     async def register(self, email: str, password: str) -> User:
@@ -88,45 +92,31 @@ class AuthFacade:
 
     async def login(self, email: str, password: str) -> tuple[str, User]:
         """
-        Authenticate user and generate access token.
-
-        Args:
-            email: User email address
-            password: Plain text password
-
-        Returns:
-            Tuple of (access_token, user)
+        Authenticate user with email + password and return a JWT.
 
         Raises:
-            ValueError: If credentials are invalid
+            ValueError: If credentials are invalid or the account is
+                        Google-only.
         """
-        # Find user by email
         user = await self.repository.find_by_email(email)
         if not user:
             raise ValueError("Invalid email or password")
 
-        # Verify password
+        # Google-only accounts have no password — redirect the user
+        if user.hashed_password is None:
+            raise ValueError(
+                "This account uses Google Sign-In. "
+                "Please sign in with Google."
+            )
+
         if not self.password_service.verify_password(password, user.hashed_password):
             raise ValueError("Invalid email or password")
 
-        # Check if user is active
         if not user.is_active:
             raise ValueError("Account is deactivated")
 
-        # Update last login
         await self.repository.update_last_login(user.id)
-
-        # Generate JWT token
-        token_data = {
-            "sub": str(user.id),
-            "email": user.email,
-            "type": "access",
-            "jti": str(uuid.uuid4()),
-            "exp": datetime.now(timezone.utc)
-            + timedelta(minutes=self.config.access_token_expire_minutes),
-        }
-        access_token = self.jwt_service.encode_token(token_data)
-
+        access_token = self._generate_token(user)
         return access_token, user
 
     async def get_user_by_id(self, user_id: str) -> Optional[User]:
@@ -147,21 +137,35 @@ class AuthFacade:
 
         return await self.repository.find_by_id(obj_id)
 
+    def _generate_token(self, user: User) -> str:
+        """Create a signed JWT for the given user."""
+        token_data = {
+            "sub": str(user.id),
+            "email": user.email,
+            "type": "access",
+            "jti": str(uuid.uuid4()),
+            "exp": datetime.now(timezone.utc)
+            + timedelta(minutes=self.config.access_token_expire_minutes),
+        }
+        return self.jwt_service.encode_token(token_data)
+
     async def verify_token(self, token: str) -> Optional[User]:
         """
-        Verify JWT token and return user.
-
-        Args:
-            token: JWT access token
+        Decode and verify a JWT, checking the Redis blacklist.
 
         Returns:
-            User if token is valid, None otherwise
+            User if the token is valid and not blacklisted, else ``None``.
         """
-
         try:
             payload = self.jwt_service.decode_token(token)
-            user_id = payload.get("sub")
 
+            # Reject blacklisted tokens (immediate logout)
+            jti = payload.get("jti")
+            if jti and await self.token_blacklist.is_blacklisted(jti):
+                logger.info("token_blacklisted", jti=jti)
+                return None
+
+            user_id = payload.get("sub")
             if not user_id:
                 return None
 
@@ -170,6 +174,69 @@ class AuthFacade:
         except Exception as e:
             logger.warning("verify_token_failed", error=str(e))
             return None
+
+    async def find_or_create_google_user(
+        self, google_id: str, email: str
+    ) -> User:
+        """Find an existing user by Google ID or email, or create a new one.
+
+        1. Match by ``google_id`` → return existing linked user.
+        2. Match by ``email`` → link Google account, mark verified, return.
+        3. Neither → create a new user with ``google_id`` + verified email.
+        """
+        # 1 – Already linked
+        user = await self.repository.find_by_google_id(google_id)
+        if user:
+            await self.repository.update_last_login(user.id)
+            return user
+
+        # 2 – Link by email
+        user = await self.repository.find_by_email(email)
+        if user:
+            user = await self.repository.link_google_account(user.id, google_id)
+            if not user:
+                raise ValueError("Failed to link Google account")
+            await self.repository.update_last_login(user.id)
+            logger.info(
+                "google_account_linked",
+                user_id=str(user.id),
+                email=email,
+                google_id=google_id,
+            )
+            return user
+
+        # 3 – Create
+        user = await self.repository.create(
+            email=email,
+            google_id=google_id,
+            is_verified=True,
+        )
+        await self.repository.update_last_login(user.id)
+        logger.info(
+            "google_user_created",
+            user_id=str(user.id),
+            email=email,
+            google_id=google_id,
+        )
+        return user
+
+    async def logout(self, token: str) -> None:
+        """Blacklist the JWT so it cannot be used again.
+
+        Best-effort: if the token is already expired or invalid we still
+        succeed — the caller should clear the cookie regardless.
+        """
+        try:
+            payload = self.jwt_service.decode_token(token)
+            jti = payload.get("jti")
+            exp = payload.get("exp")
+            if jti and exp:
+                now = datetime.now(timezone.utc)
+                expires_at = datetime.fromtimestamp(exp, tz=timezone.utc)
+                ttl = max(int((expires_at - now).total_seconds()), 0)
+                await self.token_blacklist.blacklist(jti, ttl)
+        except Exception:
+            logger.warning("logout_token_blacklist_failed")
 
     async def update_preferences(self, user_id: str, preferences: dict) -> User:
         """

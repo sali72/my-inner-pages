@@ -151,7 +151,7 @@ async def test_mirror_rate_limit_independent_users(
     assert resp.status_code == 429
 
     # User B (different token) should have a fresh counter
-    client.headers.update({"Authorization": f"Bearer {another_test_user['access_token']}"})
+    client.cookies.set("access_token", another_test_user["access_token"])
     resp = await client.get(MIRROR_REFLECTION)
     assert resp.status_code != 429
 

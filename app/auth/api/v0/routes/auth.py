@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Request
+from fastapi import APIRouter, HTTPException, status, Depends, Request, Response
 
 from app.auth.api.v0.schemas.request import RegisterRequest, LoginRequest, ResendVerificationRequest, ResetPasswordRequest, UpdatePreferencesRequest
 from app.auth.api.v0.schemas.response import (
@@ -6,12 +6,13 @@ from app.auth.api.v0.schemas.response import (
     LoginResponse,
     MessageResponse
 )
+from app.auth.api.config import AuthRoutes
+from app.auth.deps import get_auth_facade, get_cookie_service
 from app.auth.facade.auth_facade import AuthFacade
-from app.auth.deps import get_auth_facade
+from app.auth.services.cookie_service import CookieService
 from app.auth.db.models import User
 from app.core.deps.auth import get_current_user
 from app.core.rate_limit import limiter
-from app.auth.api.config import AuthRoutes
 
 
 # Router prefix is set in main.py, routes here are relative to /auth
@@ -66,7 +67,9 @@ async def register(
 async def login(
     request: Request,
     login_request: LoginRequest,
-    facade: AuthFacade = Depends(get_auth_facade)
+    facade: AuthFacade = Depends(get_auth_facade),
+    cookie_service: CookieService = Depends(get_cookie_service),
+    response: Response = None,
 ) -> LoginResponse:
     """
     Authenticate user and receive access token.
@@ -74,7 +77,8 @@ async def login(
     - **email**: User email address
     - **password**: User password
     
-    Returns JWT access token for authenticated requests.
+    Sets an HttpOnly ``access_token`` cookie on success.
+    The response body still contains the token for API clients.
     """
     try:
         access_token, user = await facade.login(
@@ -82,6 +86,8 @@ async def login(
             password=login_request.password
         )
         
+        cookie_service.set_auth_cookie(response, access_token)
+        cookie_service.set_session_cookie(response)
         return LoginResponse(
             access_token=access_token,
             token_type="bearer",
@@ -91,7 +97,6 @@ async def login(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
-            headers={"WWW-Authenticate": "Bearer"}
         )
 
 
@@ -188,6 +193,29 @@ async def reset_password(
     return MessageResponse(
         message="If an account with this email exists, a password reset link has been sent."
     )
+
+
+@router.post(
+    AuthRoutes.LOGOUT,
+    response_model=MessageResponse,
+    summary="Logout user",
+)
+async def logout(
+    request: Request,
+    facade: AuthFacade = Depends(get_auth_facade),
+    cookie_service: CookieService = Depends(get_cookie_service),
+    response: Response = None,
+) -> MessageResponse:
+    """
+    Logout the current user by blacklisting their JWT and clearing cookies.
+    """
+    token = request.cookies.get("access_token")
+    if token:
+        await facade.logout(token)
+
+    cookie_service.clear_auth_cookie(response)
+    cookie_service.clear_session_cookie(response)
+    return MessageResponse(message="Logged out successfully")
 
 
 @router.get(
