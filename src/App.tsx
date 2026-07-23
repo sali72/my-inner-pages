@@ -26,7 +26,27 @@ const AppInner: React.FC = () => {
     setMode, setAccent, setFontStyle, setFontSize, syncFromRemote } = useTheme();
   
   const router = useRouter();
-  const { showAuth, activeView, selectedEntryId, selectedChatId, navigate: updateNavigationState } = router;
+  const { showAuth, activeView, selectedEntryId, selectedChatId, verificationToken, navigate: updateNavigationState } = router;
+
+  const [pendingVerification] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('verify');
+  });
+
+  // Clean verify param from URL on mount so refresh doesn't re-trigger verification
+  useEffect(() => {
+    if (pendingVerification) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete('verify');
+      params.set('auth', 'true');
+      const searchStr = params.toString();
+      window.history.replaceState(
+        { isApp: true, showAuth: true, index: window.history.state?.index ?? 0 },
+        '',
+        searchStr ? `?${searchStr}` : '/'
+      );
+    }
+  }, []);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatHistoryOpen, setChatHistoryOpen] = useState(false);
@@ -171,13 +191,14 @@ const AppInner: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    if (!showAuth) {
+    if (!showAuth && !pendingVerification) {
       return <LandingPage onGetStarted={() => updateNavigationState({ showAuth: true })} />;
     }
     return (
       <AuthContainer
         onAuthSuccess={() => {}}
         onBack={() => updateNavigationState({ showAuth: false })}
+        verificationToken={pendingVerification || undefined}
       />
     );
   }

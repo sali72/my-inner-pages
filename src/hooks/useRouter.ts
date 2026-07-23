@@ -84,12 +84,14 @@ export function useRouter() {
     isValidView(viewParam) ? viewParam : 'journal';
   const selectedEntryId = params.get('entry');
   const selectedChatId = params.get('chat');
+  const verificationToken = params.get('verify');
 
   return {
     showAuth,
     activeView,
     selectedEntryId,
     selectedChatId,
+    verificationToken,
     navigate,
     setParams,
   };
