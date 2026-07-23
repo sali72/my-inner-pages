@@ -30,7 +30,7 @@ export function useRouter() {
     const viewParam = currentParams.get('view');
     const activeViewVal = nextState.activeView !== undefined 
       ? nextState.activeView 
-      : (isValidView(viewParam) ? viewParam : 'journal');
+      : (isValidView(viewParam ?? '') ? viewParam ?? 'journal' : 'journal');
     
     const nextParams = new URLSearchParams();
     if (showAuthVal) {
@@ -81,7 +81,7 @@ export function useRouter() {
   const showAuth = params.get('auth') === 'true';
   const viewParam = params.get('view');
   const activeView: ViewType =
-    isValidView(viewParam) ? viewParam : 'journal';
+    isValidView(viewParam ?? '') ? viewParam ?? 'journal' : 'journal';
   const selectedEntryId = params.get('entry');
   const selectedChatId = params.get('chat');
   const verificationToken = params.get('verify');

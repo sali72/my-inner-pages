@@ -26,7 +26,7 @@ const AppInner: React.FC = () => {
     setMode, setAccent, setFontStyle, setFontSize, syncFromRemote } = useTheme();
   
   const router = useRouter();
-  const { showAuth, activeView, selectedEntryId, selectedChatId, verificationToken, navigate: updateNavigationState } = router;
+  const { showAuth, activeView, selectedEntryId, selectedChatId, navigate: updateNavigationState } = router;
 
   const [pendingVerification] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
@@ -96,7 +96,7 @@ const AppInner: React.FC = () => {
     const hasAuthParam = params.get('auth') === 'true';
     const viewParam = params.get('view');
     const activeViewParam: ViewType =
-      isValidView(viewParam) ? viewParam : 'journal';
+      isValidView(viewParam ?? '') ? viewParam ?? 'journal' : 'journal';
     const entryParam = params.get('entry');
     const chatParam = params.get('chat');
 

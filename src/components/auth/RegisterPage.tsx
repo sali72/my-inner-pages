@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, UserPlus, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, UserPlus } from 'lucide-react';
 export interface RegisterPageProps {
   onRegister: (email: string, password: string, confirmPassword: string) => Promise<void>;
   onNavigateToLogin: () => void;
