@@ -31,8 +31,9 @@ User types
 |------|------|
 | `src/hooks/useJournalDoc.ts` | Manages `Y.Doc` lifecycle + `IndexeddbPersistence` per entry |
 | `src/components/journal/JournalPage.tsx` | Tiptap editor + autocomplete + save orchestration |
-| `src/hooks/useJournalEntries.ts` | CRUD API calls + background `syncUnsyncedEntries` |
-| `src/App.tsx` | Background sync watcher (online, focus, 30s interval) |
+| `src/hooks/useJournalEntries.ts` | CRUD API calls + delegates sync to `syncService.ts` |
+| `src/hooks/useBackgroundSync.ts` | Background sync (online/focus listeners, 30s interval) |
+| `src/services/syncService.ts` | Offline→online entry sync, draft ID migration |
 | `src/utils/offlineStorage.ts` | LocalStorage queue for unsynced backend operations |
 
 ## Initialization Flow
