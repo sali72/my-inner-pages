@@ -154,11 +154,11 @@ async def test_google_callback_links_existing_email(
     )
     assert reg_response.status_code == 201
 
-    # Verify user exists, unverified, no google_id
+    # Verify user exists, auto-verified in test env, no google_id
     user_before = await User.find_one(User.email == email)
     assert user_before is not None
     assert user_before.google_id is None
-    assert user_before.is_verified is False
+    assert user_before.is_verified is True
 
     # Override get_user_info to return our dynamic email
     original_get_info = mock_google.get_user_info

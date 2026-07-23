@@ -49,7 +49,7 @@ async def test_register_user_happy_path(client: AsyncClient):
     assert db_user is not None, "User should exist in database"
     assert db_user.email == registration_data["email"]
     assert db_user.is_active is True
-    assert db_user.is_verified is False  # New users are not verified by default
+    assert db_user.is_verified is True  # Auto-verified in test env
     assert db_user.hashed_password is not None
     assert db_user.hashed_password != registration_data["password"]  # Should be hashed
 

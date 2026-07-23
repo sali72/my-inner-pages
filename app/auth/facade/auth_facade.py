@@ -112,6 +112,9 @@ class AuthFacade:
         if not user.is_active:
             raise ValueError("Account is deactivated")
 
+        if self.config.email_verification_required and not user.is_verified:
+            raise ValueError("Please verify your email before logging in")
+
         await self.repository.update_last_login(user.id)
         access_token = self._generate_token(user)
         return access_token, user

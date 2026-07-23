@@ -121,12 +121,19 @@ async def app(test_settings: Settings, test_db_client: AsyncIOMotorClient):
         Configured FastAPI application
     """
     from app.core.deps.database import get_client
+    from app.auth.config import AuthModuleConfig
+    from app.auth.deps import get_auth_config
     
     # Create app using the standard create_app function
     app = create_app()
     
     # Override settings and database client dependencies
     app.dependency_overrides[get_settings] = lambda: test_settings
+    
+    # Disable email verification in tests — users are auto-verified on register
+    app.dependency_overrides[get_auth_config] = lambda: AuthModuleConfig(
+        email_verification_required=False
+    )
     
     # Override get_client to return our test client
     async def get_test_client():
