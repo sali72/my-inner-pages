@@ -40,7 +40,7 @@
 
 ## Backend Layers
 
-### 1. API Layer (`api/v0/routes/`)
+### 1. API Layer (`api/routes/`)
 - Thin route handlers
 - Request/response validation
 - HTTP status code mapping
