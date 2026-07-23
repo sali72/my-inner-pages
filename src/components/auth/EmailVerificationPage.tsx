@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle, XCircle, Mail, Loader } from 'lucide-react';
 export interface EmailVerificationPageProps {
   verificationToken?: string;
@@ -20,9 +20,11 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
   const [isResending, setIsResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [error, setError] = useState('');
+  const verifiedRef = useRef(false);
 
   useEffect(() => {
-    if (verificationToken) {
+    if (verificationToken && !verifiedRef.current) {
+      verifiedRef.current = true;
       verifyEmail(verificationToken);
     }
   }, [verificationToken]);
