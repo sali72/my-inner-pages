@@ -27,10 +27,10 @@ export function useRouter() {
       ? nextState.showAuth 
       : currentParams.get('auth') === 'true';
       
-    const viewParam = currentParams.get('view');
+    const viewParam = currentParams.get('view') ?? '';
     const activeViewVal = nextState.activeView !== undefined 
       ? nextState.activeView 
-      : (isValidView(viewParam ?? '') ? viewParam ?? 'journal' : 'journal');
+      : (isValidView(viewParam) ? viewParam : 'journal');
     
     const nextParams = new URLSearchParams();
     if (showAuthVal) {
@@ -79,9 +79,9 @@ export function useRouter() {
   }, []);
 
   const showAuth = params.get('auth') === 'true';
-  const viewParam = params.get('view');
+  const viewParam = params.get('view') ?? '';
   const activeView: ViewType =
-    isValidView(viewParam ?? '') ? viewParam ?? 'journal' : 'journal';
+    isValidView(viewParam) ? viewParam : 'journal';
   const selectedEntryId = params.get('entry');
   const selectedChatId = params.get('chat');
   const verificationToken = params.get('verify');

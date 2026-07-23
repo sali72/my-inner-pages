@@ -94,9 +94,9 @@ const AppInner: React.FC = () => {
     // Load initial states from URL parameters
     const params = new URLSearchParams(window.location.search);
     const hasAuthParam = params.get('auth') === 'true';
-    const viewParam = params.get('view');
+    const viewParam = params.get('view') ?? '';
     const activeViewParam: ViewType =
-      isValidView(viewParam ?? '') ? viewParam ?? 'journal' : 'journal';
+      isValidView(viewParam) ? viewParam : 'journal';
     const entryParam = params.get('entry');
     const chatParam = params.get('chat');
 
