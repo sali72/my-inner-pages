@@ -86,22 +86,21 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
     }
   };
 
-  // Success state - no email verification needed
   if (registrationSuccess) {
     return (
       <div className="min-h-screen bg-base flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-surface rounded-xl shadow-2xl border border-default p-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/10 flex items-center justify-center">
-              <CheckCircle className="w-10 h-10 text-green-500" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-accent-tint flex items-center justify-center">
+              <Mail className="w-10 h-10 text-accent-tint-text" />
             </div>
 
             <h2 className="text-2xl font-serif font-bold text-accent mb-3">
-              Account Created!
+              Check Your Email
             </h2>
 
             <p className="text-sm text-secondary mb-2">
-              Your account has been successfully created:
+              Account created for:
             </p>
 
             <p className="text-base font-medium text-accent mb-6">
@@ -110,7 +109,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
 
             <div className="p-4 rounded-lg bg-surface border border-subtle mb-6">
               <p className="text-sm text-secondary">
-                You can now login with your email and password to start journaling.
+                We've sent a verification link to your email.
+                Please verify your email address before logging in.
               </p>
             </div>
 
