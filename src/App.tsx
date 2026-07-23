@@ -16,6 +16,8 @@ import { FullSurvey, ShortSurvey } from '@components/feedback';
 import { Toaster } from 'sonner';
 import { useRouter } from '@hooks/useRouter';
 import { useBackendHealth } from '@hooks/useBackendHealth';
+import { useFeedbackTriggers } from '@hooks/useFeedbackTriggers';
+import { useBackgroundSync } from '@hooks/useBackgroundSync';
 
 const AppInner: React.FC = () => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -40,14 +42,11 @@ const AppInner: React.FC = () => {
     setMirrorReflections(prev => ({ ...prev, [mode]: reflection }));
   }, []);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [shortSurveyTrigger, setShortSurveyTrigger] = useState<'session_nudge' | 'exit_intent' | null>(null);
+  const { shortSurveyTrigger, setShortSurveyTrigger } = useFeedbackTriggers();
   const sessionEntryCount = useRef(0);
   const isDark = resolvedMode === 'dark';
   const wasAuthenticated = useRef(isAuthenticated);
-  const syncCancelRef = useRef(false);
   const hasEditedEntry = useRef(false);
-  const appLoadTime = useRef(Date.now());
-  const exitIntentShown = useRef(false);
   const [showAlphaWarning, setShowAlphaWarning] = useState(false);
 
   // Intercept back button at index 0 to prevent exiting the app
@@ -109,79 +108,13 @@ const AppInner: React.FC = () => {
 
   const { entries, loading, isLoadingMore, hasMore, loadMore, addEntry, updateEntry, deleteEntry, syncUnsyncedEntries } = useJournalEntries();
 
-  // Background sync for unsynced changes when online, on window focus, or periodically
-  useEffect(() => {
-    if (!isAuthenticated) return;
+  useBackgroundSync({
+    isAuthenticated,
+    syncUnsyncedEntries,
+    navigate: router.navigate,
+  });
 
-    syncCancelRef.current = false;
 
-    const handleIdMigrate = (oldId: string | number, newId: string | number) => {
-      const entryParam = new URLSearchParams(window.location.search).get('entry');
-      if (entryParam === oldId.toString()) {
-        router.navigate({ selectedEntryId: newId }, 'replace');
-      }
-      window.dispatchEvent(new CustomEvent('journal:id-migrated', {
-        detail: { oldId, newId }
-      }));
-    };
-
-    const guardedSync = () => {
-      if (syncCancelRef.current) return;
-      syncUnsyncedEntries(handleIdMigrate);
-    };
-
-    // Initial sync attempt
-    guardedSync();
-
-    window.addEventListener('online', guardedSync);
-    window.addEventListener('focus', guardedSync);
-
-    const interval = setInterval(() => {
-      if (navigator.onLine && !syncCancelRef.current) {
-        guardedSync();
-      }
-    }, 30000);
-
-    return () => {
-      syncCancelRef.current = true;
-      window.removeEventListener('online', guardedSync);
-      window.removeEventListener('focus', guardedSync);
-      clearInterval(interval);
-    };
-  }, [isAuthenticated, syncUnsyncedEntries]);
-
-  // Feedback triggers: session nudge + exit intent
-  useEffect(() => {
-    if (!isAuthenticated || !user) return;
-
-    const triggers = user.feedback_triggers || {};
-    const loginCount = user.login_count ?? 0;
-    const daysSinceSignup = user.created_at
-      ? Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24))
-      : 0;
-
-    // Session nudge: 2nd+ login OR 3+ days after signup
-    if (!triggers.session_nudge) {
-      if (daysSinceSignup >= 3 || loginCount >= 2) {
-        setShortSurveyTrigger('session_nudge');
-      }
-    }
-
-    // Exit intent: detect when user leaves after minimal dwell time
-    if (!triggers.exit_intent && !exitIntentShown.current) {
-      const handleVisibility = () => {
-        if (document.visibilityState === 'hidden') {
-          const dwell = Date.now() - appLoadTime.current;
-          if (dwell > 20000 && !hasEditedEntry.current && !exitIntentShown.current) {
-            exitIntentShown.current = true;
-            setShortSurveyTrigger('exit_intent');
-          }
-        }
-      };
-      document.addEventListener('visibilitychange', handleVisibility);
-      return () => document.removeEventListener('visibilitychange', handleVisibility);
-    }
-  }, [isAuthenticated, user]);
 
   const handleSaveNewEntry = async (title: string, content: string, tags: string[], created_at?: string) => {
     hasEditedEntry.current = true;
