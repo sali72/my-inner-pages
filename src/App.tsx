@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ViewType, JournalEntry } from '@/types';
+import { ViewType, JournalEntry, isValidView } from '@/types';
 import { useAuth } from './contexts/AuthContext';
 import { useJournalEntries } from '@hooks/useJournalEntries';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -76,9 +76,7 @@ const AppInner: React.FC = () => {
     const hasAuthParam = params.get('auth') === 'true';
     const viewParam = params.get('view');
     const activeViewParam: ViewType =
-      viewParam === 'mirror' || viewParam === 'chat' || viewParam === 'settings' || viewParam === 'admin'
-        ? viewParam
-        : 'journal';
+      isValidView(viewParam) ? viewParam : 'journal';
     const entryParam = params.get('entry');
     const chatParam = params.get('chat');
 

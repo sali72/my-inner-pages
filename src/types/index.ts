@@ -11,6 +11,10 @@ export interface JournalEntry {
 
 export type ViewType = 'journal' | 'mirror' | 'chat' | 'settings' | 'admin' | 'feedback';
 
+export function isValidView(v: string): v is ViewType {
+  return v === 'journal' || v === 'mirror' || v === 'chat' || v === 'settings' || v === 'admin' || v === 'feedback';
+}
+
 export type Mode = 'light' | 'dark' | 'system';
 export type Accent = 'sage' | 'dusk' | 'amber' | 'slate' | 'blush' | 'ink' | 'sand' | 'moss';
 

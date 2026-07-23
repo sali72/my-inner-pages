@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ViewType } from '@/types';
+import { ViewType, isValidView } from '@/types';
 
 export function useRouter() {
   const [params, setParams] = useState(() => new URLSearchParams(window.location.search));
@@ -30,7 +30,7 @@ export function useRouter() {
     const viewParam = currentParams.get('view');
     const activeViewVal = nextState.activeView !== undefined 
       ? nextState.activeView 
-      : ((viewParam === 'mirror' || viewParam === 'chat' || viewParam === 'settings' || viewParam === 'admin' || viewParam === 'feedback') ? viewParam as ViewType : 'journal');
+      : (isValidView(viewParam) ? viewParam : 'journal');
     
     const nextParams = new URLSearchParams();
     if (showAuthVal) {
@@ -81,9 +81,7 @@ export function useRouter() {
   const showAuth = params.get('auth') === 'true';
   const viewParam = params.get('view');
   const activeView: ViewType =
-    viewParam === 'mirror' || viewParam === 'chat' || viewParam === 'settings' || viewParam === 'admin' || viewParam === 'feedback'
-      ? viewParam
-      : 'journal';
+    isValidView(viewParam) ? viewParam : 'journal';
   const selectedEntryId = params.get('entry');
   const selectedChatId = params.get('chat');
 
