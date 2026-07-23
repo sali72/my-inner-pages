@@ -211,9 +211,9 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
 
               <p className="text-xs text-center text-tertiary">
                 Need help?{' '}
-                <button className="text-accent hover:underline">
+                <a href="mailto:support@innerpages.ir" className="text-accent hover:underline">
                   Contact support
-                </button>
+                </a>
               </p>
             </div>
           </>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, Monitor, LogOut, Check } from 'lucide-react';
+import { Sun, Moon, Monitor, LogOut, Check, Mail } from 'lucide-react';
 import { Mode, Accent, FontStyle, ContentFontSize } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { ConfirmModal } from '@components/journal';
@@ -238,6 +238,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <span className="font-medium">Logout</span>
             <LogOut className="w-5 h-5" />
           </button>
+
+          <a
+            href="mailto:support@innerpages.ir"
+            className="mt-3 w-full p-4 rounded-lg border border-default bg-surface text-primary hover:bg-surface-hover transition-all flex justify-between items-center"
+          >
+            <span className="font-medium">Contact support</span>
+            <Mail className="w-5 h-5" />
+          </a>
         </section>
 
         </div>
