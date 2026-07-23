@@ -113,7 +113,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </span>
         </div>
 
-        <section className="border border-subtle rounded-xl p-5 space-y-5">
+        <section className="bg-[var(--bg-elevated)] border border-subtle rounded-xl p-5 space-y-5">
           <div className="flex items-center gap-2">
             <Palette className="w-4 h-4 text-secondary" />
             <h2 className="text-base font-semibold text-primary">Appearance</h2>
@@ -167,7 +167,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </section>
 
-        <section className="border border-subtle rounded-xl p-5 space-y-5">
+        <section className="bg-[var(--bg-elevated)] border border-subtle rounded-xl p-5 space-y-5">
           <div className="flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-secondary" />
             <h2 className="text-base font-semibold text-primary">Reading</h2>
@@ -242,7 +242,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </section>
 
-        <section className="border border-subtle rounded-xl p-5 space-y-4">
+        <section className="bg-[var(--bg-elevated)] border border-subtle rounded-xl p-5 space-y-4">
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-secondary" />
             <h2 className="text-base font-semibold text-primary">Account</h2>
