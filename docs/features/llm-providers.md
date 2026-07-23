@@ -10,7 +10,7 @@ The LLM Providers feature is located in the `backend/app/ai/` module and follows
 
 ```mermaid
 graph TD
-    Client[React Admin UI] -->|API Calls| Routes[app.ai.api.v0.routes.llm_admin]
+    Client[React Admin UI] -->|API Calls| Routes[app.ai.api.routes.llm_admin]
     Routes -->|Dependency Injection| Repo[app.ai.db.repository.LLMProviderRepository]
     Repo -->|ODM Beanie| MongoDB[(llm_providers Collection)]
     
@@ -59,7 +59,7 @@ API keys are configured using shell-style environment variables references, e.g.
 * Only the placeholder string `"${ENV_VAR}"` is stored in the database, keeping it safe.
 
 ### REST Obfuscation & Preservation Logic
-Inside [llm_admin.py](file:///home/ali/Projects/Own-Projects/my-inner-pages-root/my-inner-pages/backend/app/ai/api/v0/routes/llm_admin.py):
+Inside [llm_admin.py](file:///home/ali/Projects/Own-Projects/my-inner-pages-root/my-inner-pages/backend/app/ai/api/routes/llm_admin.py):
 * **GET `/providers`:** Masking logic hides resolved API keys, returning only the first 6 characters and last 4 characters, e.g., `"${OPENROUTER_API_KEY} (sk-proj...1f3d)"` or `"sk-or-...1f3d"` if entered directly.
 * **PUT `/providers`:** The controller detects incoming obfuscated values. If the key submitted matches an obfuscated format (contains `...` or `*`), it preserves the original key value from the database, preventing key corruption during forms saves.
 

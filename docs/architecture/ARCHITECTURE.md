@@ -123,7 +123,7 @@ Application Startup
 ### Auth Module
 ```
 app/auth/
-├── api/v0/routes/auth.py       # Routes (uses Depends)
+├── api/routes/auth.py          # Routes (uses Depends)
 ├── facade/auth_facade.py       # Business logic
 ├── db/
 │   ├── models.py               # User model
@@ -135,7 +135,7 @@ app/auth/
 ### Journals Module
 ```
 app/journals/
-├── api/v0/routes/journals.py   # Routes (uses Depends)
+├── api/routes/journals.py      # Routes (uses Depends)
 ├── facade/journal_facade.py    # Business logic
 ├── db/
 │   ├── models.py               # Journal model
@@ -147,8 +147,8 @@ app/journals/
 ### AI Module
 ```
 app/ai/
-├── api/v0/routes/
-│   ├── chat.py                 # WS route — authenticates, rate-limits, delegates to ChatFacade
+├── api/routes/
+│   ├── chat.py                 # WS route — authenticates, rate-limits, delegates to ChatPersistenceFacade
 │   └── mirror.py               # REST route — delegates to MirrorService
 ├── facade/
 │   └── chat_facade.py          # WebSocket chat session orchestrator (business logic)
@@ -165,7 +165,6 @@ app/core/
 ├── deps/
 │   ├── settings.py             # Settings singleton ⭐
 │   ├── services.py             # Core services ⭐
-│   ├── auth.py                 # Auth dependencies
 │   └── database.py             # DB dependencies
 ├── services/
 │   ├── jwt_service.py          # JWT handling

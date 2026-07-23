@@ -36,7 +36,7 @@ ai/
 │   └── chat_service.py          # Chat orchestration with streaming + memory
 ├── ws/
 │   └── manager.py               # ConnectionManager (WebSocket registry)
-└── api/v0/
+└── api/
     ├── routes/
     │   ├── mirror.py            # GET /mirror/reflection
     │   └── chat.py              # WS /chat/ws

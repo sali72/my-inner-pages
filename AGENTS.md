@@ -17,7 +17,7 @@ Python 3.11+ FastAPI server with MongoDB/Beanie, LangChain AI, JWT auth.
 ## Architecture
 - **Domain modules:** `auth/`, `journals/`, `chat/`, `ai/`, `memory/`
 - **Shared infra:** `core/` (config, logging, middleware, rate-limit, cache, deps)
-- **Layer pattern per module:** `api/v0/routes/` → `facade/` or `service/` → `db/repository.py`
+- **Layer pattern per module:** `api/routes/` → `facade/` or `service/` → `db/repository.py`
 - **DI:** Routes use `Depends(get_*)` — never instantiate services directly
 - **Route prefix:** `/api/v0` set in `main.py`
 

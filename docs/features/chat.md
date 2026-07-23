@@ -22,7 +22,7 @@ sliding-window history (20 turns) is fed into the LLM context.
                         │           Backend API                       │
                         │                                             │
                         │  ┌──────────────────────────────────────┐   │
-                        │  │        app/ai/api/v0/routes/chat.py  │   │
+                        │  │        app/ai/api/routes/chat.py   │   │
                         │  │  ┌─────────────┐  ┌──────────────┐  │   │
                         │  │  │  WS /chat/ws │  │ REST /chats  │  │   │
                         │  │  └──────┬──────┘  └──────┬───────┘  │   │
@@ -69,7 +69,7 @@ app/chat/
 ├── history_manager.py            # Sliding-window history truncation
 ├── facade.py                    # ChatPersistenceFacade (business logic)
 ├── deps.py                       # DI for chat services
-└── api/v0/
+└── api/
     ├── schemas/chat.py           # REST response/request models
     └── routes/chat_rest.py       # REST endpoints: list, get, delete chats
 ```
@@ -86,7 +86,7 @@ app/ai/
 ├── prompts/chat.py               # System prompt template + formatter
 ├── config.py                     # AIModuleConfig (WS settings, model params)
 ├── deps.py                       # DI for AI services + WS singletons
-└── api/v0/routes/chat.py         # WS endpoint with JWT auth + persistence
+└── api/routes/chat.py            # WS endpoint with JWT auth + persistence
 ```
 
 ### ConnectionManager (`app/ai/ws/manager.py`)

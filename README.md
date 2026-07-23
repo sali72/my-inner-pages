@@ -23,7 +23,7 @@ app/
 ├── journals/          # Journal CRUD (user-specific)
 ├── chat/              # Chat persistence
 │   ├── db/            # Chat Beanie document + repository
-│   ├── api/v0/        # REST endpoints (list, get, delete)
+│   ├── api/           # REST endpoints (list, get, delete)
 │   ├── facade.py      # ChatPersistenceFacade
 │   └── history_manager.py  # Sliding-window history
 ├── ai/                # AI features
@@ -31,11 +31,11 @@ app/
 │   ├── prompts/       # LangChain prompt templates
 │   ├── services/      # Mirror + Chat business logic
 │   ├── ws/            # WebSocket infrastructure (ConnectionManager)
-│   └── api/v0/routes/ # REST + WebSocket endpoints
+│   └── api/routes/    # REST + WebSocket endpoints
 ├── memory/            # User model + context injection for AI
 │   ├── db/            # UserModel document + repository
 │   ├── prompts/       # Update + context injection prompts
-│   └── services/      # UserModelUpdater (background)
+│   └── user_model_updater.py  # Background updates
 └── core/              # Shared (DB, settings, JWT, rate-limit)
 ```
 
