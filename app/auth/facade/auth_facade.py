@@ -288,7 +288,7 @@ class AuthFacade:
         if not user:
             raise ValueError("Invalid verification token")
 
-        if user.verification_token_expires_at and user.verification_token_expires_at < datetime.now(timezone.utc):
+        if user.verification_token_expires_at and user.verification_token_expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
             raise ValueError("Verification token has expired")
 
         updated = await self.repository.clear_verification_token(user.id)
