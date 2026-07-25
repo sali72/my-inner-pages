@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Migrated AI Chat from WebSocket to SSE streaming** — replaced the full-duplex WebSocket protocol (`/api/v0/chat/ws`) with HTTP POST + Server-Sent Events (`POST /api/v0/chat/stream`):
+  - Removed `ConnectionManager`, `GenerationManager`, `MessageDedupStore` (~500 lines of in-memory state management)
+  - Replaced `@router.websocket` with `FastAPI StreamingResponse` yielding SSE events
+  - Frontend: replaced `WebSocket` + reconnect logic with `fetch()` + `ReadableStream` + `AbortController` for cancellation
+  - Removed `useWebSocketConnection.ts`, renamed `useChatWebSocket.ts` → `useChatStream.ts`
+  - Cleaned up WS action types in reducer (`WS_CONNECTED` → `CONNECTED`, etc.) and simplified `ConnectionState` (removed unused `'reconnecting'`)
+  - Nginx: removed `Upgrade`/`Connection` headers, configured `proxy_buffering off` for SSE route
+  - Removed stale `VITE_WS_URL` env var from Dockerfile, CI, docker-compose, and config
+  - Cleaned up documentation: deleted `backend/docs/features/chat.md` and `frontend/docs/features/websocket-chat.md`
+
 ### Added
 - **Google OAuth Sign-In** — Redirect-based Google Sign-In via Authorization Code flow:
   - `GoogleOAuthService` — server-to-server code exchange, state JWT (CSRF), userinfo retrieval

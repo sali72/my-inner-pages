@@ -85,7 +85,7 @@ App (root)
         │   └── JournalNavigationSidebar (right overlay)
         ├── MirrorView (activeView === 'mirror')
         ├── ChatView (always mounted, hidden via CSS when not active)
-        │   ├── WebSocket connection to /api/v0/chat/ws
+        │   ├── SSE HTTP POST stream to /api/v0/chat/stream
         │   ├── Message list with Markdown rendering
         │   ├── Message actions (copy, edit, regenerate)
         │   └── ChatHistorySidebar (right overlay)
@@ -94,8 +94,8 @@ App (root)
 
 ### State Management
 - **Global State**: AuthContext (user, login, logout)
-- **Feature State**: Custom hooks (useJournalEntries, useSettings, usePageFlip, useChatWebSocket)
-  - useChatWebSocket manages connection state machine (connected/reconnecting/disconnected/failed), auto-reconnect with jittered backoff, message queue, and per-message delivery status
+- **Feature State**: Custom hooks (useJournalEntries, useSettings, usePageFlip, useChatStream)
+  - useChatStream manages SSE streaming state, AbortController cancellation, and message delivery status
 - **Local Storage**: Auth token (cache), theme preferences (cache with server sync)
 - **Editor State**: Y.Doc per journal entry, persisted to IndexedDB via y-indexeddb (local source of truth)
 
@@ -181,21 +181,14 @@ Tags follow a hybrid embedded+registry model:
 
 ### Chat Flow
 ```
-1. User opens Chat view → ChatView mounts (via CSS hidden → visible)
-2. useChatWebSocket hook connects WebSocket:
-   - No chat_id → server sends context_loaded with chat_id: null
-   - Existing chat_id → server sends context_loaded with chat_id
-3. User types message → sendMessage() via WebSocket (with UUID for dedup/ack)
-4. Server acks immediately, persists user message, streams LLM tokens
-5. On disconnect → auto-reconnect with jittered exponential backoff (1s–30s)
-   - Token expiry checked before reconnect
-   - If generation was active → reconnect with resume=true param
-   - Queued messages drained on reconnect
-6. On reconnect success → server may send generation_resumed if within grace period
-7. Stream completes → backend persists assistant message → frontend receives done
-8. Chat list loaded via REST GET /chats for sidebar
-9. User can switch views → ChatView stays mounted (hidden), WebSocket stays open
-10. User can browse history via ChatHistorySidebar (right overlay, REST-backed)
+1. User opens Chat view → ChatView mounts
+2. User types message → sendMessage() sends POST to /api/v0/chat/stream with Authorization Bearer header
+3. Server receives request, validates user, loads/creates chat, and streams SSE events (text/event-stream)
+4. Server emits context_loaded, ack, and streams LLM tokens (event: token)
+5. Stream completes → backend persists assistant message → frontend receives event: done
+6. If user clicks "Stop" → AbortController cancels the HTTP POST stream natively
+7. Chat list loaded via REST GET /chats for sidebar
+8. User can browse history via ChatHistorySidebar (right overlay, REST-backed)
 ```
 
 ## Key Design Patterns
