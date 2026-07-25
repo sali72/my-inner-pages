@@ -1,8 +1,14 @@
-from pydantic import BaseModel
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class AuthModuleConfig(BaseModel):
+class AuthModuleConfig(BaseSettings):
     """Auth module specific configuration."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
     
     # JWT settings
     jwt_algorithm: str = "HS256"

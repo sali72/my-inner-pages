@@ -33,18 +33,7 @@ class AIModuleConfig(BaseSettings):
     chat_max_tokens: int = 1000
     chat_temperature: float = 0.7
     max_journals_for_chat_context: int = 10
-
-    # WebSocket Settings
-    ws_ping_interval: int = 20
-    ws_pong_timeout: int = 25
-    ws_connection_close_timeout: int = 30
-    ws_generation_grace_period: int = 10
-    ws_max_connections_per_user: int = 5
-    ws_message_dedup_ttl: int = 300
-    ws_max_message_length: int = 10000
-    ws_connect_rate_limit: int = 20
-    ws_llm_rate_limit: int = 10
-    ws_stale_threshold: int = 60
+    llm_rate_limit: int = 10
 
     # Feature Flags
     enable_mirror: bool = True

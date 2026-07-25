@@ -1,40 +1,36 @@
+import json
+import time
 from functools import lru_cache
 
+import structlog
 from fastapi import Depends
 
 from app.ai.config import AIModuleConfig
-from app.ai.integrations.base import LLMClient
-from app.ai.integrations.mock_llm_client import MockLLMClient
-from app.ai.integrations.litellm_client import LiteLLMClient
+from app.ai.db.repository import LLMProviderRepository
 from app.ai.facade.chat_facade import ChatFacade
+from app.ai.integrations.base import LLMClient
+from app.ai.integrations.litellm_client import LiteLLMClient
+from app.ai.integrations.mock_llm_client import MockLLMClient
 from app.ai.services.chat_service import ChatService
 from app.ai.services.mirror_service import MirrorService
-from app.ai.ws.dedup import MessageDedupStore
-from app.ai.ws.generation_manager import GenerationManager
-from app.ai.ws.manager import ConnectionManager
-from app.journals.deps import get_journal_repository
-from app.journals.db.repository import JournalRepository
 from app.chat.deps import get_chat_facade
 from app.chat.facade import ChatPersistenceFacade
+from app.journals.db.repository import JournalRepository
+from app.journals.deps import get_journal_repository
 from app.memory.deps import get_memory_facade
 from app.memory.facade import MemoryFacade
-
-
-def get_ai_config() -> AIModuleConfig:
-    """Get AI module configuration."""
-    return AIModuleConfig()
-
-
-import json
-import time
-import structlog
-from app.ai.db.repository import LLMProviderRepository
 
 logger = structlog.get_logger(__name__)
 
 _cached_providers: list | None = None
 _cached_providers_at: float = 0
 _PROVIDER_CACHE_TTL = 30  # seconds
+
+
+def get_ai_config() -> AIModuleConfig:
+    """Get AI module configuration."""
+    return AIModuleConfig()
+
 
 def get_llm_provider_repository() -> LLMProviderRepository:
     """Get LLM provider repository."""
@@ -103,36 +99,13 @@ async def reload_llm_client(
 def get_mirror_service(
     llm_client: LLMClient = Depends(get_llm_client),
     memory_service: MemoryFacade = Depends(get_memory_facade),
-    config: AIModuleConfig = Depends(get_ai_config)
+    config: AIModuleConfig = Depends(get_ai_config),
 ) -> MirrorService:
     """Get mirror service with all dependencies injected."""
     return MirrorService(
         llm_client=llm_client,
         memory_service=memory_service,
-        config=config
-    )
-
-
-@lru_cache
-def get_connection_manager() -> ConnectionManager:
-    config = get_ai_config()
-    return ConnectionManager(max_connections_per_user=config.ws_max_connections_per_user)
-
-
-@lru_cache
-def get_message_dedup_store() -> MessageDedupStore:
-    config = get_ai_config()
-    return MessageDedupStore(ttl=config.ws_message_dedup_ttl)
-
-
-def get_generation_manager(
-    config: AIModuleConfig = Depends(get_ai_config),
-    dedup_store: MessageDedupStore = Depends(get_message_dedup_store),
-) -> GenerationManager:
-    return GenerationManager(
-        grace_period=config.ws_generation_grace_period,
-        dedup_store=dedup_store,
-        stale_threshold=config.ws_stale_threshold,
+        config=config,
     )
 
 
@@ -153,16 +126,10 @@ def get_chat_service(
 def get_chat_facade(
     chat_service: ChatService = Depends(get_chat_service),
     chat_persistence: ChatPersistenceFacade = Depends(get_chat_facade),
-    connection_manager: ConnectionManager = Depends(get_connection_manager),
-    generation_manager: GenerationManager = Depends(get_generation_manager),
-    dedup_store: MessageDedupStore = Depends(get_message_dedup_store),
     config: AIModuleConfig = Depends(get_ai_config),
 ) -> ChatFacade:
     return ChatFacade(
         chat_service=chat_service,
         chat_persistence=chat_persistence,
-        connection_manager=connection_manager,
-        generation_manager=generation_manager,
-        dedup_store=dedup_store,
         config=config,
     )

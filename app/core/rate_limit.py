@@ -66,16 +66,17 @@ def configure_limiter(settings):
         logger.info("rate_limiter_memory")
 
 
-def check_ws_rate_limit(
+def check_rate_limit(
     key: str, max_requests: int = 5,
 ) -> tuple[bool, Optional[float]]:
     """Programmatic rate check using the shared backend.
 
-    Used for WebSocket connections (not supported by slowapi).
+    Used for programmatic rate checks (slowapi decorators can't cover
+    streaming endpoints and other non-standard flows).
     Returns (allowed, retry_after_seconds). retry_after is None when allowed.
     """
     allowed = limiter.limiter.hit(RateLimitItemPerMinute(max_requests), key)
     if not allowed:
-        logger.warning("ws_rate_limit_exceeded", key=key, limit=max_requests)
+        logger.warning("rate_limit_exceeded", key=key, limit=max_requests)
         return False, 60.0
     return True, None

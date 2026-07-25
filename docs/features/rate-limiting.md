@@ -51,15 +51,16 @@ For **authenticated routes**, the limit is automatically per-user —
 `custom_key_func` reads `request.state.user` (set by `get_current_user`)
 and returns `user:{id}` as the key. No extra plumbing needed.
 
-### WebSocket rate limit
+### Programmatic rate limit
 
-slowapi does not support WebSockets. Use the shared `check_ws_rate_limit` function:
+For streaming endpoints and other non-decorator flows, use the shared `check_rate_limit` function:
 
 ```python
-from app.core.rate_limit import check_ws_rate_limit
+from app.core.rate_limit import check_rate_limit
 
-if not check_ws_rate_limit(f"ws:{user_id}", max_requests=5):
-    await websocket.close(code=4003)
+allowed, retry_after = check_rate_limit(f"llm:{user_id}", max_requests=10)
+if not allowed:
+    # Return error response
 ```
 
 ## Storage Backend Selection

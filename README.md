@@ -30,8 +30,7 @@ app/
 │   ├── integrations/  # LLM clients (OpenRouter, Mock)
 │   ├── prompts/       # LangChain prompt templates
 │   ├── services/      # Mirror + Chat business logic
-│   ├── ws/            # WebSocket infrastructure (ConnectionManager)
-│   └── api/routes/    # REST + WebSocket endpoints
+│   └── api/routes/    # REST endpoints
 ├── memory/            # User model + context injection for AI
 │   ├── db/            # UserModel document + repository
 │   ├── prompts/       # Update + context injection prompts
@@ -95,15 +94,13 @@ Set `EMAIL_VERIFICATION_REQUIRED=false` in `.env` to skip email verification and
   - `GET /chats/{chat_id}` — get single chat with full messages
   - `DELETE /chats/{chat_id}` — delete a chat
 
-### WebSocket
-- **Chat** (`/api/v0/chat/ws?token=<jwt>[&chat_id=<id>]`) — real-time AI chat with persistence
+### SSE Streaming
+- **Chat** (`POST /api/v0/chat/stream`) — stream AI chat responses via Server-Sent Events
 
-  **Protocol:**
-  1. Connect with JWT (optional `chat_id` to resume an existing chat)
-  2. Server sends `{"type": "context_loaded", "chat_id": string|null}`
-  3. Client sends `{"type": "message", "content": "..."}
-  4. Server streams response tokens: `{"type": "token", "content": "..."}`
-  5. Server signals completion: `{"type": "done"}` (includes `chat_id` on first response of a new chat)
+  **Request:** `{ "content": "...", "chat_id": "<id>", "message_id": "<uuid>", "edit_message_index": <int> }`
+  **Events:** `context_loaded` → `ack` → `token`* → `done` | `error`
+
+  Authenticated via HttpOnly `access_token` cookie. Cancel by aborting the HTTP request.
 
 ## Tech Stack
 

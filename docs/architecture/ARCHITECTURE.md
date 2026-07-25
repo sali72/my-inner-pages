@@ -148,10 +148,10 @@ app/journals/
 ```
 app/ai/
 ├── api/routes/
-│   ├── chat.py                 # WS route — authenticates, rate-limits, delegates to ChatPersistenceFacade
+│   ├── chat.py                 # SSE streaming route — authenticates, rate-limits, delegates to ChatFacade
 │   └── mirror.py               # REST route — delegates to MirrorService
 ├── facade/
-│   └── chat_facade.py          # WebSocket chat session orchestrator (business logic)
+│   └── chat_facade.py          # SSE chat streaming orchestrator (business logic)
 ├── services/
 │   ├── chat_service.py         # LLM prompt building + streaming (reusable, not chat-SPA-specific)
 │   └── mirror_service.py       # Mirror reflection logic

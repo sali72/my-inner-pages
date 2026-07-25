@@ -74,7 +74,7 @@ The LLM is instructed to:
 [{...}]
 ```
 
-Injected into the chat system prompt on every WebSocket connection.
+Injected into the chat system prompt on every streaming chat request.
 
 ## Dev Endpoints
 

@@ -60,7 +60,7 @@ def test_settings(monkeypatch_session) -> Settings:
         database_name="journaling_app_test",
         environment="testing",
         jwt_secret_key="test-secret-key-for-testing-only",
-        use_mock_llm=True  # Always use mock LLM in tests to avoid API costs
+        use_mock_llm=True,  # Always use mock LLM in tests to avoid API costs
     )
     
     return test_settings_obj

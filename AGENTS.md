@@ -67,11 +67,11 @@ Python 3.11+ FastAPI server with MongoDB/Beanie, LangChain AI, JWT auth.
 - Do NOT bypass `get_current_user()` — always validate auth
 - Do NOT hardcode secrets — use `Settings` from pydantic-settings
 
-## WebSocket chat constraints
-- **Single-process only.** The WebSocket chat system (`app/ai/ws/`) uses in-memory state for three things that must be shared across all connections: `MessageDedupStore` (three-state dedup), `GenerationManager` (active LLM generations with token buffers and grace timers), and `ConnectionManager` (per-user connection caps). These are all singletons via `@lru_cache` in `deps.py`. If the backend scales horizontally, each instance would have its own in-memory state, breaking dedup, resume, and connection caps. Before scaling, migrate these to a shared store (Redis).
-- **Resume requires sticky sessions.** The `resume=true` query param and `attach_to_generation()` flow depend on the same backend process hosting the `ActiveGeneration`. If a reconnect lands on a different process, it will silently fall back to a normal (non-resumed) generation. The dedup check on the new instance won't find the entry, so a duplicate LLM call will fire. Enforce sticky sessions if deploying multi-instance with the current in-memory architecture.
+## SSE chat streaming
+
+The AI chat uses SSE streaming over `POST /api/v0/chat/stream` instead of WebSockets. This eliminates the need for ConnectionManager, GenerationManager, and MessageDedupStore — the connection lifecycle is managed entirely by FastAPI's `StreamingResponse` and HTTP semantics. Authentication is via HttpOnly `access_token` cookie (same as all other endpoints). Rate limiting uses the programmatic `check_rate_limit()` function. Client cancellation is handled via `asyncio.CancelledError` when the HTTP connection drops.
 
 ## Reference docs
-- `README.md` — setup guide, API endpoint reference, WebSocket protocol, .env config
+- `README.md` — setup guide, API endpoint reference, SSE chat protocol, .env config
 - `docs/architecture/` — architecture deep-dives, DI wiring, database design
 - `docs/features/` — feature-specific docs (tag system, caching, rate limiting, chat, user model, LLM providers)
