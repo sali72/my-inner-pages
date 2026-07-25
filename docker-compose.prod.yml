@@ -48,9 +48,8 @@ services:
         max-file: "3"
 
   mongodb:
-    ports:
-      - "127.0.0.1:27017:27017" # Only accessible from localhost
-    command: mongod --wiredTigerCacheSizeGB 0.2 --nojournal
+    ports: [] # Clears the base compose port mapping — backend reaches MongoDB via Docker DNS
+    command: mongod --auth --wiredTigerCacheSizeGB 0.2 --nojournal
     mem_limit: 200m
     mem_reservation: 100m
     cpus: 0.5
