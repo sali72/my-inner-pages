@@ -60,7 +60,7 @@ services:
     restart: unless-stopped
     networks:
       - app-network
-    command: mongod --wiredTigerCacheSizeGB 0.2 --nojournal
+    command: mongod --auth --wiredTigerCacheSizeGB 0.2 --nojournal
     mem_limit: 200m
     cpus: 0.5
 
