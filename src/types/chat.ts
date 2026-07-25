@@ -17,25 +17,14 @@ export interface ChatSummary {
   updated_at: string;
 }
 
-export type ConnectionState = 'connected' | 'reconnecting' | 'disconnected' | 'failed';
+export type ConnectionState = 'connected' | 'disconnected' | 'failed';
 
-export type WSClientMessage =
-  | { type: 'message'; content: string; id: string }
-  | { type: 'edit'; content: string; message_index: number; id: string }
-  | { type: 'cancel' }
-  | { type: 'pong' }
-  | { type: 'ping' };
-
-export type WSServerMessage =
-  | { type: 'context_loaded'; chat_id: string | null }
+export type SSEServerEvent =
+  | { type: 'context_loaded'; chat_id: string }
   | { type: 'token'; content: string }
-  | { type: 'done'; chat_id?: string; aborted?: boolean }
-  | { type: 'error'; content: string }
-  | { type: 'ack'; message_id: string }
-  | { type: 'ping' }
-  | { type: 'pong' }
-  | { type: 'generation_lost'; chat_id: string }
-  | { type: 'generation_resumed' };
+  | { type: 'done'; chat_id?: string; is_first?: boolean }
+  | { type: 'error'; content: string; retry_after_seconds?: number }
+  | { type: 'ack'; message_id: string };
 
 export interface ChatState {
   chatId: string | null;

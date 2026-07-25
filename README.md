@@ -23,7 +23,7 @@ src/
 │   ├── layout/        # Header, Sidebar
 │   └── common/        # Reusable components (DropdownMenu, IconButton)
 ├── contexts/          # React contexts (AuthContext)
-├── hooks/             # Custom hooks (useJournalEntries, useChatWebSocket, useSettings, usePageFlip)
+├── hooks/             # Custom hooks (useChatStream, useJournalEntries, useSettings, usePageFlip)
 ├── constants/         # Theme & mirror mode configs
 ├── types/             # TypeScript types (includes chat types)
 └── utils/             # Helpers (theme, errorHandler, fonts, textDirection, api)
@@ -34,7 +34,6 @@ src/
 | Variable | Default | Description |
 |---|---|---|
 | `VITE_API_URL` | `http://localhost:8000/api/v0` | Backend API base URL |
-| `VITE_WS_URL` | `ws://localhost:8000/api/v0` | WebSocket endpoint |
 | `VITE_SENTRY_DSN` | *(empty)* | Sentry DSN for error monitoring (optional) |
 | `VITE_ENV` | `development` | Environment label (`development`, `production`) |
 | `VITE_APP_VERSION` | `0.1.0` | App version label |
@@ -59,12 +58,10 @@ To add a new variable in production (e.g. `VITE_SENTRY_DSN`), you must also crea
   - Click any entry to jump directly to that page
   - Visual highlighting of current journal
   - Closes when clicking outside sidebar
-- **AI Chat** - Real-time WebSocket chat with the AI. Conversations persisted
+- **AI Chat** - Real-time AI chat via SSE streaming over HTTP. Conversations persisted
   (survive sessions), browsable via right sidebar. Lazy-created on first message.
-  Auto-title from first user message. Auto-reconnect with exponential backoff
-  on disconnection. Per-message delivery status (sending/delivered/failed/queued).
-  Connection state indicator. Cancel streaming without disconnecting. Resumes
-  interrupted generations on reconnect. Access via list icon in top-right corner
+  Auto-title from first user message. Per-message delivery status (sending/delivered/failed).
+  Cancel streaming mid-response via AbortController. Access via list icon in top-right corner
   (chat section). Preserved across view switches within a session.
 - **Mirror** - AI reflections in 4 modes (emotional, cognitive, behavioral, relational)
 - **Themes** - Vintage, minimal, dark

@@ -35,8 +35,7 @@ Sentry is initialized in `src/main.tsx` with:
 | Slow responses (>5s) | `api.ts` — breadcrumb | `warning` |
 | Backend health degraded | `useBackendHealth` hook | `warning` |
 | Backend persistently unreachable | `useBackendHealth` hook (5+ failures) | `fatal` |
-| WebSocket connection drops | `useWebSocketConnection.ts` | breadcrumbs |
-| WebSocket errors | `useWebSocketConnection.ts` | breadcrumbs |
+| SSE stream errors | `useChatStream` | `error` |
 
 ### Health Monitor
 

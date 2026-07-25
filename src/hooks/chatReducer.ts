@@ -11,37 +11,31 @@ export const initialChatState: ChatState = {
 };
 
 export type ChatAction =
-  | { type: 'WS_CONNECTED' }
-  | { type: 'WS_RECONNECTING' }
-  | { type: 'WS_DISCONNECTED' }
-  | { type: 'WS_FAILED'; error: string }
-  | { type: 'WS_RESET' }
+  | { type: 'CONNECTED' }
+  | { type: 'DISCONNECTED' }
+  | { type: 'FAILED'; error: string }
+  | { type: 'RESET' }
   | { type: 'CONTEXT_LOADED'; chatId: string | null }
   | { type: 'STREAM_TOKEN'; content: string }
   | { type: 'STREAM_DONE'; chatId?: string; aborted?: boolean }
   | { type: 'STREAM_ERROR'; error: string }
   | { type: 'SET_MESSAGE_STATUS'; messageId: string; status: ChatMessage['status'] }
-  | { type: 'GENERATION_RESUMED' }
-  | { type: 'GENERATION_LOST' }
   | { type: 'APPEND_MESSAGE'; userMsg: ChatMessage; placeholder: ChatMessage; truncateTo?: number }
   | { type: 'STOP_STREAMING' }
   | { type: 'LOAD_MESSAGES'; messages: ChatMessage[] };
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
   switch (action.type) {
-    case 'WS_CONNECTED':
+    case 'CONNECTED':
       return { ...state, connectionState: 'connected', error: null };
 
-    case 'WS_RECONNECTING':
-      return { ...state, connectionState: 'reconnecting' };
-
-    case 'WS_DISCONNECTED':
+    case 'DISCONNECTED':
       return { ...state, connectionState: 'disconnected', isStreaming: false, isContextLoaded: false };
 
-    case 'WS_FAILED':
+    case 'FAILED':
       return { ...state, connectionState: 'failed', error: action.error };
 
-    case 'WS_RESET':
+    case 'RESET':
       return { ...initialChatState };
 
     case 'CONTEXT_LOADED':
@@ -79,19 +73,6 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         messages: state.messages.map(m =>
           m.id === action.messageId ? { ...m, status: action.status } : m
-        ),
-      };
-
-    case 'GENERATION_RESUMED':
-      return { ...state, resumed: true };
-
-    case 'GENERATION_LOST':
-      return {
-        ...state,
-        messages: state.messages.map(m =>
-          m.status === 'sending' || m.id === 'streaming'
-            ? { ...m, status: 'failed' as const }
-            : m
         ),
       };
 
