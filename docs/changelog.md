@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Active User Session & Device Management**:
+  - Captured browser/OS device info and IP address on login and token rotation
+  - Added `/api/v0/auth/sessions` endpoints to list active device families, revoke specific remote sessions, or log out all other devices
+  - Integrated `ActiveSessionsCard.tsx` in SettingsView with live device status, current device badges, and remote logout controls
+  - Added E2E test suite in `backend/tests/E2E/auth/test_sessions.py` and Playwright test in `frontend/e2e/auth.spec.ts`
 - **Dual-Token Authentication Architecture with Refresh Token Rotation (RTR)**:
   - Short-lived stateless JWT `access_token` (15 min, `HttpOnly` cookie, scoped to `/api/v0`)
   - Long-lived hashed `refresh_token` (30 days, `HttpOnly` cookie, scoped to `/api/v0/auth/refresh`) stored in MongoDB (`refresh_tokens` collection)
