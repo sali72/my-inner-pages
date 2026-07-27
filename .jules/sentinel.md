@@ -1,0 +1,4 @@
+## 2024-05-18 - Prevent Email Enumeration via Login Timing Attack
+**Vulnerability:** The login endpoint exhibited a timing side-channel attack. When a non-existent email was submitted, the function returned immediately. When an existing email was submitted, it performed a bcrypt hash comparison which takes 100-300ms. An attacker could measure the response time to enumerate valid users.
+**Learning:** Bcrypt hashing is intentionally slow, making timing differences between "user found" and "user not found" branches very obvious over network requests. This allows reliable user enumeration even with basic rate limiting.
+**Prevention:** In functions verifying credentials, always perform the expensive password verification even if the user isn't found. Implemented `verify_dummy_password` using a pre-calculated dummy hash to ensure the `login` function takes a consistent amount of time regardless of whether the email exists.
