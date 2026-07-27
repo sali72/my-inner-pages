@@ -25,6 +25,7 @@
 ┌──────────────────▼──────────────────────────────────────────┐
 │                      MongoDB                                │
 │  - User documents (credentials, profile, preferences)      │
+│  - RefreshToken documents (session rotation, TTL index)    │
 │  - Journal documents (entries with tags array)            │
 │  - Tag documents (registry: name, usage_count, color)     │
 │  - Chat documents (messages, metadata, linked entries)     │
@@ -224,9 +225,12 @@ const { entries, addEntry, updateEntry } = useJournalEntries();
 
 ### Authentication
 - Bcrypt password hashing (salt rounds: 12)
-- JWT tokens (HS256 algorithm)
-- Token stored in localStorage
-- Included in Authorization header
+- **Dual-Token Architecture**:
+  - **Access Token (`access_token`)**: Short-lived (15 min) JWT stored in `HttpOnly` cookie scoped to `/api/v0`
+  - **Refresh Token (`refresh_token`)**: Long-lived (30 days) hashed token stored in MongoDB and `HttpOnly` cookie scoped strictly to `/api/v0/auth/refresh`
+- **Refresh Token Rotation (RTR)**: Each refresh generates a new refresh token and revokes the old one within the same session `family_id`
+- **Reuse Attack Mitigation**: Reusing a revoked refresh token triggers immediate family revocation across all tokens in that session
+- **MongoDB TTL Index**: Automatically purges expired session records from the database
 
 ### Authorization
 - User ID embedded in JWT token

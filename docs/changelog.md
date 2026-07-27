@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Dual-Token Authentication Architecture with Refresh Token Rotation (RTR)**:
+  - Short-lived stateless JWT `access_token` (15 min, `HttpOnly` cookie, scoped to `/api/v0`)
+  - Long-lived hashed `refresh_token` (30 days, `HttpOnly` cookie, scoped to `/api/v0/auth/refresh`) stored in MongoDB (`refresh_tokens` collection)
+  - **Refresh Token Rotation**: Each refresh generates a new refresh token document within the same session `family_id`
+  - **Reuse Attack Detection**: Reusing a revoked refresh token triggers instant revocation of all tokens in that `family_id`
+  - **Automatic Cleanup**: MongoDB TTL index (`expireAfterSeconds`) automatically purges expired tokens
+  - **Backend Endpoint**: Added `POST /api/v0/auth/refresh` route and facade integration
+  - **Frontend Silent Refresh**: Added concurrency-safe subscriber queue in `frontend/src/utils/api.ts` so multiple simultaneous `401 Unauthorized` responses trigger a single `/auth/refresh` request and transparently retry pending calls
+  - **End-to-End Test Suites**: Added E2E tests for token issuance, rotation, reuse mitigation, and silent refresh interceptor behavior in `backend/tests/E2E/auth/test_refresh_tokens.py` and `frontend/e2e/auth.spec.ts`
+
 ### Changed
 - **Migrated AI Chat from WebSocket to SSE streaming** — replaced the full-duplex WebSocket protocol (`/api/v0/chat/ws`) with HTTP POST + Server-Sent Events (`POST /api/v0/chat/stream`):
   - Removed `ConnectionManager`, `GenerationManager`, `MessageDedupStore` (~500 lines of in-memory state management)
