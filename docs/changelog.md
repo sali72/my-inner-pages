@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.4.0-alpha] - 2026-07-27
+
 ### Added
 - **Active User Session & Device Management**:
   - Captured browser/OS device info, IP address, and formatted date/time timestamps on login and token rotation
