@@ -39,3 +39,6 @@ wheels/
 .coverage
 htmlcov/
 llm_providers.json
+
+# CLI tooling
+.jules/
