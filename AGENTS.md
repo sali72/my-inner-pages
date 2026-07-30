@@ -14,6 +14,10 @@ AI-powered private journaling app. Backend: FastAPI + MongoDB. Frontend: React +
 - `backend/` — FastAPI API server → see `backend/AGENTS.md`
 - `frontend/` — React SPA → see `frontend/AGENTS.md`
 
+## Git & Release Workflow
+- **Day-to-day development:** Push directly to `main` (or short feature branches). CI test suites run automatically on push/PR.
+- **Production Deployments:** Triggered automatically by pushing a semantic version tag (e.g. `git tag v0.5.0 && git push origin v0.5.0`). Pushing to `main` does NOT deploy to VPS.
+
 ## Production architecture (zero-downtime deploy)
 
 ### Frontend
