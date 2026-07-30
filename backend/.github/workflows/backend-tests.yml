@@ -1,0 +1,100 @@
+name: Backend Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        test-module: [auth, journals, ai]
+      fail-fast: false
+    
+    services:
+      mongodb:
+        image: mongo:4.4
+        env:
+          MONGO_INITDB_DATABASE: journaling_app_test
+        options: >-
+          --health-cmd "mongo --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 27017:27017
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      
+      - name: Cache uv dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+      
+      - name: Install dependencies
+        run: uv sync
+      
+      - name: Wait for MongoDB to be ready
+        run: |
+          uv run python -c "
+          import pymongo
+          import time
+          import sys
+          
+          print('Waiting for MongoDB to be ready...')
+          for i in range(30):
+              try:
+                  client = pymongo.MongoClient('mongodb://localhost:27017/', serverSelectionTimeoutMS=2000)
+                  client.admin.command('ping')
+                  print('MongoDB is ready!')
+                  break
+              except Exception as e:
+                  print(f'Attempt {i+1}/30: MongoDB not ready yet, waiting...')
+                  time.sleep(2)
+          else:
+              print('ERROR: MongoDB failed to start')
+              sys.exit(1)
+          
+          print('Setup complete!')
+          "
+      
+      - name: Run tests for ${{ matrix.test-module }}
+        env:
+          MONGO_URL: mongodb://localhost:27017/
+          DATABASE_NAME: journaling_app_test
+          JWT_SECRET_KEY: test-secret-key-for-ci
+          USE_MOCK_LLM: true
+          ENVIRONMENT: test
+        run: uv run pytest tests/E2E/${{ matrix.test-module }}/ -v --tb=short
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.test-module }}
+          path: test-results/
+          retention-days: 7
