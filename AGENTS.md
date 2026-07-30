@@ -2,6 +2,25 @@
 
 AI-powered private journaling app. Backend: FastAPI + MongoDB. Frontend: React + Vite.
 
+## Planning context
+
+Product intent, priorities, and open questions live in `planning/` — a separate,
+local-only repo that is not part of this one. It is the "why"; this repo is the "how".
+
+When `planning/` is present, read these before planning or scoping feature work:
+- `planning/intro.md` — what the project is, and how work moves through it
+- `planning/goals.md` — active goals and their `[G-n]` identifiers
+- `planning/design-philosophy.md` — product positioning and guardrails
+
+Goals are referenced from code and commits by identifier (e.g. `[G-4]`), so those
+IDs are the link between intent here and implementation in `backend/` / `frontend/`.
+
+Do not move, copy, or quote `planning/` content into this repo — it is deliberately
+unpublished. Referring to a goal by its ID is fine.
+
+Note: `planning/` is product/workflow thinking; `docs/` (in this repo) is technical
+reference — architecture, ADRs, changelog.
+
 ## Root-level commands
 - `make backend` — start backend dev server (uvicorn --reload)
 - `make frontend` — start frontend dev server (Vite, port 5173)

@@ -71,4 +71,6 @@ dist-ssr
 *.sw?
 
 .env
-/my-docs
+
+# Private planning repo (separate git repo, intentionally not tracked here)
+/planning
