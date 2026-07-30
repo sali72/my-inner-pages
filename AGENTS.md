@@ -9,7 +9,8 @@ AI-powered private journaling app. Backend: FastAPI + MongoDB. Frontend: React +
 - `make stop` — kill both processes
 - `docker compose up` — full-stack Docker (dev)
 
-## Repo layout
+## Repo layout (Unified Monorepo)
+- Single Git repository containing both `backend/` and `frontend/` (full commit history merged).
 - `backend/` — FastAPI API server → see `backend/AGENTS.md`
 - `frontend/` — React SPA → see `frontend/AGENTS.md`
 

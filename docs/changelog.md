@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Unified Monorepo Migration**:
+  - Consolidated `backend` and `frontend` submodules into a single unified monorepo repository using `git subtree`, preserving 100% of historical commits, dates, and author logs.
+  - Simplified local developer workflow and atomic feature commits across frontend and backend.
+  - Cleaned up CI/CD workflows by removing submodule recursive checkout overhead.
+
 ## [v0.4.0-alpha] - 2026-07-27
 
 ### Added
