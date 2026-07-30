@@ -1,0 +1,329 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  overflow-y: scroll;
+}
+
+/* Style native form controls to use theme accent instead of browser blue */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+  filter: invert(0.3);
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.8;
+}
+
+/* Suppress browser default blue focus outlines on custom-styled form elements */
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none !important;
+}
+
+select option {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+/* ============================================================
+   UI Font — applies everywhere, never overridden
+   ============================================================ */
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: var(--ui-font, 'Inter', system-ui, -apple-system, sans-serif);
+  font-size: 14px;
+  line-height: 1.5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -30px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-30px, 30px) scale(0.9); }
+  66% { transform: translate(20px, -20px) scale(1.1); }
+}
+
+.animate-float { animation: float 8s ease-in-out infinite; }
+.animate-float-delayed { animation: float-delayed 10s ease-in-out infinite; }
+
+/* ============================================================
+   Design token utility classes
+   ============================================================ */
+
+@layer utilities {
+  .text-primary { color: var(--text-primary); }
+  .text-secondary { color: var(--text-secondary); }
+  .text-tertiary { color: var(--text-tertiary); }
+  .text-accent { color: var(--accent-primary); }
+  .text-accent-tint { color: var(--accent-tint-text); }
+
+  .bg-base { background: var(--bg-base); }
+  .bg-surface { background: var(--bg-surface); }
+  .bg-elevated { background: var(--bg-elevated); }
+  .bg-surface-hover { background: var(--bg-surface-hover); }
+  .bg-accent { background: var(--accent-primary); }
+  .bg-accent-hover { background: var(--accent-primary-hover); }
+  .bg-accent-tint { background: var(--accent-tint); }
+  .bg-accent-hover { background: var(--accent-primary-hover); }
+
+  .border-default { border-color: var(--border-default); }
+  .border-subtle { border-color: var(--border-subtle); }
+  .border-accent { border-color: var(--accent-primary); }
+
+  .ring-accent { --tw-ring-color: var(--accent-focus); }
+
+  .shadow-card { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04); }
+  .shadow-elevated { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
+}
+
+/* Hover/focus variants */
+.hover\:bg-accent-hover:hover { background: var(--accent-primary-hover); }
+.hover\:bg-accent-tint:hover { background: var(--accent-tint); }
+.hover\:bg-surface-hover:hover { background: var(--bg-surface-hover); }
+.hover\:border-hover:hover { border-color: var(--border-default); }
+.hover\:text-accent:hover { color: var(--accent-primary); }
+.focus\:ring-accent:focus { --tw-ring-color: var(--accent-focus); }
+
+/* ============================================================
+   Button presets
+   ============================================================ */
+@layer components {
+  .btn-primary {
+    background: var(--accent-primary);
+    color: #ffffff;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+  }
+  .btn-primary:hover { background: var(--accent-primary-hover); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-primary);
+    border-radius: 8px;
+    transition: background 0.15s ease;
+  }
+  .btn-ghost:hover { background: var(--bg-surface-hover); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    transition: all 0.15s ease;
+  }
+  .btn-outline:hover { border-color: var(--text-tertiary); background: var(--bg-surface); }
+
+  .btn-accent-outline {
+    background: transparent;
+    color: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+    border-radius: 8px;
+    transition: all 0.15s ease;
+  }
+  .btn-accent-outline:hover { background: var(--accent-tint); }
+
+  .input-field {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+  .input-field:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px var(--accent-focus);
+  }
+
+  .card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .surface {
+    background: var(--bg-surface);
+    border-radius: 12px;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+}
+
+/* ============================================================
+   Content typography — scoped, never affects UI
+   ============================================================ */
+.content-typography,
+.content-typography p,
+.content-typography h1,
+.content-typography h2,
+.content-typography h3,
+.content-typography h4,
+.content-typography h5,
+.content-typography h6,
+.content-typography li,
+.content-typography blockquote {
+  font-family: var(--content-font);
+  font-size: var(--content-font-size);
+  line-height: var(--content-leading);
+  letter-spacing: var(--content-tracking, 0);
+}
+.content-typography {
+  max-width: var(--content-measure, 65ch);
+  color: var(--text-primary);
+}
+
+/* Chat has a slightly wider measure */
+.chat-typography {
+  max-width: var(--chat-measure, 70ch);
+}
+
+/* ============================================================
+   Scrollbar styles
+   ============================================================ */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+}
+
+html::-webkit-scrollbar { width: 6px; height: 6px; }
+html::-webkit-scrollbar-track { background: transparent; }
+html::-webkit-scrollbar-thumb { border-radius: 3px; background: var(--border-default); }
+
+.scrollbar-theme {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+}
+
+.scrollbar-theme::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-theme::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-theme::-webkit-scrollbar-thumb { border-radius: 3px; background: var(--border-default); }
+
+/* ============================================================
+   Text selection — follows accent theme
+   ============================================================ */
+::selection {
+  background: var(--accent-tint);
+  color: var(--accent-tint-text);
+}
+
+/* ============================================================
+   Tiptap Editor & Placeholder
+   ============================================================ */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--text-tertiary);
+  opacity: 0.4;
+  pointer-events: none;
+  height: 0;
+  position: absolute;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* ============================================================
+   Landing Page — amber brand identity, fixed to match the
+   amber accent defaults. Does NOT follow the user's chosen
+   accent — only respects light/dark mode.
+   ============================================================ */
+
+/* Backgrounds — fixed amber/structural, not affected by user accent */
+.landing-bg { background: #f5ede0; }
+.landing-surface { background: #fcf5ea; }
+.landing-surface-hover { background: #f0e8d8; }
+.landing-elevated { background: #ffffff; }
+
+/* Typography */
+.landing-hero { color: #78350f; }
+.landing-heading { color: #78350f; }
+.landing-body { color: #92400e; }
+.landing-muted { color: #b45309; }
+.landing-icon { color: #92400e; }
+.landing-icon-bg { background: #fef3c7; }
+
+/* Primary CTA */
+.landing-btn-primary {
+  background: #92400e;
+  color: #fffbeb;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+.landing-btn-primary:hover {
+  background: #78350f;
+}
+
+/* Secondary CTA */
+.landing-btn-secondary {
+  background: #ffffff;
+  color: #78350f;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+.landing-btn-secondary:hover {
+  background: #f0e8d8;
+}
+
+/* Lens icon colors */
+.landing-lens-rose { color: #be123c; }
+.landing-lens-indigo { color: #4338ca; }
+.landing-lens-emerald { color: #047857; }
+.landing-lens-amber { color: #b45309; }
+
+/* ======== Dark mode overrides ======== */
+[data-mode="dark"] .landing-bg { background: #0a0a09; }
+[data-mode="dark"] .landing-surface { background: #141412; }
+[data-mode="dark"] .landing-surface-hover { background: #1e1e1c; }
+[data-mode="dark"] .landing-elevated { background: #1e1e1c; }
+
+[data-mode="dark"] .landing-hero { color: #d48a50; }
+[data-mode="dark"] .landing-heading { color: #d48a50; }
+[data-mode="dark"] .landing-body { color: #b45309; }
+[data-mode="dark"] .landing-muted { color: #92400e; }
+[data-mode="dark"] .landing-icon { color: #d48a50; }
+[data-mode="dark"] .landing-icon-bg { background: #3a2010; }
+
+[data-mode="dark"] .landing-btn-primary {
+  background: #d48a50;
+  color: #1c1917;
+}
+[data-mode="dark"] .landing-btn-primary:hover {
+  background: #e09a60;
+}
+
+[data-mode="dark"] .landing-btn-secondary {
+  background: #1e1e1c;
+  color: #f0c080;
+}
+[data-mode="dark"] .landing-btn-secondary:hover {
+  background: #1e1e1c;
+}
+
+[data-mode="dark"] .landing-lens-rose { color: #fb7185; }
+[data-mode="dark"] .landing-lens-indigo { color: #818cf8; }
+[data-mode="dark"] .landing-lens-emerald { color: #34d399; }
+[data-mode="dark"] .landing-lens-amber { color: #d48a50; }
+
