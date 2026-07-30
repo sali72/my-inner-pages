@@ -53,7 +53,7 @@ Single instance via `docker compose up -d mongodb --no-build` (network: `my-inne
 
 ## General conventions
 - **Simplicity first:** prefer the most maintainable solution, avoid unnecessary complexity
-- Commit messages: imperative mood, scope-prefixed (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`)
+- **Commit messages:** Gitmoji + Conventional Commits format (`<emoji> <type>(<scope>): <short summary in imperative mood>`). E.g. `✨ feat(auth): add Google OAuth` or `🐛 fix(chat): resolve SSE stream drop`
 - Never commit `.env` files, secrets, or credentials
 - Lockfiles (`package-lock.json`, `uv.lock`) committed on dependency changes
 - Keep `AGENTS.md` files updated alongside code changes in the same PR
