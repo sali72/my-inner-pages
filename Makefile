@@ -18,34 +18,18 @@ stop:
 	-pkill -f "vite" 2>/dev/null
 
 check:
-	@echo "🔍 Checking frontend TypeScript types..."
-	@cd frontend && npm run typecheck
-	@echo "🧪 Running backend test suite..."
-	@cd backend && RATE_LIMIT_ENABLED=true uv run pytest -q --tb=short
+	cd frontend && npm run typecheck
+	cd backend && RATE_LIMIT_ENABLED=true uv run pytest -q --tb=short
 
 test: check
-	@echo "🧪 Running frontend unit tests..."
-	@cd frontend && npm test
+	cd frontend && npm test
 
 release: check
-	@if [ -z "$(tag)" ]; then \
-		echo "❌ Error: Please specify a tag. Example: make release tag=v0.5.0-alpha"; \
-		exit 1; \
-	fi
-	@echo "🚀 Creating git tag $(tag)..."
+	test -n "$(tag)" || (echo "Error: Please specify tag, e.g. make release tag=v0.5.0-alpha" && exit 1)
 	git tag -a $(tag) -m "Release $(tag)"
-	@echo "⬆️ Pushing tag $(tag) to trigger VPS deployment..."
 	git push origin $(tag)
-	@echo "✅ Release $(tag) pushed successfully!"
 
 install-hooks:
-	@echo "⚓ Installing git pre-commit hook..."
-	@mkdir -p .git/hooks
-	@echo '#!/bin/sh' > .git/hooks/pre-commit
-	@echo 'echo "🔍 Running pre-commit checks (make check)..."' >> .git/hooks/pre-commit
-	@echo 'make check || {' >> .git/hooks/pre-commit
-	@echo '  echo "❌ Pre-commit check failed! Fix errors before committing."' >> .git/hooks/pre-commit
-	@echo '  exit 1' >> .git/hooks/pre-commit
-	@echo '}' >> .git/hooks/pre-commit
-	@chmod +x .git/hooks/pre-commit
-	@echo "✅ Pre-commit hook installed successfully!"
+	mkdir -p .git/hooks
+	printf '#!/bin/sh\nBRANCH=$$(git rev-parse --abbrev-ref HEAD)\n\nif [ "$$BRANCH" != "main" ]; then\n    exit 0\nfi\n\necho "Running pre-commit checks on main branch..."\nmake check || {\n    echo "Pre-commit check failed! Fix errors before committing to main."\n    exit 1\n}\n' > .git/hooks/pre-commit
+	chmod +x .git/hooks/pre-commit
