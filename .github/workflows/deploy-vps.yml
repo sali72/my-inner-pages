@@ -154,7 +154,7 @@ jobs:
 
             echo "=== Pre-deploy import smoke test ==="
             timeout 30 docker run --rm \
-              --env-file ./backend/.env \
+              --env-file ./.env \
               my-inner-pages-backend:$SHA \
               python -c "import app.main; print('import ok')" 2>&1 || {
               echo "Backend image import test failed (timeout or error)"
@@ -211,7 +211,7 @@ jobs:
             docker run -d \
               --name backend-\$NEW_COLOR \
               --network my-inner-pages_app-network \
-              --env-file ./backend/.env \
+              --env-file ./.env \
               -e APP_VERSION=\$GIT_TAG \
               -e FRONTEND_URL=https://innerpages.ir \
               -e GOOGLE_REDIRECT_URI=https://innerpages.ir/api/v0/auth/google/callback \

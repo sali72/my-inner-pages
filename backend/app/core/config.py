@@ -1,11 +1,16 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Repo root is 3 parents up: backend/app/core/config.py -> backend/app/core -> backend/app -> backend -> root
+_REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
-    
+
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_REPO_ROOT / ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",

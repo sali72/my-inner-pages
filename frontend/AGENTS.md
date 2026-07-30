@@ -55,7 +55,7 @@ React 18 SPA with TypeScript, Vite, Tailwind CSS, TanStack Query, Playwright.
 
 To add a new `VITE_*` env var, update these 3 places:
 
-1. **`frontend/.env.example`** — document the default
+1. **root `.env.example`** — document the default in the `Frontend (VITE_*)` section (there is no `frontend/.env.example`)
 2. **`frontend/Dockerfile`** — add `ARG` + `ENV` line (with a sensible default so local Docker builds still work)
 3. **`.github/workflows/deploy-vps.yml`** — add to the `env:` block and as a `--build-arg` in the `docker build` command. If the value is sensitive, reference a GitHub secret.
 

@@ -38,7 +38,11 @@ src/
 | `VITE_ENV` | `development` | Environment label (`development`, `production`) |
 | `VITE_APP_VERSION` | `0.1.0` | App version label |
 
-For local dev, create `frontend/.env` (see `.env.example`). For production, new vars must be added to:
+For local dev, create the single `.env` at the monorepo root (see the root
+`.env.example`) — there is no `frontend/.env`; Vite reads the root file via
+`envDir: '..'`. Only `VITE_*` vars are inlined into the client bundle.
+
+For production, new vars must be added to:
 1. `frontend/Dockerfile` — as `ARG` + `ENV`
 2. `.github/workflows/deploy-vps.yml` — in the `env:` block and `--build-arg`
 3. GitHub repo Secrets if the value is sensitive

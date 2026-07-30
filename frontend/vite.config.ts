@@ -4,6 +4,10 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // Single .env at the monorepo root. Only VITE_*-prefixed vars are exposed to
+  // client code (Vite's default envPrefix) — never widen that, backend secrets
+  // live in the same file.
+  envDir: '..',
   resolve: {
     alias: {
       '@': '/src',

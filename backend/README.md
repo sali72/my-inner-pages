@@ -58,7 +58,8 @@ USE_MOCK_LLM=true              # fake responses, no deps needed
 # MEMORY_UPDATE_AFTER_WORDS=5000   # or every N words
 ```
 
-See `.env.example` for all options.
+All backend config lives in the single `.env` at the monorepo root (there is no
+`backend/.env`). See the root `.env.example` for all options.
 
 ## Email Service (Resend)
 

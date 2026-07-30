@@ -8,7 +8,7 @@ Sentry error monitoring for real-time crash reporting, performance tracing, and 
 
 ### Setup
 
-1. Set `SENTRY_DSN` in `backend/.env`:
+1. Set `SENTRY_DSN` in the single `.env` at the monorepo root:
    ```env
    SENTRY_DSN=https://your-dsn@your-org.ingest.us.sentry.io/project-id
    ```
