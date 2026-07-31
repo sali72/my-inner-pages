@@ -137,7 +137,8 @@ jobs:
             echo "Disk space: \$((FREE_KB / 1024)) MB free"
 
             echo "=== Pulling latest changes ==="
-            git pull origin main
+            git fetch origin --tags
+            git reset --hard origin/main
 
             echo "=== Loading Docker images ==="
             gunzip -c /tmp/images.tar.gz | docker load
