@@ -74,3 +74,6 @@ dist-ssr
 
 # Private planning repo (separate git repo, intentionally not tracked here)
 /planning
+
+# Private agent definitions (separate git repo, references planning structure)
+/.agent

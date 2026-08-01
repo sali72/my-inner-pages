@@ -21,6 +21,13 @@ unpublished. Referring to a goal by its ID is fine.
 Note: `planning/` is product/workflow thinking; `docs/` (in this repo) is technical
 reference — architecture, ADRs, changelog.
 
+### AI agent definitions (`.agent/`)
+
+Custom Antigravity agent personas (e.g. Management Advisor) live in `.agent/skills/`.
+Like `planning/`, this is a separate local-only repo — gitignored from the main repo
+because agent prompts reference planning structure details. Read the agent definitions
+when present; they define specialized advisory roles with scoped access to `planning/`.
+
 ## Root-level commands
 - `make backend` — start backend dev server (uvicorn --reload)
 - `make frontend` — start frontend dev server (Vite, port 5173)
