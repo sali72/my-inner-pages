@@ -37,15 +37,24 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         requestHeaders.set('Host', targetHost);
     } catch {}
 
+    // Only attach body for HTTP methods that permit bodies (NOT GET or HEAD)
+    const isBodyAllowed = !['GET', 'HEAD'].includes(context.request.method.toUpperCase());
+    const requestBody = isBodyAllowed ? context.request.body : null;
+
     const modifiedRequest = new Request(targetUrl, {
         method: context.request.method,
         headers: requestHeaders,
-        body: context.request.body,
-        redirect: 'manual',
+        body: requestBody,
+        redirect: 'follow',
     });
 
     try {
-        return await fetch(modifiedRequest);
+        const response = await fetch(modifiedRequest);
+        return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+        });
     } catch (error) {
         return new Response(
             JSON.stringify({ detail: 'Backend origin proxy error' }),
@@ -56,3 +65,4 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         );
     }
 };
+
