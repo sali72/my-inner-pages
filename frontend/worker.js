@@ -1,8 +1,10 @@
 /**
- * Cloudflare Pages Advanced Mode worker.
+ * Cloudflare Worker entry point.
  *
- * Routes /api/* requests to the backend origin (BACKEND_ORIGIN env var).
- * Everything else is served as a static asset via env.ASSETS.
+ * Invoked for /api/* requests (via run_worker_first in wrangler.json).
+ * Proxies API calls to the backend origin (BACKEND_ORIGIN env var).
+ * Static assets (the React SPA) are served automatically by Cloudflare's
+ * asset handler for all other routes.
  *
  * ZERO domain strings or hostnames are hardcoded in this file.
  */
@@ -10,7 +12,8 @@ export default {
     async fetch(request, env) {
         const url = new URL(request.url);
 
-        // Only proxy /api/ requests — serve everything else as static
+        // This worker is only invoked for /api/* via run_worker_first config,
+        // but guard anyway for safety.
         if (!url.pathname.startsWith('/api/')) {
             return env.ASSETS.fetch(request);
         }
