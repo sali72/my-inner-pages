@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "my-innerpages",
+  "name": "my",
   "main": "worker.js",
   "compatibility_date": "2025-01-01",
   "vars": {
