@@ -3,6 +3,9 @@
   "name": "my-innerpages",
   "main": "worker.js",
   "compatibility_date": "2025-01-01",
+  "vars": {
+    "BACKEND_ORIGIN": "https://innerpages.ir"
+  },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
