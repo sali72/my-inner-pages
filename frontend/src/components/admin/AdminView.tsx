@@ -16,11 +16,13 @@ import {
   Cpu,
   MessageSquare,
   BarChart2,
+  Users,
 } from 'lucide-react';
 import { api } from '@/utils/api';
 import { ConfirmModal } from '@components/journal';
 import { AdminFeedbackView } from '@components/feedback';
 import { OverviewTab } from './OverviewTab';
+import { UsersTab } from './UsersTab';
 
 interface LiteLLMParams {
   model: string;
@@ -53,7 +55,7 @@ interface DiagnosticsResponse {
 }
 
 export const AdminView: React.FC = () => {
-  const [adminTab, setAdminTab] = useState<'overview' | 'llm' | 'feedback'>('overview');
+  const [adminTab, setAdminTab] = useState<'overview' | 'users' | 'llm' | 'feedback'>('overview');
   const [providers, setProviders] = useState<ProviderConfig[]>([]);
   const [testResults, setTestResults] = useState<Record<string, ProviderTestResult>>({});
   const [loading, setLoading] = useState(true);
@@ -272,6 +274,15 @@ export const AdminView: React.FC = () => {
             Overview
           </button>
           <button
+            onClick={() => setAdminTab('users')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              adminTab === 'users' ? 'bg-surface text-primary shadow-sm' : 'text-secondary hover:text-primary'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            Users
+          </button>
+          <button
             onClick={() => setAdminTab('llm')}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
               adminTab === 'llm' ? 'bg-surface text-primary shadow-sm' : 'text-secondary hover:text-primary'
@@ -292,6 +303,7 @@ export const AdminView: React.FC = () => {
         </div>
 
         {adminTab === 'overview' && <OverviewTab />}
+        {adminTab === 'users' && <UsersTab />}
         {adminTab === 'feedback' && <AdminFeedbackView />}
 
         {adminTab === 'llm' && <>

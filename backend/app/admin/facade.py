@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import List
+from typing import List, Optional
 
 from app.admin.api.schemas import (
     AcquisitionStats,
@@ -9,9 +9,12 @@ from app.admin.api.schemas import (
     EngagementStats,
     LifetimeStats,
     SummaryStats,
+    UserItemSchema,
+    UserListResponse,
 )
-from app.auth.db.models import User
+from app.auth.db.models import RefreshToken, User
 from app.chat.db.models import Chat
+from app.core.validators import validate_object_id
 from app.journals.db.models import Journal
 
 PERIOD_DAYS_MAP = {
@@ -23,7 +26,7 @@ PERIOD_DAYS_MAP = {
 
 
 class AdminStatsFacade:
-    """Facade for calculating operational analytics and metrics with dynamic periods."""
+    """Facade for calculating operational analytics, metrics, and user management."""
 
     async def get_stats(self, period: str = "14d") -> AdminStatsResponse:
         days = PERIOD_DAYS_MAP.get(period, 14)
@@ -155,6 +158,120 @@ class AdminStatsFacade:
             acquisition=acquisition,
             engagement=engagement,
         )
+
+    async def get_users_list(
+        self, skip: int = 0, limit: int = 50, search: Optional[str] = None
+    ) -> UserListResponse:
+        """Fetch paginated registered users with email search and per-user activity metrics."""
+        query = {}
+        if search and search.strip():
+            query["email"] = {"$regex": search.strip(), "$options": "i"}
+
+        collection_users = User.get_motor_collection()
+        collection_journals = Journal.get_motor_collection()
+        collection_chats = Chat.get_motor_collection()
+
+        total = await collection_users.count_documents(query)
+        cursor = collection_users.find(query).sort("created_at", -1).skip(skip).limit(limit)
+        users_raw = await cursor.to_list(length=limit)
+
+        user_ids = [str(u["_id"]) for u in users_raw]
+
+        # Concurrently fetch activity counts for users on this page
+        j_pipeline = [
+            {"$match": {"user_id": {"$in": user_ids}}},
+            {"$group": {"_id": "$user_id", "count": {"$sum": 1}}},
+        ]
+        c_pipeline = [
+            {"$match": {"user_id": {"$in": user_ids}}},
+            {"$group": {"_id": "$user_id", "count": {"$sum": 1}}},
+        ]
+
+        j_results, c_results = await asyncio.gather(
+            collection_journals.aggregate(j_pipeline).to_list(length=len(user_ids)),
+            collection_chats.aggregate(c_pipeline).to_list(length=len(user_ids)),
+        )
+
+        j_map = {r["_id"]: r["count"] for r in j_results}
+        c_map = {r["_id"]: r["count"] for r in c_results}
+
+        user_items = [
+            UserItemSchema(
+                id=str(u["_id"]),
+                email=u.get("email", ""),
+                role=u.get("role", "user"),
+                is_active=u.get("is_active", True),
+                is_verified=u.get("is_verified", False),
+                auth_provider="google" if u.get("google_id") else "email",
+                login_count=u.get("login_count", 0),
+                journal_count=j_map.get(str(u["_id"]), 0),
+                chat_count=c_map.get(str(u["_id"]), 0),
+                created_at=u.get("created_at"),
+                last_login=u.get("last_login"),
+            )
+            for u in users_raw
+        ]
+
+        return UserListResponse(total=total, skip=skip, limit=limit, users=user_items)
+
+    async def update_user_status(
+        self, target_user_id: str, is_active: bool, admin_user: User
+    ) -> UserItemSchema:
+        """Update user activation status with security guardrails."""
+        if str(admin_user.id) == str(target_user_id):
+            raise ValueError("You cannot change the status of your own admin account")
+
+        obj_id = validate_object_id(target_user_id, field_name="user_id")
+        user = await User.get(obj_id)
+        if not user:
+            raise KeyError("User not found")
+
+        user.is_active = is_active
+        await user.save()
+
+        # If deactivating, instantly revoke all active session tokens
+        if not is_active:
+            await RefreshToken.find(RefreshToken.user_id == user.id).update(
+                {"$set": {"is_revoked": True}}
+            )
+
+        collection_journals = Journal.get_motor_collection()
+        collection_chats = Chat.get_motor_collection()
+        j_count = await collection_journals.count_documents({"user_id": str(user.id)})
+        c_count = await collection_chats.count_documents({"user_id": str(user.id)})
+
+        return UserItemSchema(
+            id=str(user.id),
+            email=user.email,
+            role=user.role,
+            is_active=user.is_active,
+            is_verified=user.is_verified,
+            auth_provider="google" if user.google_id else "email",
+            login_count=user.login_count,
+            journal_count=j_count,
+            chat_count=c_count,
+            created_at=user.created_at,
+            last_login=user.last_login,
+        )
+
+    async def delete_user(self, target_user_id: str, admin_user: User) -> None:
+        """Cascading delete of user, journals, chats, and sessions with security guardrails."""
+        if str(admin_user.id) == str(target_user_id):
+            raise ValueError("You cannot delete your own admin account")
+
+        obj_id = validate_object_id(target_user_id, field_name="user_id")
+        user = await User.get(obj_id)
+        if not user:
+            raise KeyError("User not found")
+
+        # Cascading deletion across all collections for this user
+        await asyncio.gather(
+            RefreshToken.find(RefreshToken.user_id == user.id).delete(),
+            Journal.find(Journal.user_id == str(user.id)).delete(),
+            Chat.find(Chat.user_id == str(user.id)).delete(),
+        )
+
+        await user.delete()
 
     async def _get_daily_signups(
         self, days: int, start_date: datetime, end_date: datetime

@@ -1,4 +1,5 @@
-from typing import List
+from datetime import datetime
+from typing import List, Optional
 from pydantic import BaseModel
 
 
@@ -53,3 +54,28 @@ class AdminStatsResponse(BaseModel):
     summary: SummaryStats
     acquisition: AcquisitionStats
     engagement: EngagementStats
+
+
+class UserItemSchema(BaseModel):
+    id: str
+    email: str
+    role: str
+    is_active: bool
+    is_verified: bool
+    auth_provider: str
+    login_count: int
+    journal_count: int
+    chat_count: int
+    created_at: datetime
+    last_login: Optional[datetime] = None
+
+
+class UserStatusUpdate(BaseModel):
+    is_active: bool
+
+
+class UserListResponse(BaseModel):
+    total: int
+    skip: int
+    limit: int
+    users: List[UserItemSchema]

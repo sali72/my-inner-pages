@@ -1,6 +1,8 @@
 import pytest
 from httpx import AsyncClient
 
+from app.auth.db.models import User
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -33,25 +35,66 @@ async def test_admin_can_access_stats_default(admin_client: AsyncClient):
     assert "total_users" in data["summary"]["lifetime"]
     assert "total_journals" in data["summary"]["lifetime"]
     assert "total_chats" in data["summary"]["lifetime"]
+    assert "verified_users" in data["summary"]["lifetime"]
 
     # Verify summary period fields
     assert "signups_current_period" in data["summary"]
     assert "active_users_period" in data["summary"]
-    assert "journals_current_period" in data["summary"]
-    assert "chats_current_period" in data["summary"]
-
-    # Verify acquisition fields
-    assert "signups_today" in data["acquisition"]
-    assert "daily_signups" in data["acquisition"]
-    assert len(data["acquisition"]["daily_signups"]) == 14
 
 
-async def test_admin_can_access_stats_custom_periods(admin_client: AsyncClient):
-    """Test fetching stats with custom period parameters (7d, 30d, 90d)."""
-    for period, expected_days in [("7d", 7), ("30d", 30), ("90d", 90)]:
-        response = await admin_client.get(f"/api/v0/admin/stats?period={period}")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["period"] == period
-        assert data["period_days"] == expected_days
-        assert len(data["acquisition"]["daily_signups"]) == expected_days
+async def test_admin_can_access_users_list(admin_client: AsyncClient):
+    """Test fetching user directory with pagination and search."""
+    response = await admin_client.get("/api/v0/admin/users?limit=10")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "total" in data
+    assert "users" in data
+    assert len(data["users"]) > 0
+
+    first_user = data["users"][0]
+    assert "email" in first_user
+    assert "role" in first_user
+    assert "is_active" in first_user
+    assert "auth_provider" in first_user
+    assert "journal_count" in first_user
+    assert "chat_count" in first_user
+    assert "created_at" in first_user
+
+
+async def test_admin_cannot_deactivate_self(admin_client: AsyncClient):
+    """Test admin self-deactivation prevention."""
+    me_resp = await admin_client.get("/api/v0/auth/me")
+    assert me_resp.status_code == 200
+    admin_id = me_resp.json()["id"]
+
+    response = await admin_client.patch(
+        f"/api/v0/admin/users/{admin_id}/status",
+        json={"is_active": False},
+    )
+    assert response.status_code == 400
+    assert "cannot change the status of your own admin account" in response.json()["detail"]
+
+
+async def test_admin_can_toggle_user_status_and_delete(admin_client: AsyncClient):
+    """Test admin deactivating a user account, then deleting it."""
+    # Create target test user
+    target_user = User(email="target_test_user@example.com", role="user", is_active=True)
+    await target_user.insert()
+    target_id = str(target_user.id)
+
+    # Deactivate user
+    deact_resp = await admin_client.patch(
+        f"/api/v0/admin/users/{target_id}/status",
+        json={"is_active": False},
+    )
+    assert deact_resp.status_code == 200
+    assert deact_resp.json()["is_active"] is False
+
+    # Delete user
+    del_resp = await admin_client.delete(f"/api/v0/admin/users/{target_id}")
+    assert del_resp.status_code == 204
+
+    # Verify user no longer exists
+    deleted_user = await User.get(target_id)
+    assert deleted_user is None

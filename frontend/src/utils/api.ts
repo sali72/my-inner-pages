@@ -140,6 +140,10 @@ async function request<T>(
             });
         }
 
+        if (response.status === 204) {
+            return {} as T;
+        }
+
         const data = await response.json();
         if (schema) {
             return schema.parse(data);
