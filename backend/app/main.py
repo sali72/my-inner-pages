@@ -22,6 +22,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.journals.api.routes import journals as journals_router
 from app.journals.api.routes import tags as tags_router
 from app.feedback.api.routes import feedback as feedback_router
+from app.admin.api.routes import stats as admin_stats_router
 
 # Configure logging
 configure_logging()
@@ -185,6 +186,7 @@ def create_app() -> FastAPI:
     app.include_router(chat_rest_router.router, prefix="/api/v0")
     app.include_router(tags_router.router, prefix="/api/v0")
     app.include_router(feedback_router.router, prefix="/api/v0")
+    app.include_router(admin_stats_router.router, prefix="/api/v0")
 
     # Dev-only memory management routes
     if not settings.is_production:
