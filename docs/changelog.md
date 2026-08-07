@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.4.2-alpha] - 2026-08-07
+
+### Added
+- **Admin User Directory & Activity Management**: Added paginated user table (`UsersTab.tsx`) with real-time email search, per-user activity counters (journal entries & AI chat counts), account deactivation/reactivation toggle with instant session token revocation, and cascading user account deletion modal.
+- **Admin User Management Endpoints**: Added `GET /api/v0/admin/users`, `PATCH /api/v0/admin/users/{id}/status`, and `DELETE /api/v0/admin/users/{id}` with BSON `PydanticObjectId` validation and admin self-protection guardrails.
+- **HTTP 204 No Content Handling**: Fixed frontend API client (`api.ts`) to gracefully handle empty 0-byte `204 No Content` response bodies without throwing JSON syntax errors.
+
 ## [v0.4.1-alpha] - 2026-08-07
 
 ### Added
