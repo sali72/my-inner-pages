@@ -19,7 +19,8 @@ stop:
 
 check:
 	cd frontend && npm run typecheck
-	cd backend && RATE_LIMIT_ENABLED=true uv run pytest -q --tb=short
+	cd backend && uv lock
+	cd backend && RATE_LIMIT_ENABLED=true uv run --frozen pytest -q --tb=short
 
 test: check
 	cd frontend && npm test
@@ -31,5 +32,5 @@ release: check
 
 install-hooks:
 	mkdir -p .git/hooks
-	printf '#!/bin/sh\nBRANCH=$$(git rev-parse --abbrev-ref HEAD)\n\nif [ "$$BRANCH" != "main" ]; then\n    exit 0\nfi\n\necho "Running pre-commit checks on main branch..."\nmake check || {\n    echo "Pre-commit check failed! Fix errors before committing to main."\n    exit 1\n}\n' > .git/hooks/pre-commit
+	printf '#!/bin/sh\nBRANCH=$$(git rev-parse --abbrev-ref HEAD)\n\nif [ "$$BRANCH" != "main" ]; then\n    exit 0\nfi\n\necho "Running pre-commit checks on main branch..."\nmake check || {\n    echo "Pre-commit check failed! Fix errors before committing to main."\n    exit 1\n}\n\nif [ -f backend/uv.lock ]; then\n    git add backend/uv.lock 2>/dev/null\nfi\n' > .git/hooks/pre-commit
 	chmod +x .git/hooks/pre-commit

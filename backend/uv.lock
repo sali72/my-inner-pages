@@ -1215,7 +1215,7 @@ wheels = [
 
 [[package]]
 name = "my-inner-pages"
-version = "0.4.1a0"
+version = "0.4.2a0"
 source = { editable = "." }
 dependencies = [
     { name = "bcrypt" },
