@@ -2,15 +2,23 @@ from typing import List
 from pydantic import BaseModel
 
 
-class SummaryStats(BaseModel):
+class LifetimeStats(BaseModel):
     total_users: int
-    total_users_prev_period: int
+    total_journals: int
+    total_chats: int
+    verified_users: int
+
+
+class SummaryStats(BaseModel):
+    lifetime: LifetimeStats
+    signups_current_period: int
+    signups_prev_period: int
     active_users_period: int
     active_users_prev_period: int
-    total_journals: int
-    total_journals_prev_period: int
-    total_chats: int
-    total_chats_prev_period: int
+    journals_current_period: int
+    journals_prev_period: int
+    chats_current_period: int
+    chats_prev_period: int
 
 
 class DailySignup(BaseModel):

@@ -7,15 +7,23 @@ import { EngagementSection } from './EngagementSection';
 
 type PeriodType = '7d' | '14d' | '30d' | '90d';
 
-interface SummaryData {
+interface LifetimeStats {
   total_users: number;
-  total_users_prev_period: number;
+  total_journals: number;
+  total_chats: number;
+  verified_users: number;
+}
+
+interface SummaryData {
+  lifetime: LifetimeStats;
+  signups_current_period: number;
+  signups_prev_period: number;
   active_users_period: number;
   active_users_prev_period: number;
-  total_journals: number;
-  total_journals_prev_period: number;
-  total_chats: number;
-  total_chats_prev_period: number;
+  journals_current_period: number;
+  journals_prev_period: number;
+  chats_current_period: number;
+  chats_prev_period: number;
 }
 
 interface DailySignup {
@@ -129,18 +137,18 @@ export const OverviewTab: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* At a glance cards */}
+          {/* Summary section (Lifetime + Period Velocity Cards) */}
           <SummaryCards data={stats.summary} periodDays={stats.period_days} />
 
           {/* Acquisition Section */}
           <AcquisitionSection
             data={stats.acquisition}
-            totalUsers={stats.summary.total_users}
+            totalUsers={stats.summary.lifetime.total_users}
             periodDays={stats.period_days}
           />
 
           {/* Engagement Section */}
-          <EngagementSection data={stats.engagement} totalUsers={stats.summary.total_users} />
+          <EngagementSection data={stats.engagement} totalUsers={stats.summary.lifetime.total_users} />
         </div>
       )}
     </div>

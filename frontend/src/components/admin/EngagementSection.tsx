@@ -26,10 +26,15 @@ export const EngagementSection: React.FC<EngagementSectionProps> = ({ data, tota
   return (
     <div className="card p-6 border-default bg-surface space-y-6">
       <div className="flex items-center justify-between border-b border-default pb-3">
-        <h2 className="text-lg font-serif font-bold text-primary flex items-center gap-2">
-          <Repeat className="w-5 h-5 text-accent" />
-          Engagement & Retention Metrics
-        </h2>
+        <div>
+          <h2 className="text-lg font-serif font-bold text-primary flex items-center gap-2">
+            <Repeat className="w-5 h-5 text-accent" />
+            Engagement & Retention Metrics
+          </h2>
+          <p className="text-xs text-muted mt-0.5">
+            Standard rolling 30-day benchmarks & user retention health.
+          </p>
+        </div>
         <div className="flex gap-4 text-xs">
           <span className="text-secondary">
             WAU (7d): <strong className="text-primary">{data.wau}</strong>
@@ -44,7 +49,7 @@ export const EngagementSection: React.FC<EngagementSectionProps> = ({ data, tota
         {/* Ratios & Stickiness */}
         <div className="space-y-4">
           <ProgressBar
-            label="Product Stickiness (DAU / MAU)"
+            label="Product Stickiness (DAU 24h / MAU 30d)"
             percentage={stickinessPercent}
             valueLabel={`${data.stickiness.toFixed(2)} (${stickinessPercent}%)`}
             barColor="bg-indigo-500"
@@ -76,7 +81,7 @@ export const EngagementSection: React.FC<EngagementSectionProps> = ({ data, tota
               <span className="text-2xl font-bold font-serif text-primary">
                 {data.avg_entries_per_active_user}
               </span>
-              <span className="text-[10px] text-muted block mt-0.5">entries per MAU</span>
+              <span className="text-[10px] text-muted block mt-0.5">entries per active user in period</span>
             </div>
           </div>
 

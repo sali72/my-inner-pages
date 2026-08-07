@@ -7,6 +7,7 @@ from app.admin.api.schemas import (
     AdminStatsResponse,
     DailySignup,
     EngagementStats,
+    LifetimeStats,
     SummaryStats,
 )
 from app.auth.db.models import User
@@ -39,15 +40,17 @@ class AdminStatsFacade:
         # Execute independent queries concurrently via asyncio.gather
         (
             total_users,
-            total_users_prev_period,
+            signups_current_period,
+            signups_prev_period,
             active_users_period,
             active_users_prev_period,
             total_journals,
-            total_journals_prev_period,
+            journals_current_period,
+            journals_prev_period,
             total_chats,
-            total_chats_prev_period,
+            chats_current_period,
+            chats_prev_period,
             signups_today,
-            signups_period,
             google_oauth_count,
             email_password_count,
             verified_count,
@@ -60,18 +63,29 @@ class AdminStatsFacade:
             avg_journal_length,
         ) = await asyncio.gather(
             User.find().count(),
-            User.find(User.created_at <= current_period_start).count(),
+            User.find(User.created_at >= current_period_start).count(),
+            User.find(
+                User.created_at >= prev_period_start,
+                User.created_at < current_period_start,
+            ).count(),
             User.find(User.last_login >= current_period_start).count(),
             User.find(
                 User.last_login >= prev_period_start,
                 User.last_login < current_period_start,
             ).count(),
             Journal.find().count(),
-            Journal.find(Journal.created_at <= current_period_start).count(),
+            Journal.find(Journal.created_at >= current_period_start).count(),
+            Journal.find(
+                Journal.created_at >= prev_period_start,
+                Journal.created_at < current_period_start,
+            ).count(),
             Chat.find().count(),
-            Chat.find(Chat.created_at <= current_period_start).count(),
+            Chat.find(Chat.created_at >= current_period_start).count(),
+            Chat.find(
+                Chat.created_at >= prev_period_start,
+                Chat.created_at < current_period_start,
+            ).count(),
             User.find(User.created_at >= today_start).count(),
-            User.find(User.created_at >= current_period_start).count(),
             User.find(User.google_id != None).count(),  # noqa: E711
             User.find(User.google_id == None).count(),  # noqa: E711
             User.find(User.is_verified == True).count(),  # noqa: E712
@@ -88,23 +102,34 @@ class AdminStatsFacade:
         stickiness = round(dau / mau, 2) if mau > 0 else 0.0
         return_rate = round(returning_users / total_users, 2) if total_users > 0 else 0.0
 
-        active_user_base = mau if mau > 0 else (total_users if total_users > 0 else 1)
-        avg_entries_per_active_user = round(total_journals / active_user_base, 1)
+        avg_entries_per_active_user = (
+            round(journals_current_period / active_users_period, 1)
+            if active_users_period > 0
+            else 0.0
+        )
+
+        lifetime = LifetimeStats(
+            total_users=total_users,
+            total_journals=total_journals,
+            total_chats=total_chats,
+            verified_users=verified_count,
+        )
 
         summary = SummaryStats(
-            total_users=total_users,
-            total_users_prev_period=total_users_prev_period,
+            lifetime=lifetime,
+            signups_current_period=signups_current_period,
+            signups_prev_period=signups_prev_period,
             active_users_period=active_users_period,
             active_users_prev_period=active_users_prev_period,
-            total_journals=total_journals,
-            total_journals_prev_period=total_journals_prev_period,
-            total_chats=total_chats,
-            total_chats_prev_period=total_chats_prev_period,
+            journals_current_period=journals_current_period,
+            journals_prev_period=journals_prev_period,
+            chats_current_period=chats_current_period,
+            chats_prev_period=chats_prev_period,
         )
 
         acquisition = AcquisitionStats(
             signups_today=signups_today,
-            signups_period=signups_period,
+            signups_period=signups_current_period,
             google_oauth_count=google_oauth_count,
             email_password_count=email_password_count,
             verified_count=verified_count,

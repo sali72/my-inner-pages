@@ -28,9 +28,17 @@ async def test_admin_can_access_stats_default(admin_client: AsyncClient):
     assert "acquisition" in data
     assert "engagement" in data
 
-    # Verify summary fields
-    assert "total_users" in data["summary"]
+    # Verify summary lifetime fields
+    assert "lifetime" in data["summary"]
+    assert "total_users" in data["summary"]["lifetime"]
+    assert "total_journals" in data["summary"]["lifetime"]
+    assert "total_chats" in data["summary"]["lifetime"]
+
+    # Verify summary period fields
+    assert "signups_current_period" in data["summary"]
     assert "active_users_period" in data["summary"]
+    assert "journals_current_period" in data["summary"]
+    assert "chats_current_period" in data["summary"]
 
     # Verify acquisition fields
     assert "signups_today" in data["acquisition"]
