@@ -13,31 +13,41 @@ from app.auth.db.models import User
 from app.chat.db.models import Chat
 from app.journals.db.models import Journal
 
+PERIOD_DAYS_MAP = {
+    "7d": 7,
+    "14d": 14,
+    "30d": 30,
+    "90d": 90,
+}
+
 
 class AdminStatsFacade:
-    """Facade for calculating operational analytics and metrics."""
+    """Facade for calculating operational analytics and metrics with dynamic periods."""
 
-    async def get_stats(self) -> AdminStatsResponse:
+    async def get_stats(self, period: str = "14d") -> AdminStatsResponse:
+        days = PERIOD_DAYS_MAP.get(period, 14)
         now = datetime.now(timezone.utc)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
         d24h_ago = now - timedelta(days=1)
         d7d_ago = now - timedelta(days=7)
-        d14d_ago = now - timedelta(days=14)
         d30d_ago = now - timedelta(days=30)
+
+        current_period_start = now - timedelta(days=days)
+        prev_period_start = now - timedelta(days=2 * days)
 
         # Execute independent queries concurrently via asyncio.gather
         (
             total_users,
-            total_users_prev_7d,
-            dau,
-            dau_prev_7d,
+            total_users_prev_period,
+            active_users_period,
+            active_users_prev_period,
             total_journals,
-            total_journals_prev_7d,
+            total_journals_prev_period,
             total_chats,
-            total_chats_prev_7d,
+            total_chats_prev_period,
             signups_today,
-            signups_7d,
-            signups_30d,
+            signups_period,
             google_oauth_count,
             email_password_count,
             verified_count,
@@ -50,21 +60,23 @@ class AdminStatsFacade:
             avg_journal_length,
         ) = await asyncio.gather(
             User.find().count(),
-            User.find(User.created_at <= d7d_ago).count(),
-            User.find(User.last_login >= d24h_ago).count(),
-            User.find(User.last_login >= d14d_ago, User.last_login < d7d_ago).count(),
+            User.find(User.created_at <= current_period_start).count(),
+            User.find(User.last_login >= current_period_start).count(),
+            User.find(
+                User.last_login >= prev_period_start,
+                User.last_login < current_period_start,
+            ).count(),
             Journal.find().count(),
-            Journal.find(Journal.created_at <= d7d_ago).count(),
+            Journal.find(Journal.created_at <= current_period_start).count(),
             Chat.find().count(),
-            Chat.find(Chat.created_at <= d7d_ago).count(),
+            Chat.find(Chat.created_at <= current_period_start).count(),
             User.find(User.created_at >= today_start).count(),
-            User.find(User.created_at >= d7d_ago).count(),
-            User.find(User.created_at >= d30d_ago).count(),
+            User.find(User.created_at >= current_period_start).count(),
             User.find(User.google_id != None).count(),  # noqa: E711
             User.find(User.google_id == None).count(),  # noqa: E711
             User.find(User.is_verified == True).count(),  # noqa: E712
             User.find(User.is_verified == False, User.created_at <= d24h_ago).count(),  # noqa: E712
-            self._get_daily_signups(d14d_ago, now),
+            self._get_daily_signups(days, current_period_start, now),
             User.find(User.last_login >= d7d_ago).count(),
             User.find(User.last_login >= d30d_ago).count(),
             User.find(User.login_count > 1).count(),
@@ -72,28 +84,27 @@ class AdminStatsFacade:
             self._get_avg_journal_length(),
         )
 
-        # Derived calculations
+        dau = await User.find(User.last_login >= d24h_ago).count()
         stickiness = round(dau / mau, 2) if mau > 0 else 0.0
         return_rate = round(returning_users / total_users, 2) if total_users > 0 else 0.0
-        
+
         active_user_base = mau if mau > 0 else (total_users if total_users > 0 else 1)
         avg_entries_per_active_user = round(total_journals / active_user_base, 1)
 
         summary = SummaryStats(
             total_users=total_users,
-            total_users_prev_7d=total_users_prev_7d,
-            dau=dau,
-            dau_prev_7d=dau_prev_7d,
+            total_users_prev_period=total_users_prev_period,
+            active_users_period=active_users_period,
+            active_users_prev_period=active_users_prev_period,
             total_journals=total_journals,
-            total_journals_prev_7d=total_journals_prev_7d,
+            total_journals_prev_period=total_journals_prev_period,
             total_chats=total_chats,
-            total_chats_prev_7d=total_chats_prev_7d,
+            total_chats_prev_period=total_chats_prev_period,
         )
 
         acquisition = AcquisitionStats(
             signups_today=signups_today,
-            signups_7d=signups_7d,
-            signups_30d=signups_30d,
+            signups_period=signups_period,
             google_oauth_count=google_oauth_count,
             email_password_count=email_password_count,
             verified_count=verified_count,
@@ -113,13 +124,17 @@ class AdminStatsFacade:
         )
 
         return AdminStatsResponse(
+            period=period,
+            period_days=days,
             summary=summary,
             acquisition=acquisition,
             engagement=engagement,
         )
 
-    async def _get_daily_signups(self, start_date: datetime, end_date: datetime) -> List[DailySignup]:
-        """Aggregate daily signups for the last 14 days and pad missing days."""
+    async def _get_daily_signups(
+        self, days: int, start_date: datetime, end_date: datetime
+    ) -> List[DailySignup]:
+        """Aggregate daily signups for the selected period and pad missing days."""
         collection = User.get_motor_collection()
         pipeline = [
             {"$match": {"created_at": {"$gte": start_date}}},
@@ -131,12 +146,11 @@ class AdminStatsFacade:
             },
             {"$sort": {"_id": 1}},
         ]
-        results = await collection.aggregate(pipeline).to_list(length=100)
+        results = await collection.aggregate(pipeline).to_list(length=200)
         counts_by_date = {r["_id"]: r["count"] for r in results}
 
-        # Build 14-day continuous range
         daily_list: List[DailySignup] = []
-        for i in range(14):
+        for i in range(days):
             day_dt = start_date + timedelta(days=i)
             day_str = day_dt.strftime("%Y-%m-%d")
             daily_list.append(DailySignup(date=day_str, count=counts_by_date.get(day_str, 0)))

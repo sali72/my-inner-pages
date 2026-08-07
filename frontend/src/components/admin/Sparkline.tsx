@@ -7,6 +7,7 @@ interface DailyData {
 
 interface SparklineProps {
   data: DailyData[];
+  periodDays?: number;
   height?: number;
 }
 
@@ -14,15 +15,15 @@ export const Sparkline: React.FC<SparklineProps> = ({ data, height = 64 }) => {
   if (!data || data.length === 0) return null;
 
   const maxCount = Math.max(...data.map(d => d.count), 1);
-  const barWidth = 14;
-  const gap = 8;
+  const barWidth = data.length > 30 ? 6 : data.length > 14 ? 10 : 14;
+  const gap = data.length > 30 ? 3 : data.length > 14 ? 5 : 8;
   const totalWidth = data.length * (barWidth + gap) - gap;
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between text-xs text-secondary">
         <span className="font-semibold uppercase tracking-wider text-[10px]">
-          Signups (Last 14 Days)
+          Signups (Last {data.length} Days)
         </span>
         <span className="font-mono text-muted">
           {data[0]?.date} — {data[data.length - 1]?.date}
@@ -43,7 +44,7 @@ export const Sparkline: React.FC<SparklineProps> = ({ data, height = 64 }) => {
                   y={y}
                   width={barWidth}
                   height={barHeight}
-                  rx={2}
+                  rx={data.length > 30 ? 1 : 2}
                   className={`${
                     d.count > 0 ? 'fill-accent hover:fill-accent-hover' : 'fill-muted/20'
                   } transition-colors`}

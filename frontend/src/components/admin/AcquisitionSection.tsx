@@ -5,8 +5,7 @@ import { ProgressBar } from './ProgressBar';
 
 interface AcquisitionData {
   signups_today: number;
-  signups_7d: number;
-  signups_30d: number;
+  signups_period: number;
   google_oauth_count: number;
   email_password_count: number;
   verified_count: number;
@@ -17,9 +16,14 @@ interface AcquisitionData {
 interface AcquisitionSectionProps {
   data: AcquisitionData;
   totalUsers: number;
+  periodDays: number;
 }
 
-export const AcquisitionSection: React.FC<AcquisitionSectionProps> = ({ data, totalUsers }) => {
+export const AcquisitionSection: React.FC<AcquisitionSectionProps> = ({
+  data,
+  totalUsers,
+  periodDays,
+}) => {
   const verifiedPercent = totalUsers > 0 ? Math.round((data.verified_count / totalUsers) * 100) : 0;
   const googlePercent = totalUsers > 0 ? Math.round((data.google_oauth_count / totalUsers) * 100) : 0;
   const emailPercent = totalUsers > 0 ? Math.round((data.email_password_count / totalUsers) * 100) : 0;
@@ -36,16 +40,13 @@ export const AcquisitionSection: React.FC<AcquisitionSectionProps> = ({ data, to
             Today: <strong className="text-primary">{data.signups_today}</strong>
           </span>
           <span className="text-secondary">
-            7 Days: <strong className="text-primary">{data.signups_7d}</strong>
-          </span>
-          <span className="text-secondary">
-            30 Days: <strong className="text-primary">{data.signups_30d}</strong>
+            Selected Period ({periodDays}d): <strong className="text-primary">{data.signups_period}</strong>
           </span>
         </div>
       </div>
 
       {/* Sparkline chart */}
-      <Sparkline data={data.daily_signups} />
+      <Sparkline data={data.daily_signups} periodDays={periodDays} />
 
       {/* Ratios & Status breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">

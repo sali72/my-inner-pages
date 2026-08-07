@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Calendar } from 'lucide-react';
 import { api } from '@/utils/api';
 import { SummaryCards } from './SummaryCards';
 import { AcquisitionSection } from './AcquisitionSection';
 import { EngagementSection } from './EngagementSection';
 
+type PeriodType = '7d' | '14d' | '30d' | '90d';
+
 interface SummaryData {
   total_users: number;
-  total_users_prev_7d: number;
-  dau: number;
-  dau_prev_7d: number;
+  total_users_prev_period: number;
+  active_users_period: number;
+  active_users_prev_period: number;
   total_journals: number;
-  total_journals_prev_7d: number;
+  total_journals_prev_period: number;
   total_chats: number;
-  total_chats_prev_7d: number;
+  total_chats_prev_period: number;
 }
 
 interface DailySignup {
@@ -23,8 +25,7 @@ interface DailySignup {
 
 interface AcquisitionData {
   signups_today: number;
-  signups_7d: number;
-  signups_30d: number;
+  signups_period: number;
   google_oauth_count: number;
   email_password_count: number;
   verified_count: number;
@@ -44,21 +45,24 @@ interface EngagementData {
 }
 
 interface AdminStatsResponse {
+  period: PeriodType;
+  period_days: number;
   summary: SummaryData;
   acquisition: AcquisitionData;
   engagement: EngagementData;
 }
 
 export const OverviewTab: React.FC = () => {
+  const [period, setPeriod] = useState<PeriodType>('14d');
   const [stats, setStats] = useState<AdminStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStats = async () => {
+  const fetchStats = async (selectedPeriod: PeriodType) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.get<AdminStatsResponse>('/admin/stats');
+      const data = await api.get<AdminStatsResponse>(`/admin/stats?period=${selectedPeriod}`);
       setStats(data);
     } catch (err) {
       console.error('Failed to fetch admin stats:', err);
@@ -69,47 +73,76 @@ export const OverviewTab: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchStats();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin text-accent mx-auto mb-3" />
-          <p className="text-secondary text-sm">Loading platform analytics...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !stats) {
-    return (
-      <div className="p-6 rounded-lg bg-red-50/50 dark:bg-red-950/20 border border-red-200 text-red-700 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5" />
-          <span>{error || 'No data available.'}</span>
-        </div>
-        <button
-          onClick={fetchStats}
-          className="px-3 py-1.5 bg-surface text-primary border border-default rounded-md text-xs hover:bg-hover"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
+    fetchStats(period);
+  }, [period]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* At a glance cards */}
-      <SummaryCards data={stats.summary} />
+      {/* Header and Period Selector */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-default pb-4">
+        <div>
+          <h1 className="text-2xl font-serif font-bold text-primary">Operational Overview</h1>
+          <p className="text-xs text-secondary mt-0.5">
+            Real-time analytics, user growth, and platform activity metrics.
+          </p>
+        </div>
 
-      {/* Acquisition Section */}
-      <AcquisitionSection data={stats.acquisition} totalUsers={stats.summary.total_users} />
+        <div className="flex items-center gap-2 bg-base p-1 rounded-lg border border-default">
+          <Calendar className="w-4 h-4 text-accent ml-2" />
+          <div className="flex gap-1">
+            {(['7d', '14d', '30d', '90d'] as PeriodType[]).map(p => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                  period === p
+                    ? 'bg-surface text-primary shadow-sm border border-default'
+                    : 'text-secondary hover:text-primary'
+                }`}
+              >
+                {p === '7d' ? '7 Days' : p === '14d' ? '14 Days' : p === '30d' ? '30 Days' : '90 Days'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
-      {/* Engagement Section */}
-      <EngagementSection data={stats.engagement} totalUsers={stats.summary.total_users} />
+      {loading && !stats ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <RefreshCw className="w-8 h-8 animate-spin text-accent mx-auto mb-3" />
+            <p className="text-secondary text-sm">Loading platform analytics...</p>
+          </div>
+        </div>
+      ) : error || !stats ? (
+        <div className="p-6 rounded-lg bg-red-50/50 dark:bg-red-950/20 border border-red-200 text-red-700 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" />
+            <span>{error || 'No data available.'}</span>
+          </div>
+          <button
+            onClick={() => fetchStats(period)}
+            className="px-3 py-1.5 bg-surface text-primary border border-default rounded-md text-xs hover:bg-hover"
+          >
+            Retry
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* At a glance cards */}
+          <SummaryCards data={stats.summary} periodDays={stats.period_days} />
+
+          {/* Acquisition Section */}
+          <AcquisitionSection
+            data={stats.acquisition}
+            totalUsers={stats.summary.total_users}
+            periodDays={stats.period_days}
+          />
+
+          {/* Engagement Section */}
+          <EngagementSection data={stats.engagement} totalUsers={stats.summary.total_users} />
+        </div>
+      )}
     </div>
   );
 };

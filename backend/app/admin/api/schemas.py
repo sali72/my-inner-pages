@@ -4,13 +4,13 @@ from pydantic import BaseModel
 
 class SummaryStats(BaseModel):
     total_users: int
-    total_users_prev_7d: int
-    dau: int
-    dau_prev_7d: int
+    total_users_prev_period: int
+    active_users_period: int
+    active_users_prev_period: int
     total_journals: int
-    total_journals_prev_7d: int
+    total_journals_prev_period: int
     total_chats: int
-    total_chats_prev_7d: int
+    total_chats_prev_period: int
 
 
 class DailySignup(BaseModel):
@@ -20,8 +20,7 @@ class DailySignup(BaseModel):
 
 class AcquisitionStats(BaseModel):
     signups_today: int
-    signups_7d: int
-    signups_30d: int
+    signups_period: int
     google_oauth_count: int
     email_password_count: int
     verified_count: int
@@ -41,6 +40,8 @@ class EngagementStats(BaseModel):
 
 
 class AdminStatsResponse(BaseModel):
+    period: str
+    period_days: int
     summary: SummaryStats
     acquisition: AcquisitionStats
     engagement: EngagementStats
