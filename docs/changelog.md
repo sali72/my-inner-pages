@@ -9,11 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.4.1-alpha] - 2026-08-07
+
+### Added
+- **Admin Monitoring & Analytics Dashboard**: Added Overview tab with dynamic time period filtering (7d, 14d, 30d, 90d), lifetime scale cards, period velocity metrics, pure SVG signup sparkline, acquisition channels, email verification status, and retention/stickiness benchmarks.
+- **FastAPI Stats Endpoint**: Added `GET /api/v0/admin/stats` with parallel MongoDB queries via `asyncio.gather()` in a dedicated `app/admin/` domain module.
+- **Frontend Code Splitting**: Lazy-loaded `AdminView.tsx` with `React.lazy()` + `Suspense` to isolate admin bundle (~35kB) from regular users.
+- **Admin Stats Test Suite**: Added E2E tests covering default/custom period filtering and role authorization in `backend/tests/E2E/admin/test_admin_stats.py`.
+
 ### Changed
-- **Unified Monorepo Migration**:
-  - Consolidated `backend` and `frontend` submodules into a single unified monorepo repository using `git subtree`, preserving 100% of historical commits, dates, and author logs.
-  - Simplified local developer workflow and atomic feature commits across frontend and backend.
-  - Cleaned up CI/CD workflows by removing submodule recursive checkout overhead.
+- **Unified Monorepo Migration**: Consolidated `backend` and `frontend` submodules into a single unified monorepo repository using `git subtree`, preserving 100% of historical commits, dates, and author logs. Simplified local workflow and CI/CD pipelines.
 
 ## [v0.4.0-alpha] - 2026-07-27
 
