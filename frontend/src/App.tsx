@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { ViewType, JournalEntry, isValidView } from '@/types';
 import { useAuth } from './contexts/AuthContext';
 import { useJournalEntries } from '@hooks/useJournalEntries';
@@ -11,7 +11,7 @@ import { MirrorView } from '@components/mirror';
 import { MirrorReflection, MirrorMode } from '@/types/mirror';
 import { ChatView } from '@components/chat';
 import { SettingsView } from '@components/settings';
-import { AdminView } from '@components/admin';
+const AdminView = lazy(() => import('@components/admin/AdminView').then(m => ({ default: m.AdminView })));
 import { FullSurvey, ShortSurvey } from '@components/feedback';
 import { Toaster } from 'sonner';
 import { useRouter } from '@hooks/useRouter';
@@ -270,7 +270,13 @@ const AppInner: React.FC = () => {
 
         {activeView === 'admin' && (
           user?.role === 'admin' ? (
-            <AdminView />
+            <Suspense fallback={
+              <div className="flex items-center justify-center min-h-[600px] text-secondary">
+                Loading admin panel...
+              </div>
+            }>
+              <AdminView />
+            </Suspense>
           ) : (
             <div className="flex flex-col items-center justify-center min-h-[600px] gap-4">
               <p className="text-red-500 font-bold text-xl">Access Denied</p>
