@@ -72,7 +72,7 @@ Single instance via `docker compose up -d mongodb --no-build` (network: `my-inne
 
 ## Error monitoring (Sentry)
 - **Frontend + Backend** both instrumented with Sentry for error tracking and performance monitoring
-- **Frontend**: DSN via `VITE_SENTRY_DSN`, captures network errors, 5xx responses, consecutive failures, WebSocket drops, and backend health transitions via `useBackendHealth` hook
+- **Frontend**: DSN via `VITE_SENTRY_DSN`, captures network errors, 5xx responses and consecutive failures (`utils/api.ts`), and backend health transitions (`useBackendHealth`)
 - **Backend**: DSN via `SENTRY_DSN`, captures unhandled exceptions, MongoDB connection failures, slow requests (>5s), and tags all events with `container_id` for blue/green debugging
 - Development: sentry-sdk is a no-op when DSN is unset — safe for local dev without config
 - See `backend/AGENTS.md` and `frontend/AGENTS.md` for details
