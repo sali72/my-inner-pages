@@ -14,7 +14,9 @@ function mapEntry(item: z.infer<typeof journalResponseSchema>): JournalEntry {
   return {
     id: item.id,
     title: item.title,
-    content: item.content,
+    content_json: item.content_json as any,
+    content_text: item.content_text,
+    content: item.content_text || '',
     tags: item.tags,
     date: new Date(item.created_at).toLocaleString('en-US', {
       year: 'numeric',
@@ -51,7 +53,16 @@ export const useJournalEntries = () => {
 
   const createMutation = useMutation({
     mutationFn: (entry: Omit<JournalEntry, 'id'>) =>
-      api.post('/journals', { title: entry.title, content: entry.content, tags: entry.tags, created_at: entry.created_at }, journalResponseSchema),
+      api.post(
+        '/journals',
+        {
+          title: entry.title,
+          content_json: entry.content_json || { type: 'doc', content: entry.content ? [{ type: 'paragraph', content: [{ type: 'text', text: entry.content }] }] : [] },
+          tags: entry.tags,
+          created_at: entry.created_at,
+        },
+        journalResponseSchema
+      ),
     onMutate: async (_newEntry) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previousData = queryClient.getQueryData<typeof query.data>(QUERY_KEY);
@@ -68,8 +79,13 @@ export const useJournalEntries = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, title, content, tags, created_at }: Partial<JournalEntry> & { id: number | string }) =>
-      api.put(`/journals/${id}`, { title, content, tags, created_at }),
+    mutationFn: ({ id, title, content_json, content, tags, created_at }: Partial<JournalEntry> & { id: number | string }) =>
+      api.put(`/journals/${id}`, {
+        title,
+        content_json: content_json || (content ? { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: content }] }] } : undefined),
+        tags,
+        created_at,
+      }),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {});
     },

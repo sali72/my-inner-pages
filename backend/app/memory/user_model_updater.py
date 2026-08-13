@@ -118,7 +118,7 @@ class UserModelUpdater:
             user_id=user_id,
             limit=10000,
         )
-        return sum(len((j.content or "").split()) for j in journals)
+        return sum(len((j.content_text or "").split()) for j in journals)
 
     def _format_journals_for_prompt(self, journals: list[Journal]) -> str:
         parts = []
@@ -127,7 +127,7 @@ class UserModelUpdater:
             parts.append(
                 f"[{date_str}] {j.title}\n"
                 f"Tags: {', '.join(j.tags) if j.tags else 'none'}\n"
-                f"{j.content}\n"
+                f"{j.content_text}\n"
             )
         return "\n---\n".join(parts)
 

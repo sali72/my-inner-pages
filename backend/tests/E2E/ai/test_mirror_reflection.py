@@ -10,6 +10,7 @@ from httpx import AsyncClient, ASGITransport
 
 from app.ai.api.config import MirrorRoutes
 from tests.config import MIRROR_PREFIX
+from tests.conftest import make_tiptap_json
 
 
 @pytest.mark.asyncio
@@ -64,17 +65,17 @@ async def test_get_reflection_with_journals(authenticated_client: AsyncClient, t
     journals = [
         {
             "title": "Great Day",
-            "content": "Today was wonderful! I felt happy and accomplished.",
+            "content_json": make_tiptap_json("Today was wonderful! I felt happy and accomplished."),
             "tags": ["positive", "growth"]
         },
         {
             "title": "Reflection Time",
-            "content": "I'm learning to understand my emotions better and respond thoughtfully.",
+            "content_json": make_tiptap_json("I'm learning to understand my emotions better and respond thoughtfully."),
             "tags": ["reflection"]
         },
         {
             "title": "Progress",
-            "content": "I'm making progress on my goals. Small steps each day.",
+            "content_json": make_tiptap_json("I'm making progress on my goals. Small steps each day."),
             "tags": ["goals", "progress"]
         }
     ]
@@ -145,7 +146,7 @@ async def test_get_reflection_cognitive_mode(authenticated_client: AsyncClient, 
         f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
         json={
             "title": "Thinking Patterns",
-            "content": "I notice I often assume the worst. Maybe I should question these thoughts.",
+            "content_json": make_tiptap_json("I notice I often assume the worst. Maybe I should question these thoughts."),
             "tags": ["cognitive"]
         }
     )
@@ -184,7 +185,7 @@ async def test_get_reflection_behavioral_mode(authenticated_client: AsyncClient,
         f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
         json={
             "title": "Daily Habits",
-            "content": "I've been exercising every morning. It's becoming a habit.",
+            "content_json": make_tiptap_json("I've been exercising every morning. It's becoming a habit."),
             "tags": ["habits", "action"]
         }
     )
@@ -223,7 +224,7 @@ async def test_get_reflection_relational_mode(authenticated_client: AsyncClient,
         f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
         json={
             "title": "Connections",
-            "content": "Had a great conversation with a friend today. Our connection deepened.",
+            "content_json": make_tiptap_json("Had a great conversation with a friend today. Our connection deepened."),
             "tags": ["relationships", "friendship"]
         }
     )
@@ -301,7 +302,7 @@ async def test_reflection_consistency_across_modes(authenticated_client: AsyncCl
         f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
         json={
             "title": "Multi-faceted Day",
-            "content": "Today I experienced many things - emotions, thoughts, actions, and connections.",
+            "content_json": make_tiptap_json("Today I experienced many things - emotions, thoughts, actions, and connections."),
             "tags": ["comprehensive"]
         }
     )

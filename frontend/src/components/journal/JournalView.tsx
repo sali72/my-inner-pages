@@ -18,7 +18,7 @@ interface JournalViewProps {
   onLoadMore: () => void;
   onUpdateEntry: (id: number | string, updates: Partial<JournalEntry>) => Promise<void>;
   onDeleteEntry: (id: number | string) => void;
-  onSaveNewEntry: (title: string, content: string, tags: string[], created_at?: string) => Promise<number | string>;
+  onSaveNewEntry: (title: string, content: string, tags: string[], created_at?: string, content_json?: any) => Promise<number | string>;
   onStartChat: (entry: JournalEntry) => void;
   selectedEntryId: number | string | null;
   onSelectEntry: (id: number | string | null, action?: 'push' | 'replace') => void;
@@ -240,14 +240,15 @@ export const JournalView: React.FC<JournalViewProps> = ({
     onSelectEntry(null);
   }, [onSelectEntry]);
 
-  const handleCreateEntry = useCallback(async (title: string, content: string, tags: string[], created_at?: string) => {
+  const handleCreateEntry = useCallback(async (title: string, content: string, tags: string[], created_at?: string, content_json?: any) => {
     try {
-      const id = await onSaveNewEntry(title, content, tags, created_at);
+      const id = await onSaveNewEntry(title, content, tags, created_at, content_json);
       if (navigatedAwayRef.current) return id;
       localEntryRef.current!.set(id, {
         id,
         title,
         content,
+        content_json,
         tags,
         date: created_at
           ? new Date(created_at).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
@@ -264,6 +265,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
         id: tempId,
         title,
         content,
+        content_json,
         tags,
         date: created_at
           ? new Date(created_at).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })

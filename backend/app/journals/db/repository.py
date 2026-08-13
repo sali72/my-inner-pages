@@ -1,7 +1,7 @@
 import json
 import base64
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Dict, Any
 from bson import ObjectId
 from beanie import PydanticObjectId
 from beanie.operators import In, Set
@@ -23,8 +23,9 @@ class JournalRepository:
     async def create(
         self,
         user_id: str,
-        title: str,
-        content: str,
+        title: Optional[str],
+        content_json: Dict[str, Any],
+        content_text: str = "",
         tags: Optional[list[str]] = None,
         rumination_index: Optional[float] = None,
         created_at: Optional[datetime] = None,
@@ -33,7 +34,8 @@ class JournalRepository:
             journal = Journal(
                 user_id=user_id,
                 title=title,
-                content=content,
+                content_json=content_json,
+                content_text=content_text,
                 tags=tags or [],
                 rumination_index=rumination_index,
             )
@@ -142,7 +144,8 @@ class JournalRepository:
         journal_id: PydanticObjectId,
         user_id: str,
         title: Optional[str] = None,
-        content: Optional[str] = None,
+        content_json: Optional[Dict[str, Any]] = None,
+        content_text: Optional[str] = None,
         tags: Optional[list[str]] = None,
         rumination_index: Optional[float] = None,
         created_at: Optional[datetime] = None,
@@ -156,8 +159,10 @@ class JournalRepository:
 
             if title is not None:
                 update_data["title"] = title
-            if content is not None:
-                update_data["content"] = content
+            if content_json is not None:
+                update_data["content_json"] = content_json
+            if content_text is not None:
+                update_data["content_text"] = content_text
             if tags is not None:
                 update_data["tags"] = tags
             if rumination_index is not None:

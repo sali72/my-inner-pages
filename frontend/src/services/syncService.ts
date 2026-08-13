@@ -26,7 +26,7 @@ export async function syncUnsyncedEntries(
       if (id.toString().startsWith('draft-')) {
         const created = await api.post('/journals', {
           title: entry.title,
-          content: entry.content,
+          content_json: entry.content_json || { type: 'doc', content: entry.content ? [{ type: 'paragraph', content: [{ type: 'text', text: entry.content }] }] : [] },
           tags: entry.tags,
           created_at: entry.created_at,
         }, journalResponseSchema);
@@ -39,7 +39,7 @@ export async function syncUnsyncedEntries(
       } else {
         await api.put(`/journals/${id}`, {
           title: entry.title,
-          content: entry.content,
+          content_json: entry.content_json || { type: 'doc', content: entry.content ? [{ type: 'paragraph', content: [{ type: 'text', text: entry.content }] }] : [] },
           tags: entry.tags,
           created_at: entry.created_at,
         });

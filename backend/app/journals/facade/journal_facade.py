@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 from beanie import PydanticObjectId
 
@@ -7,6 +7,7 @@ from app.journals.db.models import Journal
 from app.journals.db.repository import JournalRepository
 from app.journals.db.tag_repository import TagRepository
 from app.journals.config import JournalModuleConfig
+from app.journals.utils.tiptap_parser import extract_text_from_tiptap_json
 
 
 class JournalFacade:
@@ -29,22 +30,24 @@ class JournalFacade:
         self,
         user_id: str,
         title: Optional[str],
-        content: str,
+        content_json: Dict[str, Any],
         tags: Optional[list[str]] = None,
         created_at: Optional[datetime] = None,
     ) -> Journal:
         if title is not None:
             self._validate_title(title)
-        self._validate_content(content)
+
+        content_text = extract_text_from_tiptap_json(content_json)
+        self._validate_content(content_text)
 
         normalized_tags = self._normalize_tags(tags or [])
-
-        rumination_index = compute_rumination_index(content)
+        rumination_index = compute_rumination_index(content_text)
 
         journal = await self.repository.create(
             user_id=user_id,
             title=title.strip() if title else title,
-            content=content.strip(),
+            content_json=content_json,
+            content_text=content_text,
             tags=normalized_tags,
             rumination_index=rumination_index,
             created_at=created_at,
@@ -83,7 +86,7 @@ class JournalFacade:
         journal_id: str,
         user_id: str,
         title: Optional[str] = None,
-        content: Optional[str] = None,
+        content_json: Optional[Dict[str, Any]] = None,
         tags: Optional[list[str]] = None,
         created_at: Optional[datetime] = None,
     ) -> Optional[Journal]:
@@ -95,9 +98,13 @@ class JournalFacade:
             self._validate_title(title)
             title = title.strip()
 
-        if content is not None:
-            self._validate_content(content)
-            content = content.strip()
+        content_text: Optional[str] = None
+        rumination_index: Optional[float] = None
+
+        if content_json is not None:
+            content_text = extract_text_from_tiptap_json(content_json)
+            self._validate_content(content_text)
+            rumination_index = compute_rumination_index(content_text)
 
         old_tags: list[str] = []
         if tags is not None:
@@ -106,13 +113,12 @@ class JournalFacade:
             if existing:
                 old_tags = list(existing.tags)
 
-        rumination_index = compute_rumination_index(content or "") if content is not None else None
-
         journal = await self.repository.update(
             journal_id=obj_id,
             user_id=user_id,
             title=title,
-            content=content,
+            content_json=content_json,
+            content_text=content_text,
             tags=tags,
             rumination_index=rumination_index,
             created_at=created_at,

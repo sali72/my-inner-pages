@@ -1,9 +1,13 @@
+import type { JSONContent } from '@tiptap/core';
+
 export interface JournalEntry {
   id: number | string;
   date: string;
   title: string;
   tags: string[];
   content: string;
+  content_json?: JSONContent;
+  content_text?: string;
   mood?: string;
   isNew?: boolean;
   created_at?: string;

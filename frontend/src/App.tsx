@@ -134,7 +134,7 @@ const AppInner: React.FC = () => {
 
 
 
-  const handleSaveNewEntry = async (title: string, content: string, tags: string[], created_at?: string) => {
+  const handleSaveNewEntry = async (title: string, content: string, tags: string[], created_at?: string, content_json?: any) => {
     hasEditedEntry.current = true;
     sessionEntryCount.current += 1;
     const created = await addEntry({
@@ -144,6 +144,7 @@ const AppInner: React.FC = () => {
       title,
       tags,
       content,
+      content_json,
       created_at,
     });
     return created.id;

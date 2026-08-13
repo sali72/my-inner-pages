@@ -4,13 +4,14 @@ from httpx import AsyncClient
 from app.journals.db.models import Journal
 from app.journals.db.tag_model import Tag
 from tests.config import JOURNALS_PREFIX, TAGS_PREFIX
+from tests.conftest import make_tiptap_json
 
 
 @pytest.mark.asyncio
 async def test_delete_tag(authenticated_client: AsyncClient, test_user: dict):
     await authenticated_client.post(
         f"{JOURNALS_PREFIX}",
-        json={"title": "Entry", "content": "Content", "tags": ["personal", "growth"]},
+        json={"title": "Entry", "content_json": make_tiptap_json("Content"), "tags": ["personal", "growth"]},
     )
 
     response = await authenticated_client.delete(f"{TAGS_PREFIX}/personal")
@@ -29,7 +30,7 @@ async def test_delete_tag(authenticated_client: AsyncClient, test_user: dict):
 async def test_delete_tag_updates_usage_count(authenticated_client: AsyncClient, test_user: dict):
     await authenticated_client.post(
         f"{JOURNALS_PREFIX}",
-        json={"title": "Entry", "content": "Content", "tags": ["personal", "growth"]},
+        json={"title": "Entry", "content_json": make_tiptap_json("Content"), "tags": ["personal", "growth"]},
     )
 
     await authenticated_client.delete(f"{TAGS_PREFIX}/personal")
@@ -43,6 +44,3 @@ async def test_delete_tag_updates_usage_count(authenticated_client: AsyncClient,
 async def test_delete_nonexistent_tag(authenticated_client: AsyncClient, test_user: dict):
     response = await authenticated_client.delete(f"{TAGS_PREFIX}/nonexistent")
     assert response.status_code == 200
-
-
-

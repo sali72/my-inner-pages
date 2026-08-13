@@ -5,7 +5,8 @@ const isoDatetime = z.string();
 export const journalResponseSchema = z.object({
   id: z.string(),
   title: z.string(),
-  content: z.string(),
+  content_json: z.record(z.string(), z.unknown()).optional().default(() => ({ type: 'doc', content: [] })),
+  content_text: z.string().optional().default(''),
   tags: z.array(z.string()),
   rumination_index: z.number().nullable().optional(),
   created_at: isoDatetime,

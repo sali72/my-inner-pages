@@ -4,13 +4,14 @@ from httpx import AsyncClient
 from app.journals.db.models import Journal
 from app.journals.db.tag_model import Tag
 from tests.config import JOURNALS_PREFIX, TAGS_PREFIX
+from tests.conftest import make_tiptap_json
 
 
 @pytest.mark.asyncio
 async def test_rename_tag(authenticated_client: AsyncClient, test_user: dict):
     await authenticated_client.post(
         f"{JOURNALS_PREFIX}",
-        json={"title": "Entry", "content": "Content", "tags": ["personal", "growth"]},
+        json={"title": "Entry", "content_json": make_tiptap_json("Content"), "tags": ["personal", "growth"]},
     )
 
     response = await authenticated_client.put(
@@ -30,11 +31,11 @@ async def test_rename_tag(authenticated_client: AsyncClient, test_user: dict):
 async def test_rename_tag_merges_usage(authenticated_client: AsyncClient, test_user: dict):
     await authenticated_client.post(
         f"{JOURNALS_PREFIX}",
-        json={"title": "E1", "content": "C1", "tags": ["personal"]},
+        json={"title": "E1", "content_json": make_tiptap_json("C1"), "tags": ["personal"]},
     )
     await authenticated_client.post(
         f"{JOURNALS_PREFIX}",
-        json={"title": "E2", "content": "C2", "tags": ["private"]},
+        json={"title": "E2", "content_json": make_tiptap_json("C2"), "tags": ["private"]},
     )
 
     response = await authenticated_client.put(
@@ -64,7 +65,7 @@ async def test_rename_nonexistent_tag(authenticated_client: AsyncClient, test_us
 async def test_rename_tag_same_name(authenticated_client: AsyncClient, test_user: dict):
     await authenticated_client.post(
         f"{JOURNALS_PREFIX}",
-        json={"title": "Entry", "content": "Content", "tags": ["personal"]},
+        json={"title": "Entry", "content_json": make_tiptap_json("Content"), "tags": ["personal"]},
     )
 
     response = await authenticated_client.put(

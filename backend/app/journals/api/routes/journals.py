@@ -37,14 +37,14 @@ async def create_journal(
     Create a new journal entry for the authenticated user.
     
     - **title**: Journal title (optional, max 200 chars)
-    - **content**: Journal content (required, max 50000 chars)
+    - **content_json**: Journal Tiptap JSON document AST
     - **tags**: Optional list of tags for categorization
     """
     try:
         journal = await facade.create_journal(
             user_id=str(current_user.id),
             title=request.title,
-            content=request.content,
+            content_json=request.content_json,
             tags=request.tags,
             created_at=request.created_at,
         )
@@ -134,7 +134,7 @@ async def update_journal(
     
     - **journal_id**: MongoDB ObjectId of the journal
     - **title**: New title (optional)
-    - **content**: New content (optional)
+    - **content_json**: New Tiptap JSON document AST (optional)
     - **tags**: New tags (optional)
     """
     try:
@@ -142,7 +142,7 @@ async def update_journal(
             journal_id=journal_id,
             user_id=str(current_user.id),
             title=request.title,
-            content=request.content,
+            content_json=request.content_json,
             tags=request.tags,
             created_at=request.created_at,
         )

@@ -296,3 +296,17 @@ async def admin_client(client: AsyncClient, admin_user: dict) -> AsyncClient:
     """Create an authenticated HTTP client for an admin user."""
     client.cookies.set("access_token", admin_user["access_token"])
     return client
+
+
+def make_tiptap_json(text: str) -> dict:
+    """Helper to construct a standard Tiptap JSON AST for tests."""
+    return {
+        "type": "doc",
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": text}]
+            }
+        ]
+    }
+

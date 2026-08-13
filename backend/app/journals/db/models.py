@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Dict, Any
 import re
 from beanie import Document
 from pydantic import ConfigDict, Field, field_validator
@@ -10,7 +10,14 @@ class Journal(Document):
 
     user_id: str = Field(..., description="User ID who owns this journal")
     title: Optional[str] = Field(default=None, max_length=200)
-    content: str = Field(..., max_length=50000)
+    content_json: Dict[str, Any] = Field(
+        default_factory=lambda: {"type": "doc", "content": []},
+        description="Tiptap JSON AST document structure"
+    )
+    content_text: str = Field(
+        default="",
+        description="Auto-derived plain text content from content_json"
+    )
     tags: list[str] = Field(default_factory=list)
     rumination_index: Optional[float] = Field(
         default=None, ge=0.0, le=1.0,

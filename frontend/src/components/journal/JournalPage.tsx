@@ -25,7 +25,7 @@ interface JournalPageProps {
   tagColorMap?: Record<string, string | null>;
   onUpdate?: (updates: Partial<JournalEntry>) => void;
   onUpdateById?: (id: string | number, updates: Partial<JournalEntry>) => Promise<void>;
-  onCreate?: (title: string, content: string, tags: string[], created_at?: string) => Promise<number | string>;
+  onCreate?: (title: string, content: string, tags: string[], created_at?: string, content_json?: any) => Promise<number | string>;
   onDelete: () => void;
   onChat: () => void;
   onBack: () => void;
@@ -128,6 +128,8 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const tagInputRef = useRef<HTMLInputElement>(null);
   const entryIdRef = useRef<string | number | null>(isNew ? null : entry.id);
   const creationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const creationPromiseRef = useRef<Promise<any> | null>(null);
+  const isNavigatingBackRef = useRef(false);
 
   // Stable Yjs doc ID — captured once at mount so the persistence doesn't
   // switch databases when transitioning from 'new' to a real entry ID.
@@ -155,17 +157,13 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     }
   }, []);
 
-  // 2. Initialize Tiptap Editor with Collaboration Support
+  // 2. Initialize Tiptap Editor with Collaboration Support & Rich Text
+  const [contentJson, setContentJson] = useState<any>(entry.content_json);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: false,
-        bulletList: false,
-        orderedList: false,
-        blockquote: false,
-        code: false,
-        codeBlock: false,
-        horizontalRule: false,
+        heading: { levels: [1, 2, 3] },
       }),
       Collaboration.configure({
         document: ydoc,
@@ -177,11 +175,13 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     ],
     editorProps: {
       attributes: {
-        class: 'focus:outline-none min-h-[8rem] leading-relaxed text-body placeholder:text-muted/40',
+        class: 'focus:outline-none min-h-[8rem] leading-relaxed text-body placeholder:text-muted/40 prose dark:prose-invert max-w-none',
         style: 'unicode-bidi: plaintext;',
       },
     },
     onUpdate: ({ editor: ed }) => {
+      const json = ed.getJSON();
+      setContentJson(json);
       setContent(ed.getText());
       checkAutocomplete(ed);
     },
@@ -207,11 +207,15 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   useEffect(() => {
     if (editor && isLoaded) {
       const contentFragment = ydoc.getXmlFragment('content');
-      if (contentFragment.length === 0 && entry.content) {
-        editor.commands.setContent(entry.content);
+      if (contentFragment.length === 0) {
+        if (entry.content_json) {
+          editor.commands.setContent(entry.content_json);
+        } else if (entry.content) {
+          editor.commands.setContent(entry.content);
+        }
       }
     }
-  }, [editor, isLoaded, entry.content, ydoc]);
+  }, [editor, isLoaded, entry.content_json, entry.content, ydoc]);
 
   // Handle loaded IndexedDB Title
   useEffect(() => {
@@ -296,63 +300,114 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   };
 
   const save = useCallback(async () => {
-    const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
-
-    const draftCheckId = entryIdRef.current;
-    if (isNew && !isRealId(draftCheckId) && (title.trim() || content.trim() || allTags.length > 0)) {
-      // If we are offline and this is a draft, we delegate creation to handleCreateEntry fallback
-      if (draftCheckId && draftCheckId.toString().startsWith('draft-')) {
-        // Already mapped to offline draft, save updates locally
-        const updatedEntry: JournalEntry = {
-          id: draftCheckId,
-          title: title.trim(),
-          content: content.trim(),
-          tags: allTags,
-          created_at: isoDate,
-          date: entryDate || new Date().toLocaleString(),
-        };
-        saveUnsyncedEntry(updatedEntry);
-        setSaveStatus('unsynced');
-        return;
+    // If a creation request is currently in-flight, await it so we don't start duplicate requests
+    if (creationPromiseRef.current) {
+      try {
+        await creationPromiseRef.current;
+      } catch {
+        // creation failed; handled below
       }
+    }
+
+    const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
+    const currentJson = editor ? editor.getJSON() : contentJson;
+    const draftCheckId = entryIdRef.current;
+
+    // Case 1: Brand new entry, no creation in progress, and no ID assigned yet
+    if (isNew && (draftCheckId === null || draftCheckId === undefined)) {
+      const trimmedTitle = title.trim();
+      const trimmedContent = content.trim();
+      const hasContentToSave = trimmedTitle !== '' || trimmedContent !== '' || allTags.length > 0;
+      if (!hasContentToSave) return;
 
       entryIdRef.current = 'pending';
-      try {
-        const id = await onCreate!(title, content, allTags, isoDate);
-        entryIdRef.current = id;
-      } catch {
-        // Creation failed (likely offline). Trigger local-first draft creation fallback
-        const tempId = `draft-${Date.now()}`;
-        entryIdRef.current = tempId;
-        const updatedEntry: JournalEntry = {
-          id: tempId,
-          title: title.trim(),
-          content: content.trim(),
-          tags: allTags,
-          created_at: isoDate,
-          date: entryDate || new Date().toLocaleString(),
-        };
-        saveUnsyncedEntry(updatedEntry);
-        setSaveStatus('unsynced');
 
-        if (onUpdateById) {
-          await onUpdateById(tempId, updatedEntry);
+      creationPromiseRef.current = (async () => {
+        try {
+          const id = await onCreate!(trimmedTitle, trimmedContent, allTags, isoDate, currentJson);
+          entryIdRef.current = id;
+          return id;
+        } catch {
+          const tempId = `draft-${Date.now()}`;
+          entryIdRef.current = tempId;
+          const updatedEntry: JournalEntry = {
+            id: tempId,
+            title: trimmedTitle,
+            content: trimmedContent,
+            content_json: currentJson,
+            tags: allTags,
+            created_at: isoDate,
+            date: entryDate || new Date().toLocaleString(),
+          };
+          saveUnsyncedEntry(updatedEntry);
+          setSaveStatus('unsynced');
+
+          if (onUpdateById) {
+            await onUpdateById(tempId, updatedEntry);
+          }
+          return tempId;
+        } finally {
+          creationPromiseRef.current = null;
         }
-      }
+      })();
+
+      await creationPromiseRef.current;
       return;
     }
 
+    // Case 2: Creation is currently pending in another execution thread/timer
+    if (draftCheckId === 'pending') {
+      return;
+    }
+
+    // Case 3: Offline draft ID (e.g. 'draft-123456')
+    if (draftCheckId && draftCheckId.toString().startsWith('draft-')) {
+      const updatedEntry: JournalEntry = {
+        id: draftCheckId,
+        title: title.trim(),
+        content: content.trim(),
+        content_json: currentJson,
+        tags: allTags,
+        created_at: isoDate,
+        date: entryDate || new Date().toLocaleString(),
+      };
+      saveUnsyncedEntry(updatedEntry);
+      setSaveStatus('unsynced');
+      return;
+    }
+
+    // Case 4: Real ID (assigned from backend) or existing entry
     const currentActiveId = isNew ? entryIdRef.current : entry.id;
-    if (isNew && isRealId(currentActiveId)) {
+    if (isRealId(currentActiveId)) {
       const realId = currentActiveId as string | number;
+      const trimmedTitle = title.trim();
+      const trimmedContent = content.trim();
+
       try {
-        await onUpdateById!(realId, { title: title.trim(), content: content.trim(), tags: allTags, created_at: isoDate });
+        if (onUpdateById) {
+          await onUpdateById(realId, {
+            title: trimmedTitle,
+            content_json: currentJson,
+            content: trimmedContent,
+            tags: allTags,
+            created_at: isoDate
+          });
+        } else if (onUpdate) {
+          await onUpdate({
+            title: trimmedTitle,
+            content_json: currentJson,
+            content: trimmedContent,
+            tags: allTags,
+            created_at: isoDate
+          });
+        }
         removeUnsyncedEntry(realId);
       } catch {
         const updatedEntry: JournalEntry = {
           id: realId,
-          title: title.trim(),
-          content: content.trim(),
+          title: trimmedTitle,
+          content: trimmedContent,
+          content_json: currentJson,
           tags: allTags,
           created_at: isoDate,
           date: entryDate || new Date().toLocaleString(),
@@ -362,37 +417,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       }
       return;
     }
-
-    if (isNew) return;
-
-    const trimmedTitle = title.trim();
-    const trimmedContent = content.trim();
-    const dateChanged = isoDate
-      ? !entry.created_at || Math.abs(new Date(isoDate).getTime() - new Date(entry.created_at).getTime()) > 1000
-      : false;
-    if (
-      trimmedTitle !== entry.title ||
-      trimmedContent !== entry.content ||
-      JSON.stringify(allTags) !== JSON.stringify(entry.tags) ||
-      dateChanged
-    ) {
-      try {
-        await onUpdate!({ title: trimmedTitle, content: trimmedContent, tags: allTags, created_at: isoDate });
-        removeUnsyncedEntry(entry.id);
-      } catch (error) {
-        const updatedEntry: JournalEntry = {
-          ...entry,
-          title: trimmedTitle,
-          content: trimmedContent,
-          tags: allTags,
-          created_at: isoDate || entry.created_at,
-          date: entryDate || entry.date,
-        };
-        saveUnsyncedEntry(updatedEntry);
-        setSaveStatus('unsynced');
-      }
-    }
-  }, [isNew, title, content, allTags, entryDate, entry, onCreate, onUpdate, onUpdateById]);
+  }, [isNew, title, content, contentJson, editor, allTags, entryDate, entry, onCreate, onUpdate, onUpdateById]);
 
   const handleRetry = useCallback(async () => {
     if (isNew && entryIdRef.current?.toString().startsWith('draft-')) {
@@ -408,6 +433,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
     const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
+    const currentJson = editor ? editor.getJSON() : contentJson;
     const dateChanged = !isNew && isoDate
       ? !entry.created_at || Math.abs(new Date(isoDate).getTime() - new Date(entry.created_at).getTime()) > 1000
       : false;
@@ -424,28 +450,30 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       id,
       title: trimmedTitle,
       content: trimmedContent,
+      content_json: currentJson,
       tags: allTags,
       created_at: isoDate || entry.created_at,
       date: entryDate || entry.date,
     });
-  }, [isNew, title, content, allTags, entryDate, entry]);
+  }, [isNew, title, content, contentJson, editor, allTags, entryDate, entry]);
 
+  // Unified autosave debounce effect
   useEffect(() => {
-    if (isNew) return;
-    const timer = setTimeout(() => save(), 1500);
-    return () => clearTimeout(timer);
-  }, [title, content, allTags, isNew, save]);
-
-  useEffect(() => {
-    if (!isNew || entryIdRef.current !== null) return;
-    if (title.trim() || content.trim() || allTags.length > 0) {
-      if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
-      creationTimerRef.current = setTimeout(() => save(), 600);
+    // If it's a new entry and creation hasn't started yet:
+    if (isNew && entryIdRef.current === null) {
+      if (title.trim() || content.trim() || allTags.length > 0) {
+        if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
+        creationTimerRef.current = setTimeout(() => save(), 600);
+      }
+      return () => {
+        if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
+      };
     }
-    return () => {
-      if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
-    };
-  }, [title, content, allTags, isNew, save]);
+
+    // For existing entries OR for new entries that have started creation:
+    const timer = setTimeout(() => save(), 1200);
+    return () => clearTimeout(timer);
+  }, [title, content, contentJson, allTags, isNew, save]);
 
   useEffect(() => {
     const handleBeforeUnload = () => { persistLocally(); };
@@ -481,8 +509,15 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   }, []);
 
   const handleBack = useCallback(async () => {
-    await save();
-    onBack();
+    if (isNavigatingBackRef.current) return;
+    isNavigatingBackRef.current = true;
+    try {
+      await save();
+    } catch (err) {
+      console.error("Save on back navigation failed:", err);
+    } finally {
+      onBack();
+    }
   }, [save, onBack]);
 
   const removeTag = (tag: string) => {

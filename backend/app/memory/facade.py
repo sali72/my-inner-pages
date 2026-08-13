@@ -59,7 +59,7 @@ class MemoryFacade:
             context_parts.append(
                 f"Entry {i} ({journal.created_at.strftime('%Y-%m-%d')}):\n"
                 f"Title: {journal.title}\n"
-                f"Content: {journal.content}\n"
+                f"Content: {journal.content_text}\n"
                 f"Tags: {', '.join(journal.tags) if journal.tags else 'None'}\n"
             )
 

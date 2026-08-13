@@ -2,6 +2,7 @@ import pytest
 from httpx import AsyncClient
 
 from tests.config import JOURNALS_PREFIX, TAGS_PREFIX
+from tests.conftest import make_tiptap_json
 
 
 @pytest.mark.asyncio
@@ -17,7 +18,7 @@ async def test_list_tags_empty(authenticated_client: AsyncClient, test_user: dic
 async def test_list_tags_with_data(authenticated_client: AsyncClient, test_user: dict):
     await authenticated_client.post(
         f"{JOURNALS_PREFIX}",
-        json={"title": "Entry", "content": "Content", "tags": ["personal", "growth"]},
+        json={"title": "Entry", "content_json": make_tiptap_json("Content"), "tags": ["personal", "growth"]},
     )
 
     response = await authenticated_client.get(f"{TAGS_PREFIX}")
@@ -32,7 +33,7 @@ async def test_list_tags_with_data(authenticated_client: AsyncClient, test_user:
 async def test_list_tags_prefix_search(authenticated_client: AsyncClient, test_user: dict):
     await authenticated_client.post(
         f"{JOURNALS_PREFIX}",
-        json={"title": "Entry", "content": "Content", "tags": ["personal", "growth", "gratitude"]},
+        json={"title": "Entry", "content_json": make_tiptap_json("Content"), "tags": ["personal", "growth", "gratitude"]},
     )
 
     response = await authenticated_client.get(f"{TAGS_PREFIX}?q=gr")
@@ -47,7 +48,7 @@ async def test_list_tags_prefix_search(authenticated_client: AsyncClient, test_u
 async def test_get_all_tags(authenticated_client: AsyncClient, test_user: dict):
     await authenticated_client.post(
         f"{JOURNALS_PREFIX}",
-        json={"title": "Entry", "content": "Content", "tags": ["personal", "growth", "testing"]},
+        json={"title": "Entry", "content_json": make_tiptap_json("Content"), "tags": ["personal", "growth", "testing"]},
     )
 
     response = await authenticated_client.get(f"{TAGS_PREFIX}/all")

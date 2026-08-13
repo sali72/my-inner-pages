@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict, field_serializer
 
 
@@ -12,7 +12,8 @@ class JournalResponse(BaseModel):
             "example": {
                 "id": "507f1f77bcf86cd799439011",
                 "title": "My First Journal Entry",
-                "content": "Today was a great day for reflection...",
+                "content_json": {"type": "doc", "content": []},
+                "content_text": "Today was a great day for reflection...",
                 "tags": ["personal", "reflection"],
                 "created_at": "2024-01-15T10:30:00Z",
                 "updated_at": "2024-01-15T10:30:00Z"
@@ -22,7 +23,8 @@ class JournalResponse(BaseModel):
     
     id: str = Field(..., description="Journal ID")
     title: str = Field(default="", description="Journal title")
-    content: str = Field(..., description="Journal content")
+    content_json: Dict[str, Any] = Field(default_factory=lambda: {"type": "doc", "content": []}, description="Tiptap JSON document AST")
+    content_text: str = Field(default="", description="Extracted plain text content")
     tags: list[str] = Field(default_factory=list, description="Journal tags")
     rumination_index: Optional[float] = Field(
         default=None, description="Real-time rumination signal (0-1)"
@@ -42,8 +44,9 @@ class JournalResponse(BaseModel):
         """Create response from Journal document."""
         return cls(
             id=str(journal.id),
-            title=journal.title,
-            content=journal.content,
+            title=journal.title or "",
+            content_json=journal.content_json,
+            content_text=journal.content_text,
             tags=journal.tags,
             rumination_index=journal.rumination_index,
             created_at=journal.created_at,

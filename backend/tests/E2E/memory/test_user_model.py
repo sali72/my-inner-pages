@@ -13,6 +13,9 @@ from app.memory.db.models import UserModel
 from tests.config import JOURNALS_PREFIX, MEMORY_PREFIX
 
 
+from tests.conftest import make_tiptap_json
+
+
 @pytest.mark.asyncio
 async def test_user_model_created_on_manual_update(
     authenticated_client: AsyncClient, test_user: dict
@@ -26,17 +29,17 @@ async def test_user_model_created_on_manual_update(
     journals = [
         {
             "title": "Getting Started",
-            "content": "Today I started a new journaling habit. I feel hopeful about this journey.",
+            "content_json": make_tiptap_json("Today I started a new journaling habit. I feel hopeful about this journey."),
             "tags": ["habits"],
         },
         {
             "title": "Good Progress",
-            "content": "Been consistent with my routines. Small steps add up over time.",
+            "content_json": make_tiptap_json("Been consistent with my routines. Small steps add up over time."),
             "tags": ["progress"],
         },
         {
             "title": "Reflections",
-            "content": "Looking back at the week, I notice I am more patient than I used to be. Growth feels good.",
+            "content_json": make_tiptap_json("Looking back at the week, I notice I am more patient than I used to be. Growth feels good."),
             "tags": ["reflection", "growth"],
         },
     ]
@@ -78,7 +81,7 @@ async def test_user_model_dev_get_endpoint(
     """
     await authenticated_client.post(
         f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
-        json={"title": "A New Day", "content": "Feeling optimistic about what lies ahead.", "tags": []},
+        json={"title": "A New Day", "content_json": make_tiptap_json("Feeling optimistic about what lies ahead."), "tags": []},
     )
     await authenticated_client.post(f"{MEMORY_PREFIX}/update-user-model")
 
@@ -112,7 +115,7 @@ async def test_user_model_persists_across_updates(
         f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
         json={
             "title": "First Batch",
-            "content": "Writing about my morning routine and how it affects my mood throughout the day.",
+            "content_json": make_tiptap_json("Writing about my morning routine and how it affects my mood throughout the day."),
             "tags": ["routine"],
         },
     )
@@ -126,7 +129,7 @@ async def test_user_model_persists_across_updates(
         f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
         json={
             "title": "Second Batch",
-            "content": "Trying new approaches to stay productive and mindful. Learning every day.",
+            "content_json": make_tiptap_json("Trying new approaches to stay productive and mindful. Learning every day."),
             "tags": ["growth"],
         },
     )
@@ -151,7 +154,7 @@ async def test_user_model_isolated_per_user(
     """
     await authenticated_client.post(
         f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
-        json={"title": "User 1 Entry", "content": "This is my personal journal entry.", "tags": []},
+        json={"title": "User 1 Entry", "content_json": make_tiptap_json("This is my personal journal entry."), "tags": []},
     )
     resp1 = await authenticated_client.post(f"{MEMORY_PREFIX}/update-user-model")
     assert resp1.status_code == 200
@@ -161,7 +164,7 @@ async def test_user_model_isolated_per_user(
 
     await other_client.post(
         f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
-        json={"title": "User 2 Entry", "content": "A completely different journal from another user.", "tags": []},
+        json={"title": "User 2 Entry", "content_json": make_tiptap_json("A completely different journal from another user."), "tags": []},
     )
     resp2 = await other_client.post(f"{MEMORY_PREFIX}/update-user-model")
     assert resp2.status_code == 200

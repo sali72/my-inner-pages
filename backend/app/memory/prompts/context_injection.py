@@ -41,7 +41,7 @@ def format_journal_entries_json(entries: list[Journal]) -> str:
         entry_list.append({
             "date": entry.created_at.strftime("%Y-%m-%d") if entry.created_at else "unknown",
             "title": entry.title,
-            "content": entry.content,
+            "content": entry.content_text,
             "tags": entry.tags or [],
         })
 
