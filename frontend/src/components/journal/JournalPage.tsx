@@ -602,9 +602,27 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   }, [showAuto, autoQuery]);
 
   const copyToClipboard = async () => {
+    const plainText = `${title.trim()}\n\n${editor ? editor.getText() : content}`;
+    const htmlText = `<h1>${title.trim()}</h1>${editor ? editor.getHTML() : `<p>${content}</p>`}`;
+
     try {
-      await navigator.clipboard.writeText(`${entry.title}\n\n${content}`);
-    } catch {}
+      if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
+        const textBlob = new Blob([plainText], { type: 'text/plain' });
+        const htmlBlob = new Blob([htmlText], { type: 'text/html' });
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/plain': textBlob,
+            'text/html': htmlBlob,
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(plainText);
+      }
+    } catch {
+      try {
+        await navigator.clipboard.writeText(plainText);
+      } catch {}
+    }
     setShowMenu(false);
   };
 
