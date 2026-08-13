@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, UserPlus } from 'lucide-react';
+import { PrivacyModal } from '@components/common';
 export interface RegisterPageProps {
   onRegister: (email: string, password: string, confirmPassword: string) => Promise<void>;
   onNavigateToLogin: () => void;
@@ -16,6 +17,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
@@ -266,19 +268,21 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
               </div>
             )}
 
-            {/* Terms and Conditions */}
+            {/* Privacy Commitment */}
             <div className="p-3 rounded-lg bg-surface border border-subtle">
-              <p className="text-xs text-secondary">
-                By creating an account, you agree to our{' '}
-                <button type="button" className="text-accent hover:underline">
-                  Terms of Service
-                </button>{' '}
-                and{' '}
-                <button type="button" className="text-accent hover:underline">
-                  Privacy Policy
+              <p className="text-xs text-secondary text-center leading-relaxed">
+                By creating an account, your entries remain strictly private.{' '}
+                <button
+                  type="button"
+                  onClick={() => setShowPrivacyModal(true)}
+                  className="text-accent hover:underline font-medium inline-block"
+                >
+                  Read Privacy Policy
                 </button>
               </p>
             </div>
+
+            <PrivacyModal isOpen={showPrivacyModal} onClose={() => setShowPrivacyModal(false)} />
 
             {/* Submit Button */}
             <button
