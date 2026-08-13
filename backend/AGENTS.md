@@ -22,6 +22,7 @@ Python 3.11+ FastAPI server with MongoDB/Beanie, LangChain AI, JWT auth.
 - **Auth module sub-services:** `TokenService` (JWT + hashing), `SessionService` (session lifecycle + RTR + Redis blacklisting), `SessionRepository` (RefreshToken persistence), `UserAgentService` (UA parsing), `CookieService`, `TokenBlacklistService`
 - **DI:** Routes use `Depends(get_*)` — never instantiate services directly
 - **Route prefix:** `/api/v0` set in `main.py`
+- **Tiptap JSON Content Model:** Journal content is stored losslessly as native Tiptap AST subdocuments (`content_json: Dict[str, Any]`) in the `Journal` Beanie document. `app/journals/utils/tiptap_parser.py` (`extract_text_from_tiptap_json`) performs pure in-memory plain text extraction on-the-fly to populate `content_text` for LLM context injection and rumination index calculations.
 
 ## Error monitoring (Sentry)
 - DSN configured via `SENTRY_DSN` env var (optional — if empty, Sentry is a no-op)

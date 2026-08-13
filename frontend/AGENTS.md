@@ -22,6 +22,7 @@ React 18 SPA with TypeScript, Vite, Tailwind CSS, TanStack Query, Playwright.
 - **State:** AuthContext (global auth), ThemeContext (preferences), TanStack React Query (server data), local state for ephemeral UI, useRouter (navigation)
 - **SSE chat streaming:** `useChatStream` hook manages streaming state via `fetch()` + `ReadableStream`, with `AbortController` for cancellation. ConnectionState (`connected` | `disconnected` | `failed`) reflects whether a chat is loaded and ready. ChatView is always mounted (CSS `hidden`) to preserve state across view switches.
 - **Offline/Sync:** Keystrokes are instantly persisted locally to IndexedDB via Yjs + `y-indexeddb` per journal entry, making the local document the source of truth. Unsynced changes (including offline-created drafts starting with `draft-`) are written to `localStorage` and synced to the backend in the background via `useBackgroundSync` hook (online/focus listeners, 30s interval) which calls `syncService.syncUnsyncedEntries()` to map draft IDs to MongoDB ObjectIds.
+- **Tiptap Rich Text Editor:** Journal editing powered by Tiptap v3 (`useEditor`), synchronized with Yjs collaboration document (`ydoc`). Floating contextual bubble menu (`EditorBubbleMenu.tsx`) built with `@tiptap/extension-bubble-menu` and `@tiptap/extension-link`. Transmits `content_json` AST subdocuments to API endpoints. Supports multi-mime HTML/plain text clipboard copying (`ClipboardItem`).
 - **Barrel exports:** each component directory has `index.ts`
 
 ## Error monitoring (Sentry)

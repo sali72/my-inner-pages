@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Tiptap JSON Rich Text Engine**: Lossless document AST storage (`content_json`), in-memory plain text parser (`extract_text_from_tiptap_json`), and floating contextual bubble toolbar (`EditorBubbleMenu.tsx`) supporting inline styles, H1–H3 headings, quotes, lists, themed link insertion, clear formatting, and multi-mime HTML clipboard copying.
+
 ## [v0.4.2-alpha] - 2026-08-07
 
 ### Added
