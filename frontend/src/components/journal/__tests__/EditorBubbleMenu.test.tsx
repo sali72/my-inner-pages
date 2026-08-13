@@ -17,6 +17,8 @@ describe('EditorBubbleMenu Rich Text Toolbar', () => {
       toggleBlockquote: vi.fn().mockReturnThis(),
       toggleBulletList: vi.fn().mockReturnThis(),
       toggleOrderedList: vi.fn().mockReturnThis(),
+      setLink: vi.fn().mockReturnThis(),
+      unsetLink: vi.fn().mockReturnThis(),
       unsetAllMarks: vi.fn().mockReturnThis(),
       clearNodes: vi.fn().mockReturnThis(),
       focus: vi.fn().mockReturnThis(),
@@ -38,6 +40,7 @@ describe('EditorBubbleMenu Rich Text Toolbar', () => {
     expect(screen.getByTitle(/Italic/i)).toBeInTheDocument();
     expect(screen.getByTitle(/Strikethrough/i)).toBeInTheDocument();
     expect(screen.getByTitle(/Inline Code/i)).toBeInTheDocument();
+    expect(screen.getByTitle(/Add Link/i)).toBeInTheDocument();
     expect(screen.getByTitle(/Heading 1/i)).toBeInTheDocument();
     expect(screen.getByTitle(/Heading 2/i)).toBeInTheDocument();
     expect(screen.getByTitle(/Quote/i)).toBeInTheDocument();
@@ -62,6 +65,28 @@ describe('EditorBubbleMenu Rich Text Toolbar', () => {
 
     fireEvent.mouseDown(screen.getByTitle(/Inline Code/i));
     expect(mockChain.toggleCode).toHaveBeenCalled();
+  });
+
+  it('opens inline URL input and sets link when applying link form', () => {
+    (mockEditor.getAttributes as any) = vi.fn().mockReturnValue({});
+    render(<EditorBubbleMenu editor={mockEditor as Editor} />);
+
+    fireEvent.mouseDown(screen.getByTitle(/Add Link/i));
+    const input = screen.getByPlaceholderText(/Paste URL/i);
+    expect(input).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: 'innerpages.ir' } });
+    fireEvent.click(screen.getByTitle(/Apply Link/i));
+
+    expect(mockChain.setLink).toHaveBeenCalledWith({ href: 'https://innerpages.ir' });
+  });
+
+  it('unsets link when link button is clicked on existing link', () => {
+    (mockEditor.isActive as any).mockImplementation((name: string) => name === 'link');
+    render(<EditorBubbleMenu editor={mockEditor as Editor} />);
+
+    fireEvent.mouseDown(screen.getByTitle(/Remove Link/i));
+    expect(mockChain.unsetLink).toHaveBeenCalled();
   });
 
   it('executes block formatting toggles (Headings, Blockquote, Lists)', () => {

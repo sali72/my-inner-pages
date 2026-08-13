@@ -7,6 +7,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { Collaboration } from '@tiptap/extension-collaboration';
 import { Placeholder } from '@tiptap/extension-placeholder';
+import Link from '@tiptap/extension-link';
 
 
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
@@ -165,6 +166,16 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
+      }),
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        defaultProtocol: 'https',
+        HTMLAttributes: {
+          class: 'text-accent underline underline-offset-2 hover:opacity-80 transition-opacity cursor-pointer',
+          target: '_blank',
+          rel: 'noopener noreferrer',
+        },
       }),
       Collaboration.configure({
         document: ydoc,
