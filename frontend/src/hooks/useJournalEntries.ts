@@ -8,6 +8,7 @@ import { syncUnsyncedEntries as syncService } from '@/services/syncService';
 import type { z } from 'zod';
 
 const QUERY_KEY = ['journals'] as const;
+const TAGS_QUERY_KEY = ['tags'] as const;
 const PAGE_SIZE = 20;
 
 function mapEntry(item: z.infer<typeof journalResponseSchema>): JournalEntry {
@@ -75,6 +76,7 @@ export const useJournalEntries = () => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: TAGS_QUERY_KEY }).catch(() => {});
     },
   });
 
@@ -88,6 +90,7 @@ export const useJournalEntries = () => {
       }),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: TAGS_QUERY_KEY }).catch(() => {});
     },
   });
 
@@ -95,6 +98,7 @@ export const useJournalEntries = () => {
     mutationFn: (id: number | string) => api.delete(`/journals/${id}`),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: TAGS_QUERY_KEY }).catch(() => {});
     },
   });
 
@@ -114,6 +118,7 @@ export const useJournalEntries = () => {
   const syncUnsyncedEntries = useCallback(async (onIdMigrate?: (oldId: string | number, newId: string | number) => void) => {
     await syncService(onIdMigrate, () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: TAGS_QUERY_KEY }).catch(() => {});
     });
   }, [queryClient]);
 
@@ -127,6 +132,9 @@ export const useJournalEntries = () => {
     updateEntry,
     deleteEntry,
     syncUnsyncedEntries,
-    refreshEntries: () => { queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {}); },
+    refreshEntries: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY }).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: TAGS_QUERY_KEY }).catch(() => {});
+    },
   };
 };

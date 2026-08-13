@@ -137,15 +137,17 @@ export const JournalView: React.FC<JournalViewProps> = ({
   }, []);
 
   // Synchronize and prune localEntryRef entries when they are fully synced to
-  // backend entries. This mutates a ref and writes localStorage, so it must
-  // run as an effect (not during render) — otherwise it double-fires under
-  // StrictMode and violates React's render purity.
+  // backend entries or when fresh backend entries arrive. This mutates a ref and
+  // writes localStorage, so it must run as an effect (not during render).
   useEffect(() => {
+    const unsyncedMap = getUnsyncedEntries();
     entries.forEach(backendEntry => {
       const localEntry = localEntryRef.current!.get(backendEntry.id);
-      if (localEntry && isEntrySynced(localEntry, backendEntry)) {
-        localEntryRef.current!.delete(backendEntry.id);
-        removeUnsyncedEntry(backendEntry.id);
+      if (localEntry) {
+        if (!unsyncedMap[backendEntry.id] || isEntrySynced(localEntry, backendEntry)) {
+          localEntryRef.current!.delete(backendEntry.id);
+          removeUnsyncedEntry(backendEntry.id);
+        }
       }
     });
   }, [entries]);

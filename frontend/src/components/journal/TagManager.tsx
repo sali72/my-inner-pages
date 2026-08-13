@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Pencil, Trash2, Palette, Tags, Hash } from 'lucide-react';
 import { useAllTags, useRenameTag, useDeleteTag, useUpdateTagColor } from '@hooks/useTags';
 
@@ -13,10 +13,16 @@ interface TagManagerProps {
 }
 
 export const TagManager: React.FC<TagManagerProps> = ({ isOpen, onClose }) => {
-  const { data: tags = [] } = useAllTags();
+  const { data: tags = [], refetch } = useAllTags();
   const renameTag = useRenameTag();
   const deleteTag = useDeleteTag();
   const updateTagColor = useUpdateTagColor();
+
+  useEffect(() => {
+    if (isOpen) {
+      refetch();
+    }
+  }, [isOpen, refetch]);
 
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -37,7 +43,7 @@ export const TagManager: React.FC<TagManagerProps> = ({ isOpen, onClose }) => {
   const handleRename = async () => {
     if (!editingTag || !renameValue.trim()) return;
     try {
-      await renameTag.mutateAsync({ oldName: editingTag, newName: renameValue.trim() });
+      await renameTag.mutateAsync({ oldName: editingTag, newName: renameValue.trim().toLowerCase() });
       setEditingTag(null);
       setRenameValue('');
     } catch {}

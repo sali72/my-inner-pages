@@ -73,3 +73,25 @@ async def test_rename_tag_same_name(authenticated_client: AsyncClient, test_user
         json={"new_name": "personal"},
     )
     assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_rename_tag_updates_embedded_hashtags(authenticated_client: AsyncClient, test_user: dict):
+    await authenticated_client.post(
+        f"{JOURNALS_PREFIX}",
+        json={"title": "Entry", "content_json": make_tiptap_json("Working on #personal stuff"), "tags": ["personal"]},
+    )
+
+    response = await authenticated_client.put(
+        f"{TAGS_PREFIX}/personal",
+        json={"new_name": "private"},
+    )
+    assert response.status_code == 200
+
+    journals = await Journal.find({"user_id": test_user["user_id"]}).to_list()
+    assert len(journals) == 1
+    assert "personal" not in journals[0].tags
+    assert "private" in journals[0].tags
+    assert "#private" in journals[0].content_text
+    assert "#personal" not in journals[0].content_text
+

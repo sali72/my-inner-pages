@@ -81,19 +81,32 @@ async def rename_tag(
     current_user: User = Depends(get_current_user),
     tag_repo: TagRepository = Depends(get_tag_repository),
 ) -> MessageResponse:
+    normalized_old = name.strip().lower()
+    normalized_new = request.new_name.strip().lower()
+    if not normalized_new:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New tag name cannot be empty",
+        )
     try:
         await tag_repo.rename_tag(
             user_id=str(current_user.id),
-            old_name=name.strip().lower(),
-            new_name=request.new_name,
+            old_name=normalized_old,
+            new_name=normalized_new,
         )
         return MessageResponse(
-            message=f"Tag '{name}' renamed to '{request.new_name}'"
+            message=f"Tag '{name}' renamed to '{normalized_new}'"
         )
     except ValueError as e:
+        detail_msg = str(e)
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if "not found" in detail_msg.lower()
+            else status.HTTP_400_BAD_REQUEST
+        )
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            status_code=status_code,
+            detail=detail_msg,
         )
 
 

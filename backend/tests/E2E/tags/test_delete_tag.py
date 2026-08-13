@@ -44,3 +44,20 @@ async def test_delete_tag_updates_usage_count(authenticated_client: AsyncClient,
 async def test_delete_nonexistent_tag(authenticated_client: AsyncClient, test_user: dict):
     response = await authenticated_client.delete(f"{TAGS_PREFIX}/nonexistent")
     assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_delete_tag_removes_embedded_hashtags(authenticated_client: AsyncClient, test_user: dict):
+    await authenticated_client.post(
+        f"{JOURNALS_PREFIX}",
+        json={"title": "Entry", "content_json": make_tiptap_json("Working on #personal stuff"), "tags": ["personal"]},
+    )
+
+    response = await authenticated_client.delete(f"{TAGS_PREFIX}/personal")
+    assert response.status_code == 200
+
+    journals = await Journal.find({"user_id": test_user["user_id"]}).to_list()
+    assert len(journals) == 1
+    assert "personal" not in journals[0].tags
+    assert "#personal" not in journals[0].content_text
+

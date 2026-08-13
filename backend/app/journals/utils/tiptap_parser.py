@@ -1,3 +1,5 @@
+import re
+import copy
 from typing import Any, Dict, Optional
 
 BLOCK_NODES = {
@@ -42,3 +44,48 @@ def extract_text_from_tiptap_json(node: Optional[Dict[str, Any]]) -> str:
             combined += "\n"
 
     return combined.strip() if node_type == "doc" else combined
+
+
+def replace_hashtag_in_text(text: str, old_tag: str, new_tag: Optional[str]) -> str:
+    """
+    Replace or remove #old_tag in plain text.
+    If new_tag is provided, #old_tag is replaced with #new_tag.
+    If new_tag is None, #old_tag is removed from the text.
+    """
+    if not text or not old_tag:
+        return text
+
+    escaped_tag = re.escape(old_tag)
+    pattern = re.compile(rf'#{escaped_tag}\b', flags=re.IGNORECASE)
+
+    if new_tag is not None:
+        return pattern.sub(f'#{new_tag}', text)
+    else:
+        cleaned = pattern.sub('', text)
+        return re.sub(r'  +', ' ', cleaned).strip()
+
+
+def replace_hashtag_in_tiptap_json(
+    node: Optional[Dict[str, Any]], old_tag: str, new_tag: Optional[str]
+) -> Optional[Dict[str, Any]]:
+    """
+    Recursively replace or remove #old_tag in text nodes of a Tiptap / ProseMirror JSON AST.
+    """
+    if not node or not isinstance(node, dict):
+        return node
+
+    new_node = copy.deepcopy(node)
+    _transform_tiptap_node(new_node, old_tag, new_tag)
+    return new_node
+
+
+def _transform_tiptap_node(node: Dict[str, Any], old_tag: str, new_tag: Optional[str]) -> None:
+    if node.get("type") == "text" and "text" in node:
+        node["text"] = replace_hashtag_in_text(str(node["text"]), old_tag, new_tag)
+
+    content = node.get("content")
+    if isinstance(content, list):
+        for child in content:
+            if isinstance(child, dict):
+                _transform_tiptap_node(child, old_tag, new_tag)
+

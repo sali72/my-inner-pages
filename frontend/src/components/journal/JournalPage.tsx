@@ -60,8 +60,28 @@ function parseHashTags(text: string): string[] {
   return [...new Set(matches.map(m => m.slice(1)))];
 }
 
-function stripHashTag(text: string, tag: string): string {
-  return text.replace(new RegExp(`#${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g'), '').replace(/\s+/g, ' ').trim();
+function replaceHashtagInTiptapAst(node: any, oldTag: string, newTag: string | null): any {
+  if (!node || typeof node !== 'object') return node;
+
+  const newNode = Array.isArray(node) ? [...node] : { ...node };
+
+  if (newNode.type === 'text' && typeof newNode.text === 'string') {
+    const escaped = oldTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`#${escaped}\\b`, 'gi');
+    if (newTag !== null) {
+      newNode.text = newNode.text.replace(regex, `#${newTag}`);
+    } else {
+      newNode.text = newNode.text.replace(regex, '').replace(/  +/g, ' ');
+    }
+  }
+
+  if (Array.isArray(newNode.content)) {
+    newNode.content = newNode.content.map((child: any) =>
+      replaceHashtagInTiptapAst(child, oldTag, newTag)
+    );
+  }
+
+  return newNode;
 }
 
 function isRealId(v: string | number | null): boolean {
@@ -535,9 +555,9 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const removeTag = (tag: string) => {
     setExplicitTags(prev => prev.filter(t => t !== tag));
     if (editor) {
-      const text = editor.getText();
-      const newText = stripHashTag(text, tag);
-      editor.commands.setContent(newText);
+      const currentJson = editor.getJSON();
+      const updatedJson = replaceHashtagInTiptapAst(currentJson, tag, null);
+      editor.commands.setContent(updatedJson);
     }
   };
 
