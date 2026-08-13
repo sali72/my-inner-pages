@@ -34,7 +34,7 @@ React 18 SPA with TypeScript, Vite, Tailwind CSS, TanStack Query, Playwright.
   - **5xx responses** — tagged with endpoint, status code, method
   - **3+ consecutive failures** — triggers a `backend_unreachable` event
   - **Slow responses** (>5s) — breadcrumb added
-- SSE stream errors are captured in `useChatStream`
+- SSE stream errors are surfaced in the chat UI via `chatReducer` (`STREAM_ERROR`), but are **not** Sentry-instrumented — `useChatStream` does not import Sentry
 - All events tagged with `endpoint`, `status_code`, `consecutive_failures`, `is_authenticated`
 
 ## UX principles
