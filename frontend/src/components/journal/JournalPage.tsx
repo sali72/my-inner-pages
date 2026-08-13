@@ -13,6 +13,7 @@ import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { detectRTL } from '@utils/textDirection';
 import { ConfirmModal } from './ConfirmModal';
+import { EditorBubbleMenu } from './EditorBubbleMenu';
 import { isEntryUnsynced, saveUnsyncedEntry, removeUnsyncedEntry } from '@utils/offlineStorage';
 import { useJournalDoc } from '@hooks/useJournalDoc';
 
@@ -805,8 +806,9 @@ export const JournalPage: React.FC<JournalPageProps> = ({
           )}
         </div>
 
-        <div className={`relative flex-1 flex ${getFontClass(font)} ${getFontSizeClass(fontSize)}`}>
-          <EditorContent editor={editor} className="w-full flex-1" />
+        <div className={`relative flex-1 flex flex-col w-full ${getFontClass(font)} ${getFontSizeClass(fontSize)}`}>
+          <EditorBubbleMenu editor={editor} />
+          <EditorContent editor={editor} className="w-full flex-1 min-h-[12rem] text-left" />
 
           {showAuto && (
             <div
