@@ -154,6 +154,36 @@ def create_app() -> FastAPI:
 
         app.add_middleware(SlowAPIMiddleware)
 
+    # Centralized Exception Handlers for Domain & Auth Exceptions
+    from app.auth.exceptions import (
+        AuthException,
+        InvalidCredentialsError,
+        TokenRevokedError,
+        InvalidTokenError,
+        SessionNotFoundError,
+    )
+    from app.core.exceptions import (
+        DocumentNotFoundException,
+        DuplicateDocumentException,
+    )
+
+    async def auth_exception_handler(request, exc: AuthException):
+        if isinstance(exc, (InvalidCredentialsError, TokenRevokedError, InvalidTokenError)):
+            return JSONResponse(status_code=401, content={"detail": str(exc)})
+        if isinstance(exc, SessionNotFoundError):
+            return JSONResponse(status_code=404, content={"detail": str(exc)})
+        return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+    async def document_not_found_handler(request, exc: DocumentNotFoundException):
+        return JSONResponse(status_code=404, content={"detail": exc.message})
+
+    async def duplicate_document_handler(request, exc: DuplicateDocumentException):
+        return JSONResponse(status_code=400, content={"detail": exc.message})
+
+    app.add_exception_handler(AuthException, auth_exception_handler)
+    app.add_exception_handler(DocumentNotFoundException, document_not_found_handler)
+    app.add_exception_handler(DuplicateDocumentException, duplicate_document_handler)
+
     # Global handler to mask internal details on 5xx
     from starlette.exceptions import HTTPException as StarletteHTTPException
     @app.exception_handler(Exception)

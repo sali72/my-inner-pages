@@ -26,6 +26,11 @@ class FeedbackFacade:
         self.journal_repository = journal_repository
         self.settings = settings
 
+    async def dismiss_trigger(self, user, trigger: str) -> None:
+        user.feedback_triggers[trigger] = True
+        await user.save()
+        logger.info("feedback_trigger_dismissed", user_id=str(user.id), trigger=trigger)
+
     async def create_feedback(
         self,
         body: CreateFeedbackRequest,

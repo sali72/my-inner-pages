@@ -12,6 +12,13 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/memory", tags=["memory"])
 
 
+from app.memory.api.schemas.user_model import (
+    UserModelUpdateStatusResponse,
+    UserModelDetailResponse,
+    UserModelStatsSchema,
+)
+
+
 @router.post("/update-user-model", summary="Manually trigger user model update (dev only)")
 async def trigger_user_model_update(
     current_user: User = Depends(get_current_user),
@@ -28,18 +35,18 @@ async def trigger_user_model_update(
 
     try:
         updated = await updater.update(str(current_user.id))
-        return {
-            "status": "ok",
-            "version": updated.version,
-            "updatedAt": updated.updatedAt.isoformat() if updated.updatedAt else None,
-            "stats": {
-                "totalEntries": updated.stats.totalEntries,
-                "totalWords": updated.stats.totalWords,
-            },
-            "patterns": len(updated.patterns),
-            "activeThemes": len(updated.activeThemes),
-            "conversationGuidelines": len(updated.conversationGuidelines),
-        }
+        return UserModelUpdateStatusResponse(
+            status="ok",
+            version=updated.version,
+            updatedAt=updated.updatedAt.isoformat() if updated.updatedAt else None,
+            stats=UserModelStatsSchema(
+                totalEntries=updated.stats.totalEntries,
+                totalWords=updated.stats.totalWords,
+            ),
+            patterns=len(updated.patterns),
+            activeThemes=len(updated.activeThemes),
+            conversationGuidelines=len(updated.conversationGuidelines),
+        )
     except Exception as e:
         logger.exception("manual_user_model_update_failed", user_id=str(current_user.id))
         raise HTTPException(
@@ -64,14 +71,14 @@ async def get_user_model(
     if not user_model:
         return {"status": "no_model", "message": "No user model exists yet"}
 
-    return {
-        "status": "ok",
-        "version": user_model.version,
-        "updatedAt": user_model.updatedAt.isoformat() if user_model.updatedAt else None,
-        "createdAt": user_model.createdAt.isoformat(),
-        "stats": user_model.stats.model_dump(),
-        "baseline": user_model.baseline.model_dump(),
-        "patterns": [p.model_dump() for p in user_model.patterns],
-        "activeThemes": user_model.activeThemes,
-        "conversationGuidelines": user_model.conversationGuidelines,
-    }
+    return UserModelDetailResponse(
+        status="ok",
+        version=user_model.version,
+        updatedAt=user_model.updatedAt.isoformat() if user_model.updatedAt else None,
+        createdAt=user_model.createdAt.isoformat() if user_model.createdAt else None,
+        stats=user_model.stats.model_dump(),
+        baseline=user_model.baseline.model_dump(),
+        patterns=[p.model_dump() for p in user_model.patterns],
+        activeThemes=user_model.activeThemes,
+        conversationGuidelines=user_model.conversationGuidelines,
+    )

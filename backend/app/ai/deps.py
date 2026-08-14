@@ -133,3 +133,11 @@ def get_chat_facade(
         chat_persistence=chat_persistence,
         config=config,
     )
+
+
+def get_llm_admin_service(
+    config: AIModuleConfig = Depends(get_ai_config),
+    repository: LLMProviderRepository = Depends(get_llm_provider_repository),
+):
+    from app.ai.services.llm_admin_service import LLMAdminService
+    return LLMAdminService(config=config, repository=repository)

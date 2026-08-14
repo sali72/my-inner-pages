@@ -93,15 +93,6 @@ class JournalListResponse(BaseModel):
         )
 
 
-class MessageResponse(BaseModel):
-    """Generic message response."""
-    
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "message": "Journal deleted successfully"
-            }
-        }
-    )
-    
-    message: str = Field(..., description="Response message")
+from app.core.schemas import MessageResponse
+
+__all__ = ["JournalResponse", "JournalListResponse", "MessageResponse"]

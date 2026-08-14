@@ -87,15 +87,6 @@ class LoginResponse(BaseModel):
     user: UserResponse = Field(..., description="User information")
 
 
-class MessageResponse(BaseModel):
-    """Generic message response."""
-    
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "message": "Registration successful"
-            }
-        }
-    )
-    
-    message: str = Field(..., description="Response message")
+from app.core.schemas import MessageResponse
+
+__all__ = ["UserPreferencesResponse", "UserResponse", "LoginResponse", "MessageResponse"]

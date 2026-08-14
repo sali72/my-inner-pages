@@ -51,8 +51,8 @@ def configure_limiter(settings):
     In production with a Redis URL configured, we swap to Redis so that
     blue/green backend containers share the same rate limit state.
     """
+    limiter.enabled = settings.rate_limit_enabled
     if not settings.rate_limit_enabled:
-        limiter.enabled = False
         logger.info("rate_limiter_disabled")
         return
 

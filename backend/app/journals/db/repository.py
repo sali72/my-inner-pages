@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from bson import ObjectId
 from beanie import PydanticObjectId
+from beanie.odm.queries.update import UpdateResponse
 from beanie.operators import In, Set
 from pymongo.errors import PyMongoError, DuplicateKeyError
 
@@ -151,10 +152,6 @@ class JournalRepository:
         created_at: Optional[datetime] = None,
     ) -> Optional[Journal]:
         try:
-            journal = await self.find_by_id(journal_id, user_id)
-            if not journal:
-                return None
-
             update_data = {"updated_at": datetime.now(timezone.utc)}
 
             if title is not None:
@@ -170,8 +167,12 @@ class JournalRepository:
             if created_at is not None:
                 update_data["created_at"] = created_at
 
-            await journal.set(update_data)
-            logger.info("journal_updated", journal_id=str(journal_id), user_id=user_id)
+            journal = await self.model.find_one({"_id": journal_id, "user_id": user_id}).update(
+                {"$set": update_data},
+                response_type=UpdateResponse.NEW_DOCUMENT,
+            )
+            if journal:
+                logger.info("journal_updated", journal_id=str(journal_id), user_id=user_id)
             return journal
         except PyMongoError as e:
             logger.error("journal_update_failed", error=str(e), journal_id=str(journal_id))
@@ -186,13 +187,11 @@ class JournalRepository:
         user_id: str,
     ) -> bool:
         try:
-            journal = await self.find_by_id(journal_id, user_id)
-            if not journal:
-                return False
-
-            await journal.delete()
-            logger.info("journal_deleted", journal_id=str(journal_id), user_id=user_id)
-            return True
+            res = await self.model.find_one({"_id": journal_id, "user_id": user_id}).delete()
+            if res and res.deleted_count > 0:
+                logger.info("journal_deleted", journal_id=str(journal_id), user_id=user_id)
+                return True
+            return False
         except PyMongoError as e:
             logger.error("journal_delete_failed", error=str(e), journal_id=str(journal_id))
             raise RepositoryException(

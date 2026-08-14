@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 from beanie import PydanticObjectId
+from beanie.odm.queries.update import UpdateResponse
 from pydantic import ValidationError
 from pymongo.errors import PyMongoError
 
@@ -111,13 +112,13 @@ class ChatRepository:
             message = ChatMessage(role=role, content=content)
             chat = await self.model.find_one(
                 {"_id": chat_id, "user_id": user_id}
+            ).update(
+                {"$push": {"messages": message.model_dump()}, "$set": {"updated_at": datetime.now(timezone.utc)}},
+                response_type=UpdateResponse.NEW_DOCUMENT,
             )
             if not chat:
                 return None
 
-            await chat.update(
-                {"$push": {"messages": message.model_dump()}, "$set": {"updated_at": datetime.now(timezone.utc)}}
-            )
             logger.info(
                 "chat_message_appended",
                 chat_id=str(chat_id),
@@ -145,13 +146,13 @@ class ChatRepository:
         try:
             chat = await self.model.find_one(
                 {"_id": chat_id, "user_id": user_id}
+            ).update(
+                {"$push": {"messages": {"$each": [], "$slice": keep_count}}, "$set": {"updated_at": datetime.now(timezone.utc)}},
+                response_type=UpdateResponse.NEW_DOCUMENT,
             )
             if not chat:
                 return None
 
-            await chat.update(
-                {"$push": {"messages": {"$each": [], "$slice": keep_count}}, "$set": {"updated_at": datetime.now(timezone.utc)}}
-            )
             logger.info(
                 "chat_messages_truncated",
                 chat_id=str(chat_id),
@@ -176,14 +177,14 @@ class ChatRepository:
         title: str,
     ) -> Optional[Chat]:
         try:
-            chat = await self.find_by_id(chat_id, user_id)
-            if not chat:
-                return None
-
-            await chat.set(
-                {"title": title, "updated_at": datetime.now(timezone.utc)}
+            chat = await self.model.find_one(
+                {"_id": chat_id, "user_id": user_id}
+            ).update(
+                {"$set": {"title": title, "updated_at": datetime.now(timezone.utc)}},
+                response_type=UpdateResponse.NEW_DOCUMENT,
             )
-            logger.info("chat_title_updated", chat_id=str(chat_id))
+            if chat:
+                logger.info("chat_title_updated", chat_id=str(chat_id))
             return chat
         except PyMongoError as e:
             logger.error(
@@ -200,13 +201,13 @@ class ChatRepository:
         user_id: str,
     ) -> bool:
         try:
-            chat = await self.find_by_id(chat_id, user_id)
-            if not chat:
-                return False
-
-            await chat.delete()
-            logger.info("chat_deleted", chat_id=str(chat_id), user_id=user_id)
-            return True
+            res = await self.model.find_one(
+                {"_id": chat_id, "user_id": user_id}
+            ).delete()
+            if res and res.deleted_count > 0:
+                logger.info("chat_deleted", chat_id=str(chat_id), user_id=user_id)
+                return True
+            return False
         except PyMongoError as e:
             logger.error(
                 "chat_delete_failed", error=str(e), chat_id=str(chat_id)

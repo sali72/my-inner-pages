@@ -16,3 +16,7 @@ class CreateFeedbackRequest(BaseModel):
     answers: dict[str, object] = Field(default_factory=dict)
     context: FeedbackContextRequest = Field(default_factory=FeedbackContextRequest)
     questionnaire_version: str = Field(default="1.0", pattern=r"^\d+\.\d+$")
+
+
+class DismissTriggerRequest(BaseModel):
+    trigger: str = Field(..., pattern="^(session_nudge|exit_intent)$")

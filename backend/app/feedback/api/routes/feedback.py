@@ -2,7 +2,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from pydantic import BaseModel, Field
 
-from app.feedback.api.schemas.request import CreateFeedbackRequest
+from app.feedback.api.schemas.request import CreateFeedbackRequest, DismissTriggerRequest
 from app.feedback.api.schemas.response import (
     FeedbackResponse,
     FeedbackListResponse,
@@ -19,10 +19,6 @@ from app.core.rate_limit import limiter
 router = APIRouter(prefix="/feedback", tags=["feedback"])
 
 
-class DismissTriggerRequest(BaseModel):
-    trigger: str = Field(..., pattern="^(session_nudge|exit_intent)$")
-
-
 @router.post(
     "/dismiss",
     status_code=status.HTTP_200_OK,
@@ -31,9 +27,9 @@ class DismissTriggerRequest(BaseModel):
 async def dismiss_trigger(
     body: DismissTriggerRequest,
     current_user: User = Depends(get_current_user),
+    facade: FeedbackFacade = Depends(get_feedback_facade),
 ) -> dict:
-    current_user.feedback_triggers[body.trigger] = True
-    await current_user.save()
+    await facade.dismiss_trigger(user=current_user, trigger=body.trigger)
     return {"status": "ok"}
 
 

@@ -55,10 +55,12 @@ def test_settings(monkeypatch_session) -> Settings:
     database_name = f"journaling_app_test_{worker_id}" if worker_id != "master" else "journaling_app_test"
 
     # Set environment variables for testing
+    os.environ["RATE_LIMIT_ENABLED"] = "true"
     monkeypatch_session.setenv("DATABASE_NAME", database_name)
     monkeypatch_session.setenv("ENVIRONMENT", "testing")
     monkeypatch_session.setenv("JWT_SECRET_KEY", "test-secret-key-for-testing-only")
     monkeypatch_session.setenv("USE_MOCK_LLM", "true")
+    monkeypatch_session.setenv("RATE_LIMIT_ENABLED", "true")
     
     test_settings_obj = Settings(
         mongo_url="mongodb://localhost:27017",
@@ -66,6 +68,7 @@ def test_settings(monkeypatch_session) -> Settings:
         environment="testing",
         jwt_secret_key="test-secret-key-for-testing-only",
         use_mock_llm=True,  # Always use mock LLM in tests to avoid API costs
+        rate_limit_enabled=True,
     )
     
     return test_settings_obj

@@ -160,14 +160,14 @@ class UserRepository:
         user_id: PydanticObjectId,
     ) -> bool:
         try:
-            user = await self.find_by_id(user_id)
-            if not user:
-                return False
-
-            user.update_last_login()
-            await user.save()
+            res = await self.model.find_one({"_id": user_id}).update(
+                {
+                    "$set": {"last_login": datetime.now(timezone.utc)},
+                    "$inc": {"login_count": 1},
+                }
+            )
             logger.debug("user_last_login_updated", user_id=str(user_id))
-            return True
+            return res is not None
         except PyMongoError as e:
             logger.error("user_last_login_update_failed", error=str(e), user_id=str(user_id))
             raise RepositoryException(
@@ -199,8 +199,8 @@ class UserRepository:
         self,
         email: str,
     ) -> bool:
-        user = await self.find_by_email(email)
-        return user is not None
+        count = await self.model.find({"email": email.lower()}).count()
+        return count > 0
 
     async def store_verification_token(
         self,

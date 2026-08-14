@@ -50,12 +50,11 @@ class UserModelRepository:
         user_id: str,
     ) -> bool:
         try:
-            result = await self.model.find_one({"user_id": user_id})
-            if not result:
-                return False
-            await result.delete()
-            logger.info("user_model_deleted", user_id=user_id)
-            return True
+            res = await self.model.find({"user_id": user_id}).delete()
+            if res and res.deleted_count > 0:
+                logger.info("user_model_deleted", user_id=user_id)
+                return True
+            return False
         except Exception as e:
             logger.error("user_model_delete_failed", user_id=user_id, error=str(e))
             raise RepositoryException(

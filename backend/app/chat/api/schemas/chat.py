@@ -111,8 +111,4 @@ class UpdateChatTitleRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=100, description="New chat title")
 
 
-class MessageResponse(BaseModel):
-    model_config = ConfigDict(
-        json_schema_extra={"example": {"message": "Chat deleted successfully"}}
-    )
-    message: str = Field(..., description="Response message")
+from app.core.schemas import MessageResponse
