@@ -2,6 +2,8 @@ import pytest
 from httpx import AsyncClient
 
 from app.auth.db.models import User
+from app.journals.db.models import Journal
+
 
 pytestmark = pytest.mark.asyncio
 
@@ -40,6 +42,21 @@ async def test_admin_can_access_stats_default(admin_client: AsyncClient):
     # Verify summary period fields
     assert "signups_current_period" in data["summary"]
     assert "active_users_period" in data["summary"]
+
+
+async def test_admin_can_access_stats_with_journals(admin_client: AsyncClient):
+    """Test fetching admin stats when journals exist to verify avg_journal_length calculation."""
+    j1 = Journal(user_id="user123", content_text="Hello world")
+    j2 = Journal(user_id="user123", content_text="Testing average length calculation")
+    await j1.insert()
+    await j2.insert()
+
+    response = await admin_client.get("/api/v0/admin/stats")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["engagement"]["avg_journal_length"] > 0
+    assert data["summary"]["lifetime"]["total_journals"] >= 2
 
 
 async def test_admin_can_access_users_list(admin_client: AsyncClient):

@@ -314,7 +314,7 @@ class AdminStatsFacade:
         """Calculate average character length of journal entries."""
         collection = Journal.get_motor_collection()
         pipeline = [
-            {"$project": {"length": {"$strLenCP": "$content"}}},
+            {"$project": {"length": {"$strLenCP": {"$ifNull": ["$content_text", ""]}}}},
             {"$group": {"_id": None, "avg_length": {"$avg": "$length"}}},
         ]
         res = await collection.aggregate(pipeline).to_list(length=1)
