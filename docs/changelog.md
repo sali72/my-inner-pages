@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed & Refactored
+- **Backend Architecture Audit & Query Refactoring**: Streamlined `app/` modules (`auth`, `journals`, `chat`, `memory`, `ai`, `feedback`). Extracted `LLMAdminService` and facade logic out of route files, consolidated duplicated schemas into `app/core/schemas.py`, introduced typed Pydantic responses for memory endpoints, optimized MongoDB queries to single-pass atomic Motor/Beanie operations, and added global FastAPI exception handlers for domain & auth exceptions.
 - **Tag Subsystem Reliability & UX**: Fixed React Rules of Hooks ordering in `TagManager.tsx`, non-destructive tag removal (`#tag` -> `tag`), Yjs IndexedDB cache invalidation on tag deletion/rename, and mobile back navigation tag preservation. Centralized tag normalization, AST parsing, contrast styling, and schemas into `tagUtils.ts` with comprehensive end-to-end component flow tests.
 
 ## [v0.5.0-alpha] - 2026-08-13
