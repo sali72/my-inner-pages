@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle, XCircle, Mail, Loader } from 'lucide-react';
 export interface EmailVerificationPageProps {
   verificationToken?: string;
@@ -22,14 +22,7 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
   const [error, setError] = useState('');
   const verifiedRef = useRef(false);
 
-  useEffect(() => {
-    if (verificationToken && !verifiedRef.current) {
-      verifiedRef.current = true;
-      verifyEmail(verificationToken);
-    }
-  }, [verificationToken]);
-
-  const verifyEmail = async (token: string) => {
+  const verifyEmail = useCallback(async (token: string) => {
     setStatus('verifying');
     try {
       await onVerifyEmail(token);
@@ -39,9 +32,17 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
         setStatus('expired');
       } else {
         setStatus('error');
+        setError(err.message || 'Verification failed');
       }
     }
-  };
+  }, [onVerifyEmail]);
+
+  useEffect(() => {
+    if (verificationToken && !verifiedRef.current) {
+      verifiedRef.current = true;
+      verifyEmail(verificationToken);
+    }
+  }, [verificationToken, verifyEmail]);
 
   const handleResendVerification = async (e: React.FormEvent) => {
     e.preventDefault();

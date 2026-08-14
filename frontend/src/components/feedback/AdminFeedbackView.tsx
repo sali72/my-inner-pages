@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '@/utils/api';
 import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -47,16 +47,16 @@ export const AdminFeedbackView: React.FC = () => {
   const [triggerFilter, setTriggerFilter] = useState('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     try {
       const data = await api.get<SummaryResponse>('/feedback/summary');
       setSummary(data);
     } catch (e) {
       console.error('Failed to fetch feedback summary', e);
     }
-  };
+  }, []);
 
-  const fetchList = async () => {
+  const fetchList = useCallback(async () => {
     try {
       const params = new URLSearchParams({ page: String(page), page_size: '50' });
       if (variantFilter) params.set('variant', variantFilter);
@@ -66,7 +66,7 @@ export const AdminFeedbackView: React.FC = () => {
     } catch (e) {
       console.error('Failed to fetch feedback list', e);
     }
-  };
+  }, [page, variantFilter, triggerFilter]);
 
   useEffect(() => {
     setLoading(true);
@@ -75,7 +75,7 @@ export const AdminFeedbackView: React.FC = () => {
     } else {
       fetchList().finally(() => setLoading(false));
     }
-  }, [tab, page, variantFilter, triggerFilter]);
+  }, [tab, fetchSummary, fetchList]);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {

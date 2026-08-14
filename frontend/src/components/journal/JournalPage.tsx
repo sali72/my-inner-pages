@@ -1,23 +1,23 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import {
-  ArrowLeft, Copy, Share2, Plus, X, Calendar,
-  MessageCircle, Trash2, MoreVertical, AlertCircle, CloudOff, Loader2, RefreshCw
-} from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { Collaboration } from '@tiptap/extension-collaboration';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
+
 import { sanitizeTag, parseHashTags, replaceHashtagInTiptapAst } from '@utils/tagUtils';
-
-
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { detectRTL } from '@utils/textDirection';
 import { ConfirmModal } from './ConfirmModal';
 import { EditorBubbleMenu } from './EditorBubbleMenu';
-import { isEntryUnsynced, saveUnsyncedEntry, removeUnsyncedEntry } from '@utils/offlineStorage';
 import { useJournalDoc } from '@hooks/useJournalDoc';
+import { useJournalAutosave } from '@hooks/useJournalAutosave';
+import { JournalHeader } from './JournalHeader';
+import { JournalMetaBar } from './JournalMetaBar';
+import { JournalTagBar } from './JournalTagBar';
+import { JournalAutoTagDropdown } from './JournalAutoTagDropdown';
 
 interface JournalPageProps {
   entry: JournalEntry;
@@ -33,33 +33,6 @@ interface JournalPageProps {
   onChat: () => void;
   onBack: () => void;
   onSelectTagFilter?: (tag: string) => void;
-}
-
-type SaveStatus = 'error' | 'unsynced' | null;
-
-const SaveIndicator: React.FC<{ status: SaveStatus; onRetry?: () => void }> = ({ status, onRetry }) => {
-  if (!status) return null;
-  const styles: Record<string, { icon: React.ReactNode; text: string; cls: string }> = {
-    error: { icon: <AlertCircle className="w-3 h-3" />, text: 'Couldn\'t save', cls: 'text-red-500' },
-    unsynced: { icon: <CloudOff className="w-3 h-3" />, text: 'Unsynced (Saved locally)', cls: 'text-amber-500' },
-  };
-  const s = styles[status];
-  return (
-    <span className={`inline-flex items-center gap-1 text-xs ${s.cls}`}>
-      {s.icon}{s.text}
-      {onRetry && (
-        <button onClick={onRetry} className="ml-1 p-0.5 rounded hover:bg-accent-tint transition-colors" aria-label="Retry save">
-          <RefreshCw className="w-3 h-3" />
-        </button>
-      )}
-    </span>
-  );
-};
-
-
-
-function isRealId(v: string | number | null): boolean {
-  return v !== null && v !== 'pending' && !v.toString().startsWith('draft-');
 }
 
 export const JournalPage: React.FC<JournalPageProps> = ({
@@ -80,11 +53,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const [title, setTitle] = useState(entry.title);
   const [content, setContent] = useState(entry.content);
   const [explicitTags, setExplicitTags] = useState<string[]>([]);
-  const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>(() => {
-    return isEntryUnsynced(entry.id) ? 'unsynced' : null;
-  });
   const [showTagInput, setShowTagInput] = useState(false);
   const [tagInputValue, setTagInputValue] = useState('');
   const [tagAutoActiveIndex, setTagAutoActiveIndex] = useState(0);
@@ -107,7 +76,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     const mins = String(now.getMinutes()).padStart(2, '0');
     return `${y}-${m}-${String(day).padStart(2, '0')}T${hours}:${mins}`;
   });
-  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const formattedDate = useMemo(() => {
     const d = new Date(entryDate);
@@ -119,18 +87,9 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const [autoPos, setAutoPos] = useState({ top: 0, left: 0 });
   const autoTriggerPosRef = useRef(0);
   const [autoActiveIndex, setAutoActiveIndex] = useState(0);
-
-  const menuRef = useRef<HTMLDivElement>(null);
-  const autoRef = useRef<HTMLDivElement>(null);
-  const tagInputRef = useRef<HTMLInputElement>(null);
-  const entryIdRef = useRef<string | number | null>(isNew ? null : entry.id);
-  const creationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const creationPromiseRef = useRef<Promise<any> | null>(null);
   const isNavigatingBackRef = useRef(false);
 
-  // Stable Yjs doc ID — captured once at mount so the persistence doesn't
-  // switch databases when transitioning from 'new' to a real entry ID.
-  const docEntryId = useMemo(() => entry.id, []);
+  const docEntryId = useMemo(() => entry.id, [entry.id]);
   const { ydoc, isLoaded } = useJournalDoc(docEntryId, entry.title);
 
   const checkAutocomplete = useCallback((ed: any) => {
@@ -154,7 +113,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     }
   }, []);
 
-  // 2. Initialize Tiptap Editor with Collaboration Support & Rich Text
   const [contentJson, setContentJson] = useState<any>(entry.content_json);
 
   const extensions = useMemo(() => [
@@ -206,20 +164,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     },
   }, [ydoc]);
 
-  // Handle local database migration when a draft receives a real backend ID
-  useEffect(() => {
-    const handleIdMigrated = (e: Event) => {
-      const { oldId, newId } = (e as CustomEvent).detail;
-      const currentActiveId = isNew ? entryIdRef.current : entry.id;
-      if (currentActiveId === oldId) {
-        entryIdRef.current = newId;
-      }
-    };
-    window.addEventListener('journal:id-migrated', handleIdMigrated);
-    return () => window.removeEventListener('journal:id-migrated', handleIdMigrated);
-  }, [entry.id, isNew]);
-
-  // Populate Tiptap if the local document is uninitialized
   useEffect(() => {
     if (editor && !editor.isDestroyed && isLoaded) {
       const contentFragment = ydoc.getXmlFragment('content');
@@ -233,7 +177,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     }
   }, [editor, isLoaded, entry.content_json, entry.content, ydoc]);
 
-  // Handle loaded IndexedDB Title
   useEffect(() => {
     if (isLoaded) {
       const localTitle = ydoc.getText('title').toString();
@@ -253,7 +196,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       }
       return orphaned;
     });
-  }, [entry.id, entryTagsKey, entry.content]);
+  }, [entry.id, entryTagsKey, entry.content, entry.tags]);
 
   useEffect(() => {
     const handleTagUpdated = (e: Event) => {
@@ -301,39 +244,20 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     );
   }, [showTagInput, tagInputValue, allAppTags, allTags]);
 
-  useEffect(() => {
-    if (showTagInput && tagInputRef.current) tagInputRef.current.focus();
-  }, [showTagInput]);
+  const { saveStatus, save, handleRetry } = useJournalAutosave({
+    entry,
+    isNew,
+    title,
+    content,
+    contentJson,
+    editor,
+    allTags,
+    entryDate,
+    onCreate,
+    onUpdate,
+    onUpdateById,
+  });
 
-  useEffect(() => {
-    if (saveStatus === 'unsynced' && !isEntryUnsynced(entry.id)) {
-      setSaveStatus(null);
-    }
-  }, [entry.id, saveStatus]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-    if (showMenu) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showMenu]);
-
-  useEffect(() => {
-    if (!showAuto) return;
-    const handleClick = (e: MouseEvent) => {
-      if (autoRef.current && !autoRef.current.contains(e.target as Node) &&
-          editor && !editor.view.dom.contains(e.target as Node)) {
-        setShowAuto(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [showAuto, editor]);
-
-  // Sync title input updates to Y.Doc
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setTitle(val);
@@ -346,211 +270,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     }
   };
 
-  const save = useCallback(async (customTags?: string[]) => {
-    // If a creation request is currently in-flight, await it so we don't start duplicate requests
-    if (creationPromiseRef.current) {
-      try {
-        await creationPromiseRef.current;
-      } catch {
-        // creation failed; handled below
-      }
-    }
-
-    const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
-    const currentJson = editor ? editor.getJSON() : contentJson;
-    const draftCheckId = entryIdRef.current;
-    const targetTags = customTags || allTags;
-
-    // Case 1: Brand new entry, no creation in progress, and no ID assigned yet
-    if (isNew && (draftCheckId === null || draftCheckId === undefined)) {
-      const trimmedTitle = title.trim();
-      const trimmedContent = content.trim();
-      const hasContentToSave = trimmedTitle !== '' || trimmedContent !== '' || targetTags.length > 0;
-      if (!hasContentToSave) return;
-
-      entryIdRef.current = 'pending';
-
-      creationPromiseRef.current = (async () => {
-        try {
-          const id = await onCreate!(trimmedTitle, trimmedContent, targetTags, isoDate, currentJson);
-          entryIdRef.current = id;
-          return id;
-        } catch {
-          const tempId = `draft-${Date.now()}`;
-          entryIdRef.current = tempId;
-          const updatedEntry: JournalEntry = {
-            id: tempId,
-            title: trimmedTitle,
-            content: trimmedContent,
-            content_json: currentJson,
-            tags: targetTags,
-            created_at: isoDate,
-            date: entryDate || new Date().toLocaleString(),
-          };
-          saveUnsyncedEntry(updatedEntry);
-          setSaveStatus('unsynced');
-
-          if (onUpdateById) {
-            await onUpdateById(tempId, updatedEntry);
-          }
-          return tempId;
-        } finally {
-          creationPromiseRef.current = null;
-        }
-      })();
-
-      await creationPromiseRef.current;
-      return;
-    }
-
-    // Case 2: Creation is currently pending in another execution thread/timer
-    if (draftCheckId === 'pending') {
-      return;
-    }
-
-    // Case 3: Offline draft ID (e.g. 'draft-123456')
-    if (draftCheckId && draftCheckId.toString().startsWith('draft-')) {
-      const updatedEntry: JournalEntry = {
-        id: draftCheckId,
-        title: title.trim(),
-        content: content.trim(),
-        content_json: currentJson,
-        tags: targetTags,
-        created_at: isoDate,
-        date: entryDate || new Date().toLocaleString(),
-      };
-      saveUnsyncedEntry(updatedEntry);
-      setSaveStatus('unsynced');
-      return;
-    }
-
-    // Case 4: Real ID (assigned from backend) or existing entry
-    const currentActiveId = isNew ? entryIdRef.current : entry.id;
-    if (isRealId(currentActiveId)) {
-      const realId = currentActiveId as string | number;
-      const trimmedTitle = title.trim();
-      const trimmedContent = content.trim();
-
-      try {
-        if (onUpdateById) {
-          await onUpdateById(realId, {
-            title: trimmedTitle,
-            content_json: currentJson,
-            content: trimmedContent,
-            tags: targetTags,
-            created_at: isoDate
-          });
-        } else if (onUpdate) {
-          await onUpdate({
-            title: trimmedTitle,
-            content_json: currentJson,
-            content: trimmedContent,
-            tags: targetTags,
-            created_at: isoDate
-          });
-        }
-        removeUnsyncedEntry(realId);
-      } catch {
-        const updatedEntry: JournalEntry = {
-          id: realId,
-          title: trimmedTitle,
-          content: trimmedContent,
-          content_json: currentJson,
-          tags: targetTags,
-          created_at: isoDate,
-          date: entryDate || new Date().toLocaleString(),
-        };
-        saveUnsyncedEntry(updatedEntry);
-        setSaveStatus('unsynced');
-      }
-      return;
-    }
-  }, [isNew, title, content, contentJson, editor, allTags, entryDate, entry, onCreate, onUpdate, onUpdateById]);
-
-  const handleRetry = useCallback(async () => {
-    if (isNew && entryIdRef.current?.toString().startsWith('draft-')) {
-      entryIdRef.current = null;
-    }
-    await save();
-  }, [isNew, save]);
-
-  const persistLocally = useCallback(() => {
-    const id = isNew ? entryIdRef.current : entry.id;
-    if (!id || id === 'pending') return;
-
-    const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
-    const trimmedTitle = title.trim();
-    const trimmedContent = content.trim();
-    const currentJson = editor ? editor.getJSON() : contentJson;
-    const dateChanged = !isNew && isoDate
-      ? !entry.created_at || Math.abs(new Date(isoDate).getTime() - new Date(entry.created_at).getTime()) > 1000
-      : false;
-    const hasChanges = isNew
-      ? trimmedTitle !== '' || trimmedContent !== '' || allTags.length > 0
-      : trimmedTitle !== entry.title ||
-        trimmedContent !== entry.content ||
-        JSON.stringify(allTags) !== JSON.stringify(entry.tags) ||
-        dateChanged;
-    if (!hasChanges) return;
-
-    saveUnsyncedEntry({
-      ...(isNew ? {} : entry),
-      id,
-      title: trimmedTitle,
-      content: trimmedContent,
-      content_json: currentJson,
-      tags: allTags,
-      created_at: isoDate || entry.created_at,
-      date: entryDate || entry.date,
-    });
-  }, [isNew, title, content, contentJson, editor, allTags, entryDate, entry]);
-
-  // Unified autosave debounce effect
-  const saveRef = useRef(save);
-  useEffect(() => {
-    saveRef.current = save;
-  }, [save]);
-
-  useEffect(() => {
-    // If it's a new entry and creation hasn't started yet:
-    if (isNew && entryIdRef.current === null) {
-      if (title.trim() || content.trim()) {
-        if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
-        creationTimerRef.current = setTimeout(() => saveRef.current(), 600);
-      }
-      return () => {
-        if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
-      };
-    }
-
-    // For existing entries OR for new entries that have started creation:
-    const timer = setTimeout(() => saveRef.current(), 1200);
-    return () => clearTimeout(timer);
-  }, [title, content, contentJson, isNew]);
-
-  useEffect(() => {
-    const handleBeforeUnload = () => { persistLocally(); };
-    const handleVisibility = () => {
-      if (document.visibilityState === 'hidden') persistLocally();
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('pagehide', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('pagehide', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, [persistLocally]);
-
-  useEffect(() => {
-    return () => {
-      if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
-    };
-  }, []);
-
-  // Clean up the IndexedDB database for 'new' entries to prevent stale content
-  // from reappearing when the user creates another new entry later.
   useEffect(() => {
     return () => {
       if (docEntryId === 'new') {
@@ -558,8 +277,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         indexedDB.deleteDatabase(dbName);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [docEntryId]);
 
   const handleBack = useCallback(async () => {
     if (isNavigatingBackRef.current) return;
@@ -604,7 +322,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     setTagInputValue('');
   };
 
-  const selectAutoTag = (tag: string) => {
+  const selectAutoTag = useCallback((tag: string) => {
     if (!editor) return;
     const from = autoTriggerPosRef.current;
     const to = editor.state.selection.from;
@@ -615,9 +333,8 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       .run();
       
     setShowAuto(false);
-  };
+  }, [editor]);
 
-  // Keyboard navigation for floating autocomplete dropdown
   useEffect(() => {
     if (!editor || editor.isDestroyed || !editor.view) return;
     const el = editor.view.dom;
@@ -650,7 +367,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
 
     el.addEventListener('keydown', handleKeyDown, true);
     return () => el.removeEventListener('keydown', handleKeyDown, true);
-  }, [editor, showAuto, filteredAutoTags, autoActiveIndex, autoQuery]);
+  }, [editor, showAuto, filteredAutoTags, autoActiveIndex, autoQuery, selectAutoTag]);
 
   useEffect(() => {
     setAutoActiveIndex(0);
@@ -678,7 +395,6 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         await navigator.clipboard.writeText(plainText);
       } catch {}
     }
-    setShowMenu(false);
   };
 
   const shareEntry = async () => {
@@ -690,11 +406,12 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         await copyToClipboard();
       }
     } catch {}
-    setShowMenu(false);
   };
 
-  const handleDeleteClick = () => { setShowDeleteConfirm(true); setShowMenu(false); };
-  const handleConfirmDelete = () => { onDelete(); setShowDeleteConfirm(false); };
+  const handleConfirmDelete = () => {
+    onDelete();
+    setShowDeleteConfirm(false);
+  };
 
   if (!isLoaded) {
     return (
@@ -706,83 +423,22 @@ export const JournalPage: React.FC<JournalPageProps> = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto relative flex flex-col flex-1">
-      <div
-        className="sticky top-0 z-20 pt-4 pb-2 px-6 md:px-8"
-        style={{ background: 'var(--bg-elevated)' }}
-      >
-        <div className="flex items-start justify-between h-8">
-          <button
-            onClick={handleBack}
-            className="p-1 rounded-md text-muted/50 hover:text-muted transition-colors"
-            aria-label="Back to journal"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
+      <JournalHeader
+        isNew={isNew}
+        onBack={handleBack}
+        onCopy={copyToClipboard}
+        onShare={shareEntry}
+        onChat={onChat}
+        onDeleteClick={() => setShowDeleteConfirm(true)}
+      />
 
-          {!isNew && (
-            <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="p-1 rounded-md text-muted/50 hover:text-muted transition-colors"
-                aria-label="Entry options"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </button>
-
-              {showMenu && (
-                <div className="absolute right-0 mt-2 min-w-[12rem] rounded-lg shadow-card-lg z-20 card py-1">
-                  <button onClick={() => { copyToClipboard(); setShowMenu(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-accent-tint transition-all">
-                    <Copy className="w-4 h-4" />Copy
-                  </button>
-                  <button onClick={() => { shareEntry(); setShowMenu(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-accent-tint transition-all">
-                    <Share2 className="w-4 h-4" />Share
-                  </button>
-                  <button onClick={() => { onChat(); setShowMenu(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-body hover:bg-accent-tint transition-all">
-                    <MessageCircle className="w-4 h-4" />Chat
-                  </button>
-                  <div className="h-px bg-border-default my-2" />
-                  <button onClick={handleDeleteClick}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all">
-                    <Trash2 className="w-4 h-4" />Delete
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div
-        className="flex items-center gap-3 px-6 md:px-8"
-        style={{ background: 'var(--bg-elevated)' }}
-      >
-        <button
-          onClick={() => dateInputRef.current?.showPicker?.()}
-          className="inline-flex items-center gap-1.5 text-xs text-muted/50 hover:text-muted transition-colors text-left"
-          aria-label={`Edit date: ${formattedDate}`}
-        >
-          <Calendar className="w-3 h-3" />
-          {formattedDate}
-        </button>
-        <input
-          ref={dateInputRef}
-          type="datetime-local"
-          value={entryDate}
-          onChange={(e) => setEntryDate(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              dateInputRef.current?.showPicker?.();
-            }
-          }}
-          className="sr-only"
-          tabIndex={0}
-        />
-        <SaveIndicator status={saveStatus} onRetry={saveStatus ? handleRetry : undefined} />
-      </div>
+      <JournalMetaBar
+        entryDate={entryDate}
+        formattedDate={formattedDate}
+        saveStatus={saveStatus}
+        onEntryDateChange={setEntryDate}
+        onRetrySave={handleRetry}
+      />
 
       <div
         className="flex flex-col flex-1 px-6 md:px-8 pt-4 pb-12"
@@ -799,143 +455,37 @@ export const JournalPage: React.FC<JournalPageProps> = ({
           autoFocus={isNew}
         />
 
-        <div className="flex flex-wrap items-center gap-1.5 mb-6 min-h-[1.5rem]">
-          {allTags.map((tag) => {
-            const color = tagColorMap[tag];
-            return color ? (
-              <span key={tag}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs group cursor-pointer hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: `${color}20`, color }}
-                onClick={() => onSelectTagFilter?.(tag)}
-              >
-                #{tag}
-                <button onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
-                  aria-label={`Remove tag ${tag}`}
-                  className="hover:text-red-500 transition-colors p-0.5 rounded">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            ) : (
-              <span key={tag}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-accent-tint/50 text-accent-tint group cursor-pointer hover:opacity-90 transition-opacity"
-                onClick={() => onSelectTagFilter?.(tag)}
-              >
-                #{tag}
-                <button onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
-                  aria-label={`Remove tag ${tag}`}
-                  className="hover:text-red-500 transition-colors p-0.5 rounded">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            );
-          })}
-          {!showTagInput && (
-            <button onClick={() => setShowTagInput(true)}
-              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs text-muted/30 hover:text-muted hover:bg-accent-tint/30 transition-colors">
-              <Plus className="w-3 h-3" />
-            </button>
-          )}
-          {showTagInput && (
-            <div className="relative inline-block">
-              <input
-                ref={tagInputRef}
-                type="text"
-                value={tagInputValue}
-                onChange={(e) => { setTagInputValue(e.target.value.replace(/\s+/g, '-')); setTagAutoActiveIndex(0); }}
-                onKeyDown={(e) => {
-                  if (e.key === ' ') {
-                    e.preventDefault();
-                    setTagInputValue(prev => prev + '-');
-                  }
-                  if (e.key === 'Enter') {
-                    if (filteredTagInputSuggestions.length > 0) {
-                      addTagDirect(filteredTagInputSuggestions[tagAutoActiveIndex]);
-                    } else {
-                      addTagDirect(tagInputValue);
-                    }
-                    e.preventDefault();
-                  }
-                  if (e.key === 'Escape') { setShowTagInput(false); setTagInputValue(''); }
-                  if (e.key === 'ArrowDown') {
-                    setTagAutoActiveIndex(i => Math.min(i + 1, filteredTagInputSuggestions.length - 1));
-                    e.preventDefault();
-                  }
-                  if (e.key === 'ArrowUp') {
-                    setTagAutoActiveIndex(i => Math.max(i - 1, 0));
-                    e.preventDefault();
-                  }
-                }}
-                onBlur={() => {
-                  if (tagInputValue.trim()) {
-                    addTagDirect(tagInputValue);
-                  } else {
-                    setShowTagInput(false);
-                  }
-                }}
-                placeholder="Tag"
-                className="px-2 py-0.5 rounded text-xs input-field w-28"
-              />
-              {filteredTagInputSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 mt-1 z-50 card py-1 shadow-elevated min-w-[8rem] max-h-40 overflow-y-auto">
-                  {filteredTagInputSuggestions.map((tag, i) => {
-                    const color = tagColorMap[tag];
-                    return (
-                      <button
-                        key={tag}
-                        onMouseDown={(e) => { e.preventDefault(); addTagDirect(tag); }}
-                        onMouseEnter={() => setTagAutoActiveIndex(i)}
-                        className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
-                          i === tagAutoActiveIndex ? 'bg-accent-tint text-accent' : 'text-body hover:bg-accent-tint'
-                        }`}
-                      >
-                        {color && <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: color }} />}
-                        #{tag}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <JournalTagBar
+          allTags={allTags}
+          tagColorMap={tagColorMap}
+          showTagInput={showTagInput}
+          tagInputValue={tagInputValue}
+          filteredTagInputSuggestions={filteredTagInputSuggestions}
+          tagAutoActiveIndex={tagAutoActiveIndex}
+          onSelectTagFilter={onSelectTagFilter}
+          onRemoveTag={removeTag}
+          onShowTagInput={() => setShowTagInput(true)}
+          onHideTagInput={() => { setShowTagInput(false); setTagInputValue(''); }}
+          onTagInputValueChange={setTagInputValue}
+          onTagAutoActiveIndexChange={setTagAutoActiveIndex}
+          onAddTagDirect={addTagDirect}
+        />
 
         <div className={`relative flex-1 flex flex-col w-full ${getFontClass(font)} ${getFontSizeClass(fontSize)}`}>
           <EditorBubbleMenu editor={editor} />
           <EditorContent editor={editor} className="w-full flex-1 min-h-[12rem] text-left" />
 
-          {showAuto && (
-            <div
-              ref={autoRef}
-              className="fixed z-50 card py-1 shadow-elevated min-w-[10rem] max-h-48 overflow-y-auto"
-              style={{
-                top: Math.min(autoPos.top, window.innerHeight - 250) + 'px',
-                left: Math.min(autoPos.left, window.innerWidth - 200) + 'px',
-              }}
-            >
-              {filteredAutoTags.length > 0 ? (
-                filteredAutoTags.map((tag, i) => (
-                  <button key={tag}
-                    onMouseDown={(e) => { e.preventDefault(); selectAutoTag(tag); }}
-                    onMouseEnter={() => setAutoActiveIndex(i)}
-                    className={`w-full text-left px-3 py-1.5 text-sm transition-colors ${
-                      i === autoActiveIndex ? 'bg-accent-tint text-accent' : 'text-body hover:bg-accent-tint'
-                    }`}
-                  >
-                    #{tag}
-                  </button>
-                ))
-              ) : autoQuery ? (
-                <button
-                  onMouseDown={(e) => { e.preventDefault(); selectAutoTag(autoQuery); }}
-                  className="w-full text-left px-3 py-1.5 text-sm text-muted hover:bg-accent-tint transition-colors"
-                >
-                  Create "#{autoQuery}"
-                </button>
-              ) : (
-                <div className="px-3 py-2 text-xs text-muted">No tags yet</div>
-              )}
-            </div>
-          )}
+          <JournalAutoTagDropdown
+            showAuto={showAuto}
+            autoPos={autoPos}
+            filteredAutoTags={filteredAutoTags}
+            autoActiveIndex={autoActiveIndex}
+            autoQuery={autoQuery}
+            editor={editor}
+            onSelectAutoTag={selectAutoTag}
+            onAutoActiveIndexChange={setAutoActiveIndex}
+            onCloseAuto={() => setShowAuto(false)}
+          />
         </div>
       </div>
 

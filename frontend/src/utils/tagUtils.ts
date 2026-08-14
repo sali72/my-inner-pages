@@ -63,18 +63,27 @@ export function formatTagStyle(color?: string | null): React.CSSProperties {
   };
 }
 
+export interface TiptapAstNode {
+  type?: string;
+  text?: string;
+  content?: TiptapAstNode[];
+  marks?: Array<{ type: string; attrs?: Record<string, unknown> }>;
+  attrs?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 /**
  * Recursively updates or strips hashtag occurrences in a Tiptap / ProseMirror AST JSON tree.
  * If newTag is null, converts `#oldTag` text to `oldTag` (strips leading # without erasures).
  */
 export function replaceHashtagInTiptapAst(
-  node: any,
+  node: TiptapAstNode,
   oldTag: string,
   newTag: string | null
-): any {
+): TiptapAstNode {
   if (!node || typeof node !== 'object') return node;
 
-  const copy = { ...node };
+  const copy: TiptapAstNode = { ...node };
 
   if (copy.type === 'text' && typeof copy.text === 'string') {
     const escaped = oldTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -89,7 +98,7 @@ export function replaceHashtagInTiptapAst(
   }
 
   if (Array.isArray(copy.content)) {
-    copy.content = copy.content.map((child: any) =>
+    copy.content = copy.content.map((child: TiptapAstNode) =>
       replaceHashtagInTiptapAst(child, oldTag, newTag)
     );
   }

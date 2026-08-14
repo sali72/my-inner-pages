@@ -199,6 +199,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
       entry.tags?.forEach(tag => tagSet.add(tag));
     });
     return Array.from(tagSet).sort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, syncVersion, serverTagResponses]);
 
   const tagColorMap = useMemo(() => {
@@ -249,6 +250,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
     });
 
     return filtered;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, searchQuery, selectedTags, tagMode, sortBy, syncVersion]);
 
   const currentEntry = useMemo(() => {
@@ -256,6 +258,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
     const fromLocal = localEntryRef.current!.get(selectedEntryId);
     if (fromLocal) return fromLocal;
     return entries.find(e => e.id === selectedEntryId) || null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, selectedEntryId, syncVersion]);
 
   const handleSelectEntry = useCallback((id: number | string) => {
@@ -339,7 +342,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
     setSelectedTags([]);
   }, []);
 
-  const draftEntry = useMemo(() => makeDraftEntry(), [isNewEntry]);
+  const draftEntry = useMemo(() => makeDraftEntry(), []);
   const displayEntry = isNewEntry ? draftEntry : currentEntry;
 
   if (displayEntry) {

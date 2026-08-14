@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Users,
   Search,
@@ -51,7 +51,7 @@ export const UsersTab: React.FC = () => {
   const [userToDelete, setUserToDelete] = useState<UserItem | null>(null);
   const limit = 50;
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -68,14 +68,14 @@ export const UsersTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [skip, search]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       fetchUsers();
     }, 300);
     return () => clearTimeout(handler);
-  }, [search, skip]);
+  }, [fetchUsers]);
 
   const handleToggleStatus = async (targetUser: UserItem) => {
     try {

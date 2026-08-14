@@ -46,7 +46,7 @@ const AppInner: React.FC = () => {
         searchStr ? `?${searchStr}` : '/'
       );
     }
-  }, []);
+  }, [pendingVerification]);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatHistoryOpen, setChatHistoryOpen] = useState(false);
@@ -83,6 +83,7 @@ const AppInner: React.FC = () => {
   }, []);
 
   // Sync and reset history states when authentication state changes
+  const { setParams } = router;
   useEffect(() => {
     if (authLoading) return;
     if (isAuthenticated && !wasAuthenticated.current) {
@@ -121,8 +122,8 @@ const AppInner: React.FC = () => {
     window.history.pushState({ ...payload, index: 1 }, '', currentURL);
 
     // Sync hook state manually to trigger re-render
-    router.setParams(nextParams);
-  }, [isAuthenticated, authLoading, syncFromRemote]);
+    setParams(nextParams);
+  }, [isAuthenticated, authLoading, syncFromRemote, setParams]);
 
   const { entries, loading, isLoadingMore, hasMore, loadMore, addEntry, updateEntry, deleteEntry, syncUnsyncedEntries } = useJournalEntries();
 

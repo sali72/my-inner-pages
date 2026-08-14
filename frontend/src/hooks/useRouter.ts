@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ViewType, isValidView } from '@/types';
 
 export function useRouter() {
@@ -86,7 +86,7 @@ export function useRouter() {
   const selectedChatId = params.get('chat');
   const verificationToken = params.get('verify');
 
-  return {
+  return useMemo(() => ({
     showAuth,
     activeView,
     selectedEntryId,
@@ -94,5 +94,5 @@ export function useRouter() {
     verificationToken,
     navigate,
     setParams,
-  };
+  }), [showAuth, activeView, selectedEntryId, selectedChatId, verificationToken, navigate, setParams]);
 }

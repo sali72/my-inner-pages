@@ -58,7 +58,7 @@ describe('tagUtils module', () => {
         ],
       };
       const updated = replaceHashtagInTiptapAst(ast, 'old-tag', 'new-tag');
-      expect(updated.content[0].content[0].text).toBe('Working on #new-tag today');
+      expect(updated.content?.[0].content?.[0].text).toBe('Working on #new-tag today');
     });
 
     it('converts #old-tag to old-tag (stripping #) when newTag is null', () => {
@@ -72,7 +72,7 @@ describe('tagUtils module', () => {
         ],
       };
       const updated = replaceHashtagInTiptapAst(ast, 'old-tag', null);
-      expect(updated.content[0].content[0].text).toBe('Working on old-tag today');
+      expect(updated.content?.[0].content?.[0].text).toBe('Working on old-tag today');
     });
   });
 });

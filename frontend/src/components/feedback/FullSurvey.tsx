@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import {
-  ArrowLeft, ArrowRight, Send, X,
-  Sun, CalendarDays, Calendar, Compass,
-  Clock, HelpCircle, EyeOff, Frown, MoreHorizontal,
-  FileText, Sparkles, MessageCircle, Minus,
-  ThumbsUp, Meh, Bot,
-  ThumbsDown,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, Send, X } from 'lucide-react';
 import { api } from '@/utils/api';
+import { UsageStep } from './surveySteps/UsageStep';
+import { FeaturesStep } from './surveySteps/FeaturesStep';
+import { UIUXStep } from './surveySteps/UIUXStep';
+import { RetentionStep } from './surveySteps/RetentionStep';
+import { OpenStep } from './surveySteps/OpenStep';
 
 const STEPS = [
   { id: 'usage', title: 'Usage Pattern', section: 1 },
@@ -81,456 +79,68 @@ export const FullSurvey: React.FC<FullSurveyProps> = ({ onClose, sessionEntryCou
   return (
     <div className="max-w-lg mx-auto p-4 pt-4">
       <div className="card p-5">
-      <div className="flex items-center justify-between mb-2">
-        <h1 className="text-xl font-bold text-primary">Help us improve</h1>
-        <button
-          onClick={onClose}
-          className="p-2 text-muted hover:text-primary rounded-lg hover:bg-hover transition-all"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-      <p className="text-sm text-secondary mb-3">
-        All questions are optional — share what you're comfortable with.
-      </p>
-
-      <div className="w-full h-1 bg-base rounded-full mb-4">
-        <div
-          className="h-full bg-accent rounded-full transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <p className="text-xs text-muted mb-3 text-center">
-        Step {step + 1} of {STEPS.length} — {STEPS[step].title}
-      </p>
-
-      <div className="space-y-4">
-        {step === 0 && <UsageStep answers={answers} setAnswer={setAnswer} />}
-        {step === 1 && <FeaturesStep answers={answers} setAnswer={setAnswer} />}
-        {step === 2 && <UIUXStep answers={answers} setAnswer={setAnswer} />}
-        {step === 3 && <RetentionStep answers={answers} setAnswer={setAnswer} />}
-        {step === 4 && <OpenStep answers={answers} setAnswer={setAnswer} />}
-      </div>
-
-      <div className="flex justify-between mt-6 pt-3 border-t border-default">
-        <button
-          onClick={() => setStep(s => Math.max(0, s - 1))}
-          disabled={step === 0}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-secondary hover:text-primary hover:bg-hover transition-all disabled:opacity-30"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </button>
-
-        {step < STEPS.length - 1 ? (
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-xl font-bold text-primary">Help us improve</h1>
           <button
-            onClick={() => setStep(s => s + 1)}
-            disabled={!canAdvance()}
-            className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-accent text-white font-medium hover:bg-accent-hover transition-all disabled:opacity-50"
+            onClick={onClose}
+            className="p-2 text-muted hover:text-primary rounded-lg hover:bg-hover transition-all"
           >
-            Next
-            <ArrowRight className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
-        ) : (
+        </div>
+        <p className="text-sm text-secondary mb-3">
+          All questions are optional — share what you're comfortable with.
+        </p>
+
+        <div className="w-full h-1 bg-base rounded-full mb-4">
+          <div
+            className="h-full bg-accent rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <p className="text-xs text-muted mb-3 text-center">
+          Step {step + 1} of {STEPS.length} — {STEPS[step].title}
+        </p>
+
+        <div className="space-y-4">
+          {step === 0 && <UsageStep answers={answers} setAnswer={setAnswer} />}
+          {step === 1 && <FeaturesStep answers={answers} setAnswer={setAnswer} />}
+          {step === 2 && <UIUXStep answers={answers} setAnswer={setAnswer} />}
+          {step === 3 && <RetentionStep answers={answers} setAnswer={setAnswer} />}
+          {step === 4 && <OpenStep answers={answers} setAnswer={setAnswer} />}
+        </div>
+
+        <div className="flex justify-between mt-6 pt-3 border-t border-default">
           <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-accent text-white font-medium hover:bg-accent-hover transition-all disabled:opacity-50"
+            onClick={() => setStep(s => Math.max(0, s - 1))}
+            disabled={step === 0}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-secondary hover:text-primary hover:bg-hover transition-all disabled:opacity-30"
           >
-            {submitting ? 'Submitting...' : 'Submit'}
-            <Send className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" />
+            Back
           </button>
-        )}
-      </div>
+
+          {step < STEPS.length - 1 ? (
+            <button
+              onClick={() => setStep(s => s + 1)}
+              disabled={!canAdvance()}
+              className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-accent text-white font-medium hover:bg-accent-hover transition-all disabled:opacity-50"
+            >
+              Next
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-accent text-white font-medium hover:bg-accent-hover transition-all disabled:opacity-50"
+            >
+              {submitting ? 'Submitting...' : 'Submit'}
+              <Send className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
 };
-
-type IconComponent = React.FC<{ className?: string }>;
-
-function VisualSelect({ label, options, value, onChange }: {
-  label: string;
-  options: { value: string; label: string; icon: IconComponent }[];
-  value?: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium text-primary">{label}</p>
-      <div className="grid grid-cols-2 gap-1.5">
-        {options.map(opt => {
-          const Icon = opt.icon;
-          return (
-            <button
-              key={opt.value}
-              onClick={() => onChange(opt.value)}
-              className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${
-                value === opt.value
-                  ? 'border-accent bg-accent-tint ring-1 ring-accent'
-                  : 'border-default text-secondary hover:border-hover hover:bg-hover'
-              }`}
-            >
-              <Icon className={`w-5 h-5 ${value === opt.value ? 'text-accent' : 'text-muted'}`} />
-              <span className={`text-xs leading-tight ${value === opt.value ? 'text-accent font-medium' : ''}`}>
-                {opt.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function VisualMultiSelect({ label, options, value, onChange }: {
-  label: string;
-  options: { value: string; label: string; icon: IconComponent }[];
-  value?: string[];
-  onChange: (v: string[]) => void;
-}) {
-  const selected = value || [];
-  const toggle = (opt: string) => {
-    if (selected.includes(opt)) {
-      onChange(selected.filter(s => s !== opt));
-    } else {
-      onChange([...selected, opt]);
-    }
-  };
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium text-primary">{label}</p>
-      <div className="grid grid-cols-2 gap-1.5">
-        {options.map(opt => {
-          const Icon = opt.icon;
-          const isSelected = selected.includes(opt.value);
-          return (
-            <button
-              key={opt.value}
-              onClick={() => toggle(opt.value)}
-              className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${
-                isSelected
-                  ? 'border-accent bg-accent-tint ring-1 ring-accent'
-                  : 'border-default text-secondary hover:border-hover hover:bg-hover'
-              }`}
-            >
-              <Icon className={`w-5 h-5 ${isSelected ? 'text-accent' : 'text-muted'}`} />
-              <span className={`text-xs leading-tight ${isSelected ? 'text-accent font-medium' : ''}`}>
-                {opt.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function VisualScale({ label, low, high, value, onChange }: {
-  label: string;
-  low: string;
-  high: string;
-  value?: number;
-  onChange: (v: number) => void;
-}) {
-  const labels = ['', 'Poor', 'Okay', 'Good', 'Great', 'Excellent'];
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium text-primary">{label}</p>
-      <div className="flex items-center gap-1 justify-center">
-        <span className="text-[10px] text-muted w-12 text-right leading-tight">{low}</span>
-        {[1, 2, 3, 4, 5].map(n => (
-          <button
-            key={n}
-            onClick={() => onChange(n)}
-            className={`flex flex-col items-center gap-0.5 px-1.5 py-1.5 rounded-xl border transition-all min-w-0 flex-1 ${
-              value === n
-                ? 'border-accent bg-accent-tint ring-1 ring-accent'
-                : 'border-default text-secondary hover:border-hover hover:bg-hover'
-            }`}
-          >
-            <span className={`text-sm font-bold ${value === n ? 'text-accent' : ''}`}>{n}</span>
-            <span className={`text-[9px] leading-tight ${value === n ? 'text-accent' : 'text-muted'}`}>
-              {labels[n]}
-            </span>
-          </button>
-        ))}
-        <span className="text-[10px] text-muted w-12 leading-tight">{high}</span>
-      </div>
-    </div>
-  );
-}
-
-function VisualYesNo({ label, value, onChange, yesLabel, noLabel }: {
-  label: string;
-  value?: string;
-  onChange: (v: string) => void;
-  yesLabel?: string;
-  noLabel?: string;
-}) {
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium text-primary">{label}</p>
-      <div className="grid grid-cols-2 gap-1.5">
-        <button
-          onClick={() => onChange('Yes')}
-          className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${
-            value === 'Yes'
-              ? 'border-accent bg-accent-tint ring-1 ring-accent'
-              : 'border-default text-secondary hover:border-hover hover:bg-hover'
-          }`}
-        >
-          <ThumbsUp className={`w-5 h-5 ${value === 'Yes' ? 'text-accent' : 'text-muted'}`} />
-          <span className={`text-xs ${value === 'Yes' ? 'text-accent font-medium' : ''}`}>{yesLabel || 'Yes'}</span>
-        </button>
-        <button
-          onClick={() => onChange('No')}
-          className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${
-            value === 'No'
-              ? 'border-accent bg-accent-tint ring-1 ring-accent'
-              : 'border-default text-secondary hover:border-hover hover:bg-hover'
-          }`}
-        >
-          <ThumbsDown className={`w-5 h-5 ${value === 'No' ? 'text-accent' : 'text-muted'}`} />
-          <span className={`text-xs ${value === 'No' ? 'text-accent font-medium' : ''}`}>{noLabel || 'No'}</span>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function VisualTernary({ label, options, value, onChange }: {
-  label: string;
-  options: { value: string; label: string; icon: IconComponent }[];
-  value?: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium text-primary">{label}</p>
-      <div className="grid grid-cols-3 gap-1.5">
-        {options.map(opt => {
-          const Icon = opt.icon;
-          return (
-            <button
-              key={opt.value}
-              onClick={() => onChange(opt.value)}
-              className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${
-                value === opt.value
-                  ? 'border-accent bg-accent-tint ring-1 ring-accent'
-                  : 'border-default text-secondary hover:border-hover hover:bg-hover'
-              }`}
-            >
-              <Icon className={`w-5 h-5 ${value === opt.value ? 'text-accent' : 'text-muted'}`} />
-              <span className={`text-[11px] leading-tight ${value === opt.value ? 'text-accent font-medium' : ''}`}>
-                {opt.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/* ---- Step 1: Usage Pattern ---- */
-function UsageStep({ answers, setAnswer }: { answers: Record<string, unknown>; setAnswer: (k: string, v: unknown) => void }) {
-  const [otherText, setOtherText] = useState('');
-  const blocker = answers.journaling_blocker as string | undefined;
-
-  return (
-    <div className="space-y-4">
-      <VisualSelect
-        label="How often did you write during the test?"
-        options={[
-          { value: 'Daily', label: 'Daily', icon: Sun },
-          { value: 'A few times a week', label: 'A few times a week', icon: CalendarDays },
-          { value: 'Once or twice', label: 'Once or twice', icon: Calendar },
-          { value: 'Just exploring', label: "Just exploring", icon: Compass },
-        ]}
-        value={answers.usage_frequency as string | undefined}
-        onChange={v => setAnswer('usage_frequency', v)}
-      />
-      <VisualSelect
-        label="What usually stops you from journaling more?"
-        options={[
-          { value: 'No time', label: 'No time', icon: Clock },
-          { value: "Didn't know what to write", label: "Didn't know what to write", icon: HelpCircle },
-          { value: 'Forgot the app existed', label: 'Forgot the app', icon: EyeOff },
-          { value: 'No reason to come back', label: 'No reason to return', icon: Frown },
-          { value: 'Other', label: 'Other', icon: MoreHorizontal },
-        ]}
-        value={blocker}
-        onChange={v => { setAnswer('journaling_blocker', v); if (v !== 'Other') setOtherText(''); }}
-      />
-      {blocker === 'Other' && (
-        <div>
-          <p className="text-xs font-medium text-secondary mb-1">Please specify:</p>
-          <input
-            type="text"
-            value={otherText}
-            onChange={e => { setOtherText(e.target.value); setAnswer('journaling_blocker_other', e.target.value); }}
-            className="w-full px-3 py-2 rounded-lg border border-default bg-surface text-primary text-sm focus:border-accent"
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ---- Step 2: Features Tried ---- */
-function FeaturesStep({ answers, setAnswer }: { answers: Record<string, unknown>; setAnswer: (k: string, v: unknown) => void }) {
-  return (
-    <div className="space-y-4">
-      <VisualMultiSelect
-        label="Which of these did you try?"
-        options={[
-          { value: 'Writing entries', label: 'Writing entries', icon: FileText },
-          { value: 'Mirror Reflections', label: 'Mirror Reflections', icon: Sparkles },
-          { value: 'Chat', label: 'Chat', icon: MessageCircle },
-          { value: 'None beyond journaling', label: 'None beyond', icon: Minus },
-        ]}
-        value={answers.features_tried as string[] | undefined}
-        onChange={v => setAnswer('features_tried', v)}
-      />
-      <VisualSelect
-        label="Of the ones you tried, which felt most useful?"
-        options={[
-          { value: 'Writing entries', label: 'Writing entries', icon: FileText },
-          { value: 'Mirror Reflections', label: 'Mirror Reflections', icon: Sparkles },
-          { value: 'Chat', label: 'Chat', icon: MessageCircle },
-          { value: 'None beyond journaling', label: 'None beyond', icon: Minus },
-        ]}
-        value={answers.features_most_useful as string | undefined}
-        onChange={v => setAnswer('features_most_useful', v)}
-      />
-      <VisualSelect
-        label="Did the AI's responses feel specific to you or generic?"
-        options={[
-          { value: 'Specific to me', label: 'Specific to me', icon: Sparkles },
-          { value: 'Somewhat personal', label: 'Somewhat personal', icon: Meh },
-          { value: 'Generic boilerplate', label: 'Generic', icon: Bot },
-          { value: "Didn't try AI", label: "Didn't try AI", icon: EyeOff },
-        ]}
-        value={answers.ai_personalization as string | undefined}
-        onChange={v => setAnswer('ai_personalization', v)}
-      />
-      <VisualSelect
-        label="Did the Mirror Reflections feel accurate or generic?"
-        options={[
-          { value: 'Accurate', label: 'Accurate', icon: ThumbsUp },
-          { value: 'A bit generic', label: 'A bit generic', icon: Meh },
-          { value: "Didn't try it", label: "Didn't try it", icon: EyeOff },
-        ]}
-        value={answers.mirror_accuracy as string | undefined}
-        onChange={v => setAnswer('mirror_accuracy', v)}
-      />
-      <VisualSelect
-        label="Did the AI chat feel like a real conversation or more like a scripted bot?"
-        options={[
-          { value: 'Real conversation', label: 'Real convo', icon: MessageCircle },
-          { value: 'Somewhere in between', label: 'In between', icon: Meh },
-          { value: 'Scripted', label: 'Scripted', icon: Bot },
-          { value: "Didn't try it", label: "Didn't try it", icon: EyeOff },
-        ]}
-        value={answers.chat_realism as string | undefined}
-        onChange={v => setAnswer('chat_realism', v)}
-      />
-    </div>
-  );
-}
-
-/* ---- Step 3: UI/UX ---- */
-function UIUXStep({ answers, setAnswer }: { answers: Record<string, unknown>; setAnswer: (k: string, v: unknown) => void }) {
-  const [feltLostText, setFeltLostText] = useState('');
-
-  return (
-    <div className="space-y-4">
-      <VisualScale
-        label="Overall, how did the app feel to use?"
-        low="Confusing"
-        high="Smooth"
-        value={answers.overall_feel as number | undefined}
-        onChange={v => setAnswer('overall_feel', v)}
-      />
-      <VisualScale
-        label="Did the app help you understand yourself better?"
-        low="Not really"
-        high="Absolutely"
-        value={answers.self_understanding as number | undefined}
-        onChange={v => setAnswer('self_understanding', v)}
-      />
-      <VisualYesNo
-        label="Was there a moment you felt lost or unsure what to do next?"
-        value={answers.felt_lost as string | undefined}
-        onChange={v => { setAnswer('felt_lost', v); if (v !== 'Yes') setFeltLostText(''); }}
-      />
-      {answers.felt_lost === 'Yes' && (
-        <div>
-          <p className="text-xs font-medium text-secondary mb-1">What happened?</p>
-          <textarea
-            value={feltLostText}
-            onChange={e => { setFeltLostText(e.target.value); setAnswer('felt_lost_detail', e.target.value); }}
-            className="w-full px-3 py-2 rounded-lg border border-default bg-surface text-primary text-sm focus:border-accent min-h-[60px]"
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ---- Step 4: Retention & Pricing ---- */
-function RetentionStep({ answers, setAnswer }: { answers: Record<string, unknown>; setAnswer: (k: string, v: unknown) => void }) {
-  return (
-    <div className="space-y-4">
-      <VisualTernary
-        label="Would you keep using this if it were free?"
-        options={[
-          { value: 'Yes', label: 'Yes', icon: ThumbsUp },
-          { value: 'Maybe', label: 'Maybe', icon: Meh },
-          { value: 'No', label: 'No', icon: ThumbsDown },
-        ]}
-        value={answers.would_use_free as string | undefined}
-        onChange={v => setAnswer('would_use_free', v)}
-      />
-      <VisualTernary
-        label="Would you pay for it?"
-        options={[
-          { value: 'Yes', label: 'Yes', icon: ThumbsUp },
-          { value: 'Maybe, depends on price', label: 'Depends', icon: Meh },
-          { value: 'No', label: 'No', icon: ThumbsDown },
-        ]}
-        value={answers.would_pay as string | undefined}
-        onChange={v => setAnswer('would_pay', v)}
-      />
-    </div>
-  );
-}
-
-/* ---- Step 5: Open Feedback ---- */
-function OpenStep({ answers, setAnswer }: { answers: Record<string, unknown>; setAnswer: (k: string, v: unknown) => void }) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <p className="text-sm font-medium text-primary mb-1">
-          Anything that confused you, felt missing, or you wish worked differently?
-        </p>
-        <textarea
-          value={(answers.confusion_or_missing as string) || ''}
-          onChange={e => setAnswer('confusion_or_missing', e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border border-default bg-surface text-primary text-sm focus:border-accent min-h-[80px]"
-        />
-      </div>
-      <div>
-        <p className="text-sm font-medium text-primary mb-1">
-          Any features you wish existed?
-        </p>
-        <textarea
-          value={(answers.feature_wishlist as string) || ''}
-          onChange={e => setAnswer('feature_wishlist', e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border border-default bg-surface text-primary text-sm focus:border-accent min-h-[80px]"
-        />
-      </div>
-    </div>
-  );
-}

@@ -16,6 +16,42 @@ export function useBackendHealth() {
   const controllerRef = useRef<AbortController | null>(null);
   const checkInFlightRef = useRef(false);
 
+  const handleFailure = useCallback((statusCode: number, reason?: string) => {
+    consecutiveFailuresRef.current++;
+
+    const wasHealthy = statusRef.current === 'healthy';
+    statusRef.current = 'unhealthy';
+
+    if (wasHealthy) {
+      Sentry.captureEvent({
+        message: 'Backend health degraded',
+        level: 'warning',
+        tags: {
+          monitor: 'backend_health',
+          status_code: String(statusCode),
+          reason: reason || 'http_error',
+        },
+        extra: {
+          consecutive_failures: consecutiveFailuresRef.current,
+          health_url: HEALTH_URL,
+          status_code: statusCode,
+        },
+      });
+    }
+
+    if (consecutiveFailuresRef.current >= 5) {
+      Sentry.captureEvent({
+        message: `Backend persistently unreachable (${consecutiveFailuresRef.current} failures)`,
+        level: 'fatal',
+        tags: { monitor: 'backend_health' },
+        extra: {
+          consecutive_failures: consecutiveFailuresRef.current,
+          health_url: HEALTH_URL,
+        },
+      });
+    }
+  }, []);
+
   const check = useCallback(async () => {
     if (checkInFlightRef.current) return;
     checkInFlightRef.current = true;
@@ -65,43 +101,7 @@ export function useBackendHealth() {
       if (controllerRef.current === controller) controllerRef.current = null;
       if (controllerRef.current === null) checkInFlightRef.current = false;
     }
-  }, []);
-
-  const handleFailure = useCallback((statusCode: number, reason?: string) => {
-    consecutiveFailuresRef.current++;
-
-    const wasHealthy = statusRef.current === 'healthy';
-    statusRef.current = 'unhealthy';
-
-    if (wasHealthy) {
-      Sentry.captureEvent({
-        message: 'Backend health degraded',
-        level: 'warning',
-        tags: {
-          monitor: 'backend_health',
-          status_code: String(statusCode),
-          reason: reason || 'http_error',
-        },
-        extra: {
-          consecutive_failures: consecutiveFailuresRef.current,
-          health_url: HEALTH_URL,
-          status_code: statusCode,
-        },
-      });
-    }
-
-    if (consecutiveFailuresRef.current >= 5) {
-      Sentry.captureEvent({
-        message: `Backend persistently unreachable (${consecutiveFailuresRef.current} failures)`,
-        level: 'fatal',
-        tags: { monitor: 'backend_health' },
-        extra: {
-          consecutive_failures: consecutiveFailuresRef.current,
-          health_url: HEALTH_URL,
-        },
-      });
-    }
-  }, []);
+  }, [handleFailure]);
 
   useEffect(() => {
     check();
