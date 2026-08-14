@@ -8,6 +8,7 @@ import { StarterKit } from '@tiptap/starter-kit';
 import { Collaboration } from '@tiptap/extension-collaboration';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
+import { sanitizeTag, parseHashTags, replaceHashtagInTiptapAst } from '@utils/tagUtils';
 
 
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
@@ -55,35 +56,7 @@ const SaveIndicator: React.FC<{ status: SaveStatus; onRetry?: () => void }> = ({
   );
 };
 
-function parseHashTags(text: string): string[] {
-  const matches = text.match(/#([\p{L}\p{N}_-]+)/gu);
-  if (!matches) return [];
-  return [...new Set(matches.map(m => m.slice(1)))];
-}
 
-function replaceHashtagInTiptapAst(node: any, oldTag: string, newTag: string | null): any {
-  if (!node || typeof node !== 'object') return node;
-
-  const newNode = Array.isArray(node) ? [...node] : { ...node };
-
-  if (newNode.type === 'text' && typeof newNode.text === 'string') {
-    const escaped = oldTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`#${escaped}(?=[\\s.,!?;:]|$)`, 'gui');
-    if (newTag !== null) {
-      newNode.text = newNode.text.replace(regex, `#${newTag}`);
-    } else {
-      newNode.text = newNode.text.replace(regex, oldTag);
-    }
-  }
-
-  if (Array.isArray(newNode.content)) {
-    newNode.content = newNode.content.map((child: any) =>
-      replaceHashtagInTiptapAst(child, oldTag, newTag)
-    );
-  }
-
-  return newNode;
-}
 
 function isRealId(v: string | number | null): boolean {
   return v !== null && v !== 'pending' && !v.toString().startsWith('draft-');
@@ -594,7 +567,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     
     let finalTags = allTags;
     if (showTagInput && tagInputValue.trim()) {
-      const t = tagInputValue.trim().toLowerCase().replace(/\s+/g, '-');
+      const t = sanitizeTag(tagInputValue);
       if (t && !explicitTags.includes(t)) {
         const updatedExplicit = [...explicitTags, t];
         setExplicitTags(updatedExplicit);
@@ -623,7 +596,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   };
 
   const addTagDirect = (name: string) => {
-    const t = name.trim().toLowerCase().replace(/\s+/g, '-');
+    const t = sanitizeTag(name);
     if (t && !allTags.includes(t)) {
       setExplicitTags(prev => [...prev, t]);
     }

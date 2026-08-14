@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, Tag, Search, Filter, X, Loader2, UnfoldVertical, Settings2 } from 'lucide-react';
 import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
 import { isEntryUnsynced } from '@utils/offlineStorage';
+import { formatTagStyle } from '@utils/tagUtils';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { renderTextWithLineDirection } from '@utils/textDirection';
 import { EntryMenu } from './EntryMenu';
@@ -297,35 +298,20 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
 
                 {entry.tags && entry.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-3">
-                    {entry.tags.slice(0, MAX_VISIBLE_TAGS).map((tag, i) => {
-                      const color = tagColorMap[tag];
-                      return color ? (
-                        <button
-                          key={i}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onTagToggle(tag);
-                          }}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs hover:scale-105 transition-transform"
-                          style={{ backgroundColor: `${color}20`, color }}
-                        >
-                          <Tag className="w-3 h-3" />
-                          {tag}
-                        </button>
-                      ) : (
-                        <button
-                          key={i}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onTagToggle(tag);
-                          }}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent-tint/50 text-accent-tint hover:scale-105 transition-transform"
-                        >
-                          <Tag className="w-3 h-3" />
-                          {tag}
-                        </button>
-                      );
-                    })}
+                    {entry.tags.slice(0, MAX_VISIBLE_TAGS).map((tag, i) => (
+                      <button
+                        key={i}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onTagToggle(tag);
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs hover:scale-105 transition-transform"
+                        style={formatTagStyle(tagColorMap[tag])}
+                      >
+                        <Tag className="w-3 h-3" />
+                        {tag}
+                      </button>
+                    ))}
                     {entry.tags.length > MAX_VISIBLE_TAGS && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs text-muted">
                         +{entry.tags.length - MAX_VISIBLE_TAGS}

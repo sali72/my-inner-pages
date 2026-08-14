@@ -1,5 +1,16 @@
+import re
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator, ConfigDict
+
+
+def normalize_tag(name: str) -> str:
+    """
+    Normalize tag name into canonical kebab-case format.
+    Example: ' Self Care ' -> 'self-care'
+    """
+    if not name:
+        return ""
+    return re.sub(r"\s+", "-", name.strip().lower()).lstrip("#")
 
 
 class TagResponse(BaseModel):
@@ -43,8 +54,7 @@ class RenameTagRequest(BaseModel):
     @field_validator("new_name")
     @classmethod
     def normalize(cls, v: str) -> str:
-        import re
-        normalized = re.sub(r"\s+", "-", v.strip().lower())
+        normalized = normalize_tag(v)
         if not normalized:
             raise ValueError("Tag name cannot be empty")
         return normalized

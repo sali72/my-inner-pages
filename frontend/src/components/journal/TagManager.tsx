@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Pencil, Trash2, Palette, Tags, Hash, Search, ArrowUpDown } from 'lucide-react';
 import { useAllTags, useRenameTag, useDeleteTag, useUpdateTagColor } from '@hooks/useTags';
+import { sanitizeTag } from '@utils/tagUtils';
 
 const COLOR_PRESETS = [
   '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1abc9c',
@@ -57,7 +58,7 @@ export const TagManager: React.FC<TagManagerProps> = ({ isOpen, onClose, onSelec
 
   const handleRename = async () => {
     if (!editingTag || !renameValue.trim()) return;
-    const normalizedNew = renameValue.trim().toLowerCase().replace(/\s+/g, '-');
+    const normalizedNew = sanitizeTag(renameValue);
     try {
       await renameTag.mutateAsync({ oldName: editingTag, newName: normalizedNew });
       setEditingTag(null);
