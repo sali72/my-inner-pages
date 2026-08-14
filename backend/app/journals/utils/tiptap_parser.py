@@ -50,7 +50,7 @@ def replace_hashtag_in_text(text: str, old_tag: str, new_tag: Optional[str]) -> 
     """
     Replace or remove #old_tag in plain text.
     If new_tag is provided, #old_tag is replaced with #new_tag.
-    If new_tag is None, #old_tag is removed from the text.
+    If new_tag is None, #old_tag is converted to old_tag (stripping the leading #).
     """
     if not text or not old_tag:
         return text
@@ -61,8 +61,7 @@ def replace_hashtag_in_text(text: str, old_tag: str, new_tag: Optional[str]) -> 
     if new_tag is not None:
         return pattern.sub(f'#{new_tag}', text)
     else:
-        cleaned = pattern.sub('', text)
-        return re.sub(r'  +', ' ', cleaned).strip()
+        return pattern.sub(old_tag, text)
 
 
 def replace_hashtag_in_tiptap_json(

@@ -43,7 +43,8 @@ class RenameTagRequest(BaseModel):
     @field_validator("new_name")
     @classmethod
     def normalize(cls, v: str) -> str:
-        normalized = v.strip().lower()
+        import re
+        normalized = re.sub(r"\s+", "-", v.strip().lower())
         if not normalized:
             raise ValueError("Tag name cannot be empty")
         return normalized

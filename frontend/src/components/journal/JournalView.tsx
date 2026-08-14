@@ -136,6 +136,37 @@ export const JournalView: React.FC<JournalViewProps> = ({
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
+  useEffect(() => {
+    const handleTagUpdated = (e: Event) => {
+      const { oldName } = (e as CustomEvent).detail;
+      if (!oldName) return;
+
+      const map = localEntryRef.current;
+      const lowerOld = oldName.toLowerCase();
+
+      entries.forEach(backendEntry => {
+        const hasTag = backendEntry.tags?.some(t => t.toLowerCase() === lowerOld);
+        const hasTextTag = backendEntry.content?.toLowerCase().includes(`#${lowerOld}`);
+        if (hasTag || hasTextTag) {
+          // Delete stale Yjs IndexedDB doc so editor opens with fresh backend content
+          try {
+            indexedDB.deleteDatabase(`my-inner-pages-journal-${backendEntry.id}`);
+          } catch {}
+
+          if (map) {
+            map.delete(backendEntry.id);
+          }
+          removeUnsyncedEntry(backendEntry.id);
+        }
+      });
+
+      setSyncVersion(v => v + 1);
+    };
+
+    window.addEventListener('journal:tag-updated', handleTagUpdated);
+    return () => window.removeEventListener('journal:tag-updated', handleTagUpdated);
+  }, [entries]);
+
   // Synchronize and prune localEntryRef entries when they are fully synced to
   // backend entries or when fresh backend entries arrive. This mutates a ref and
   // writes localStorage, so it must run as an effect (not during render).
@@ -201,8 +232,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
         entry.content.toLowerCase().includes(lowerSearchQuery);
       const matchesTags = selectedTags.length === 0 ||
         (tagMode === 'and'
-          ? selectedTags.every(tag => entry.tags?.includes(tag))
-          : selectedTags.some(tag => entry.tags?.includes(tag)));
+          ? selectedTags.every(tag => entry.tags?.some(t => t.toLowerCase() === tag.toLowerCase()))
+          : selectedTags.some(tag => entry.tags?.some(t => t.toLowerCase() === tag.toLowerCase())));
       return matchesSearch && matchesTags;
     });
 
@@ -328,6 +359,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
             onDelete={() => handleDeleteEntry(displayEntry.id)}
             onChat={() => onStartChat(displayEntry)}
             onBack={handleBackToTimeline}
+            onSelectTagFilter={(tag) => { setSelectedTags([tag]); handleBackToTimeline(); }}
           />
       </div>
     );
@@ -372,7 +404,11 @@ export const JournalView: React.FC<JournalViewProps> = ({
       >
         <Edit2 className="w-6 h-6" />
       </button>
-      <TagManager isOpen={showTagManager} onClose={() => setShowTagManager(false)} />
+      <TagManager
+        isOpen={showTagManager}
+        onClose={() => setShowTagManager(false)}
+        onSelectTagFilter={(tag) => setSelectedTags([tag])}
+      />
     </div>
   );
 };

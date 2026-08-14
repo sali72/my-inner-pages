@@ -27,9 +27,14 @@ export function useRenameTag() {
     mutationFn: async ({ oldName, newName }: { oldName: string; newName: string }) => {
       await api.put(`/tags/${encodeURIComponent(oldName)}`, { new_name: newName });
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ALL_TAGS_KEY });
       queryClient.invalidateQueries({ queryKey: JOURNALS_KEY });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('journal:tag-updated', {
+          detail: { action: 'rename', oldName: variables.oldName, newName: variables.newName }
+        }));
+      }
     },
   });
 }
@@ -41,9 +46,14 @@ export function useDeleteTag() {
     mutationFn: async (name: string) => {
       await api.delete(`/tags/${encodeURIComponent(name)}`);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ALL_TAGS_KEY });
       queryClient.invalidateQueries({ queryKey: JOURNALS_KEY });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('journal:tag-updated', {
+          detail: { action: 'delete', oldName: variables }
+        }));
+      }
     },
   });
 }

@@ -31,6 +31,7 @@ interface JournalPageProps {
   onDelete: () => void;
   onChat: () => void;
   onBack: () => void;
+  onSelectTagFilter?: (tag: string) => void;
 }
 
 type SaveStatus = 'error' | 'unsynced' | null;
@@ -55,7 +56,7 @@ const SaveIndicator: React.FC<{ status: SaveStatus; onRetry?: () => void }> = ({
 };
 
 function parseHashTags(text: string): string[] {
-  const matches = text.match(/#([\w-]+)/g);
+  const matches = text.match(/#([\p{L}\p{N}_-]+)/gu);
   if (!matches) return [];
   return [...new Set(matches.map(m => m.slice(1)))];
 }
@@ -67,11 +68,11 @@ function replaceHashtagInTiptapAst(node: any, oldTag: string, newTag: string | n
 
   if (newNode.type === 'text' && typeof newNode.text === 'string') {
     const escaped = oldTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`#${escaped}\\b`, 'gi');
+    const regex = new RegExp(`#${escaped}(?=[\\s.,!?;:]|$)`, 'gui');
     if (newTag !== null) {
       newNode.text = newNode.text.replace(regex, `#${newTag}`);
     } else {
-      newNode.text = newNode.text.replace(regex, '').replace(/  +/g, ' ');
+      newNode.text = newNode.text.replace(regex, oldTag);
     }
   }
 
@@ -101,6 +102,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   onDelete,
   onChat,
   onBack,
+  onSelectTagFilter,
 }) => {
   const [title, setTitle] = useState(entry.title);
   const [content, setContent] = useState(entry.content);
@@ -162,7 +164,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     const { from } = ed.state.selection;
     const $from = ed.state.selection.$from;
     const textBefore = $from.parent.textBetween(0, $from.parentOffset);
-    const match = textBefore.match(/(?:^|\s)(#([\w-]*))$/);
+    const match = textBefore.match(/(?:^|\s)(#([\p{L}\p{N}_-]*))$/u);
 
     if (match) {
       setAutoQuery(match[2]);
@@ -171,8 +173,8 @@ export const JournalPage: React.FC<JournalPageProps> = ({
       
       const coords = ed.view.coordsAtPos(from);
       setAutoPos({
-        top: coords.top + window.scrollY,
-        left: coords.left + window.scrollX,
+        top: coords.bottom + 4,
+        left: coords.left,
       });
     } else {
       setShowAuto(false);
@@ -182,41 +184,50 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   // 2. Initialize Tiptap Editor with Collaboration Support & Rich Text
   const [contentJson, setContentJson] = useState<any>(entry.content_json);
 
+  const extensions = useMemo(() => [
+    StarterKit.configure({
+      heading: { levels: [1, 2, 3] },
+    }),
+    Link.configure({
+      openOnClick: false,
+      autolink: true,
+      defaultProtocol: 'https',
+      HTMLAttributes: {
+        class: 'text-accent underline underline-offset-2 hover:opacity-80 transition-opacity cursor-pointer',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+      },
+    }),
+    Collaboration.configure({
+      document: ydoc,
+      field: 'content',
+    }),
+    Placeholder.configure({
+      placeholder: isNew ? 'Begin writing your story...' : 'Begin writing...',
+    }),
+  ], [ydoc, isNew]);
+
+  const checkAutocompleteRef = useRef(checkAutocomplete);
+  useEffect(() => {
+    checkAutocompleteRef.current = checkAutocomplete;
+  }, [checkAutocomplete]);
+
+  const handleEditorUpdate = useCallback(({ editor: ed }: { editor: any }) => {
+    const json = ed.getJSON();
+    setContentJson(json);
+    setContent(ed.getText());
+    checkAutocompleteRef.current(ed);
+  }, []);
+
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-      }),
-      Link.configure({
-        openOnClick: false,
-        autolink: true,
-        defaultProtocol: 'https',
-        HTMLAttributes: {
-          class: 'text-accent underline underline-offset-2 hover:opacity-80 transition-opacity cursor-pointer',
-          target: '_blank',
-          rel: 'noopener noreferrer',
-        },
-      }),
-      Collaboration.configure({
-        document: ydoc,
-        field: 'content',
-      }),
-      Placeholder.configure({
-        placeholder: isNew ? 'Begin writing your story...' : 'Begin writing...',
-      }),
-    ],
+    extensions,
     editorProps: {
       attributes: {
         class: 'focus:outline-none min-h-[8rem] leading-relaxed text-body placeholder:text-muted/40 prose dark:prose-invert max-w-none',
         style: 'unicode-bidi: plaintext;',
       },
     },
-    onUpdate: ({ editor: ed }) => {
-      const json = ed.getJSON();
-      setContentJson(json);
-      setContent(ed.getText());
-      checkAutocomplete(ed);
-    },
+    onUpdate: handleEditorUpdate,
     onSelectionUpdate: ({ editor: ed }) => {
       checkAutocomplete(ed);
     },
@@ -237,7 +248,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
 
   // Populate Tiptap if the local document is uninitialized
   useEffect(() => {
-    if (editor && isLoaded) {
+    if (editor && !editor.isDestroyed && isLoaded) {
       const contentFragment = ydoc.getXmlFragment('content');
       if (contentFragment.length === 0) {
         if (entry.content_json) {
@@ -259,11 +270,42 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     }
   }, [isLoaded, ydoc]);
 
+  const entryTagsKey = (entry.tags || []).join(',');
   useEffect(() => {
     const fromContent = parseHashTags(entry.content || '');
     const orphaned = (entry.tags || []).filter(t => !fromContent.includes(t));
-    setExplicitTags(orphaned);
-  }, [entry.id]);
+    setExplicitTags(prev => {
+      if (prev.length === orphaned.length && prev.every((t, i) => t === orphaned[i])) {
+        return prev;
+      }
+      return orphaned;
+    });
+  }, [entry.id, entryTagsKey, entry.content]);
+
+  useEffect(() => {
+    const handleTagUpdated = (e: Event) => {
+      const { action, oldName, newName } = (e as CustomEvent).detail;
+      if (!oldName) return;
+
+      if (action === 'delete') {
+        setExplicitTags(prev => prev.filter(t => t.toLowerCase() !== oldName.toLowerCase()));
+        if (editor) {
+          const currentJson = editor.getJSON();
+          const updatedJson = replaceHashtagInTiptapAst(currentJson, oldName, null);
+          editor.commands.setContent(updatedJson);
+        }
+      } else if (action === 'rename' && newName) {
+        setExplicitTags(prev => prev.map(t => t.toLowerCase() === oldName.toLowerCase() ? newName.toLowerCase() : t));
+        if (editor) {
+          const currentJson = editor.getJSON();
+          const updatedJson = replaceHashtagInTiptapAst(currentJson, oldName, newName);
+          editor.commands.setContent(updatedJson);
+        }
+      }
+    };
+    window.addEventListener('journal:tag-updated', handleTagUpdated);
+    return () => window.removeEventListener('journal:tag-updated', handleTagUpdated);
+  }, [editor]);
 
   const parsedTags = useMemo(() => parseHashTags(content), [content]);
 
@@ -331,7 +373,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     }
   };
 
-  const save = useCallback(async () => {
+  const save = useCallback(async (customTags?: string[]) => {
     // If a creation request is currently in-flight, await it so we don't start duplicate requests
     if (creationPromiseRef.current) {
       try {
@@ -344,19 +386,20 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
     const currentJson = editor ? editor.getJSON() : contentJson;
     const draftCheckId = entryIdRef.current;
+    const targetTags = customTags || allTags;
 
     // Case 1: Brand new entry, no creation in progress, and no ID assigned yet
     if (isNew && (draftCheckId === null || draftCheckId === undefined)) {
       const trimmedTitle = title.trim();
       const trimmedContent = content.trim();
-      const hasContentToSave = trimmedTitle !== '' || trimmedContent !== '' || allTags.length > 0;
+      const hasContentToSave = trimmedTitle !== '' || trimmedContent !== '' || targetTags.length > 0;
       if (!hasContentToSave) return;
 
       entryIdRef.current = 'pending';
 
       creationPromiseRef.current = (async () => {
         try {
-          const id = await onCreate!(trimmedTitle, trimmedContent, allTags, isoDate, currentJson);
+          const id = await onCreate!(trimmedTitle, trimmedContent, targetTags, isoDate, currentJson);
           entryIdRef.current = id;
           return id;
         } catch {
@@ -367,7 +410,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
             title: trimmedTitle,
             content: trimmedContent,
             content_json: currentJson,
-            tags: allTags,
+            tags: targetTags,
             created_at: isoDate,
             date: entryDate || new Date().toLocaleString(),
           };
@@ -399,7 +442,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         title: title.trim(),
         content: content.trim(),
         content_json: currentJson,
-        tags: allTags,
+        tags: targetTags,
         created_at: isoDate,
         date: entryDate || new Date().toLocaleString(),
       };
@@ -421,7 +464,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
             title: trimmedTitle,
             content_json: currentJson,
             content: trimmedContent,
-            tags: allTags,
+            tags: targetTags,
             created_at: isoDate
           });
         } else if (onUpdate) {
@@ -429,7 +472,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
             title: trimmedTitle,
             content_json: currentJson,
             content: trimmedContent,
-            tags: allTags,
+            tags: targetTags,
             created_at: isoDate
           });
         }
@@ -440,7 +483,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
           title: trimmedTitle,
           content: trimmedContent,
           content_json: currentJson,
-          tags: allTags,
+          tags: targetTags,
           created_at: isoDate,
           date: entryDate || new Date().toLocaleString(),
         };
@@ -490,12 +533,17 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   }, [isNew, title, content, contentJson, editor, allTags, entryDate, entry]);
 
   // Unified autosave debounce effect
+  const saveRef = useRef(save);
+  useEffect(() => {
+    saveRef.current = save;
+  }, [save]);
+
   useEffect(() => {
     // If it's a new entry and creation hasn't started yet:
     if (isNew && entryIdRef.current === null) {
-      if (title.trim() || content.trim() || allTags.length > 0) {
+      if (title.trim() || content.trim()) {
         if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
-        creationTimerRef.current = setTimeout(() => save(), 600);
+        creationTimerRef.current = setTimeout(() => saveRef.current(), 600);
       }
       return () => {
         if (creationTimerRef.current) clearTimeout(creationTimerRef.current);
@@ -503,9 +551,9 @@ export const JournalPage: React.FC<JournalPageProps> = ({
     }
 
     // For existing entries OR for new entries that have started creation:
-    const timer = setTimeout(() => save(), 1200);
+    const timer = setTimeout(() => saveRef.current(), 1200);
     return () => clearTimeout(timer);
-  }, [title, content, contentJson, allTags, isNew, save]);
+  }, [title, content, contentJson, isNew]);
 
   useEffect(() => {
     const handleBeforeUnload = () => { persistLocally(); };
@@ -543,14 +591,27 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   const handleBack = useCallback(async () => {
     if (isNavigatingBackRef.current) return;
     isNavigatingBackRef.current = true;
+    
+    let finalTags = allTags;
+    if (showTagInput && tagInputValue.trim()) {
+      const t = tagInputValue.trim().toLowerCase().replace(/\s+/g, '-');
+      if (t && !explicitTags.includes(t)) {
+        const updatedExplicit = [...explicitTags, t];
+        setExplicitTags(updatedExplicit);
+        finalTags = [...new Set([...updatedExplicit, ...parsedTags])];
+      }
+      setShowTagInput(false);
+      setTagInputValue('');
+    }
+
     try {
-      await save();
+      await save(finalTags);
     } catch (err) {
       console.error("Save on back navigation failed:", err);
     } finally {
       onBack();
     }
-  }, [save, onBack]);
+  }, [showTagInput, tagInputValue, explicitTags, parsedTags, allTags, save, onBack]);
 
   const removeTag = (tag: string) => {
     setExplicitTags(prev => prev.filter(t => t !== tag));
@@ -562,7 +623,7 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   };
 
   const addTagDirect = (name: string) => {
-    const t = name.trim().toLowerCase();
+    const t = name.trim().toLowerCase().replace(/\s+/g, '-');
     if (t && !allTags.includes(t)) {
       setExplicitTags(prev => [...prev, t]);
     }
@@ -585,7 +646,8 @@ export const JournalPage: React.FC<JournalPageProps> = ({
 
   // Keyboard navigation for floating autocomplete dropdown
   useEffect(() => {
-    const el = editor?.view.dom;
+    if (!editor || editor.isDestroyed || !editor.view) return;
+    const el = editor.view.dom;
     if (!el) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -769,24 +831,26 @@ export const JournalPage: React.FC<JournalPageProps> = ({
             const color = tagColorMap[tag];
             return color ? (
               <span key={tag}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs group"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs group cursor-pointer hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: `${color}20`, color }}
+                onClick={() => onSelectTagFilter?.(tag)}
               >
                 #{tag}
-                <button onClick={() => removeTag(tag)}
+                <button onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
                   aria-label={`Remove tag ${tag}`}
-                  className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 hover:text-red-500 transition-all">
+                  className="hover:text-red-500 transition-colors p-0.5 rounded">
                   <X className="w-3 h-3" />
                 </button>
               </span>
             ) : (
               <span key={tag}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-accent-tint/50 text-accent-tint group"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-accent-tint/50 text-accent-tint group cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => onSelectTagFilter?.(tag)}
               >
                 #{tag}
-                <button onClick={() => removeTag(tag)}
+                <button onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
                   aria-label={`Remove tag ${tag}`}
-                  className="md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 hover:text-red-500 transition-all">
+                  className="hover:text-red-500 transition-colors p-0.5 rounded">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -804,8 +868,12 @@ export const JournalPage: React.FC<JournalPageProps> = ({
                 ref={tagInputRef}
                 type="text"
                 value={tagInputValue}
-                onChange={(e) => { setTagInputValue(e.target.value); setTagAutoActiveIndex(0); }}
+                onChange={(e) => { setTagInputValue(e.target.value.replace(/\s+/g, '-')); setTagAutoActiveIndex(0); }}
                 onKeyDown={(e) => {
+                  if (e.key === ' ') {
+                    e.preventDefault();
+                    setTagInputValue(prev => prev + '-');
+                  }
                   if (e.key === 'Enter') {
                     if (filteredTagInputSuggestions.length > 0) {
                       addTagDirect(filteredTagInputSuggestions[tagAutoActiveIndex]);
@@ -825,8 +893,11 @@ export const JournalPage: React.FC<JournalPageProps> = ({
                   }
                 }}
                 onBlur={() => {
-                  // Delay to allow click on dropdown item
-                  setTimeout(() => addTagDirect(tagInputValue), 150);
+                  if (tagInputValue.trim()) {
+                    addTagDirect(tagInputValue);
+                  } else {
+                    setShowTagInput(false);
+                  }
                 }}
                 placeholder="Tag"
                 className="px-2 py-0.5 rounded text-xs input-field w-28"

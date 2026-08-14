@@ -54,6 +54,16 @@ const getMoodDot = (mood?: string) => {
   return <span className={`inline-block w-2 h-2 rounded-full ${color} mr-1.5`} />;
 };
 
+function getContrastTextColor(hexColor: string): string {
+  const hex = hexColor.replace('#', '');
+  if (hex.length !== 6) return '#ffffff';
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 140 ? '#1e293b' : '#ffffff';
+}
+
 export const JournalTimeline: React.FC<JournalTimelineProps> = ({
   entries,
   allTags,
@@ -80,7 +90,7 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
   hasMore,
   onLoadMore,
 }) => {
-  const MAX_VISIBLE_TAGS = 2;
+  const MAX_VISIBLE_TAGS = 4;
   const hasActiveFilters = searchQuery || selectedTags.length > 0;
   const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
   const [entryToDelete, setEntryToDelete] = useState<JournalEntry | null>(null);
@@ -194,16 +204,17 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
                     {allTags.map(tag => {
                       const color = tagColorMap[tag];
                       const isSelected = selectedTags.includes(tag);
+                      const textColor = isSelected && color ? getContrastTextColor(color) : 'text-white';
                       return (
                         <button
                           key={tag}
                           onClick={() => onTagToggle(tag)}
                           className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
                             isSelected
-                              ? color ? 'text-white' : 'bg-accent text-white'
+                              ? color ? '' : 'bg-accent text-white'
                               : 'bg-surface-hover text-muted hover:text-accent'
                           }`}
-                          style={isSelected && color ? { backgroundColor: color } : {}}
+                          style={isSelected && color ? { backgroundColor: color, color: textColor } : {}}
                         >
                           {tag}
                         </button>
@@ -265,9 +276,9 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
         <div className="space-y-4">
           {entries.map((entry) => (
             <div key={entry.id} className="relative group">
-              <button
+              <div
                 onClick={() => onSelectEntry(entry.id)}
-                className="w-full text-left card p-6 hover:shadow-elevated transition-all hover:-translate-y-0.5"
+                className="w-full text-left card p-6 hover:shadow-elevated transition-all hover:-translate-y-0.5 cursor-pointer"
               >
                 <div className="flex items-center gap-2 text-sm text-muted mb-2 w-full">
                   {getMoodDot(entry.mood)}
@@ -285,26 +296,34 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
                 </h2>
 
                 {entry.tags && entry.tags.length > 0 && (
-                  <div className="hidden sm:flex flex-wrap gap-1.5 mb-3">
+                  <div className="flex flex-wrap gap-1.5 mb-3">
                     {entry.tags.slice(0, MAX_VISIBLE_TAGS).map((tag, i) => {
                       const color = tagColorMap[tag];
                       return color ? (
-                        <span
+                        <button
                           key={i}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onTagToggle(tag);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs hover:scale-105 transition-transform"
                           style={{ backgroundColor: `${color}20`, color }}
                         >
                           <Tag className="w-3 h-3" />
                           {tag}
-                        </span>
+                        </button>
                       ) : (
-                        <span
+                        <button
                           key={i}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent-tint/50 text-accent-tint"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onTagToggle(tag);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent-tint/50 text-accent-tint hover:scale-105 transition-transform"
                         >
                           <Tag className="w-3 h-3" />
                           {tag}
-                        </span>
+                        </button>
                       );
                     })}
                     {entry.tags.length > MAX_VISIBLE_TAGS && (
@@ -322,7 +341,7 @@ export const JournalTimeline: React.FC<JournalTimelineProps> = ({
                     {renderTextWithLineDirection(entry.content)}
                   </div>
                 )}
-              </button>
+              </div>
 
               <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
                 <div className={`${openMenuId === entry.id ? '' : 'md:invisible md:group-hover:visible md:group-focus-within:visible'} transition-all`}>
