@@ -90,7 +90,9 @@ App (root)
         │   ├── Message list with Markdown rendering
         │   ├── Message actions (copy, edit, regenerate)
         │   └── ChatHistorySidebar (right overlay)
-        └── SettingsView (activeView === 'settings')
+        ├── SettingsView (activeView === 'settings')
+        ├── AdminView (activeView === 'admin', lazy-loaded)
+        └── FeedbackView (activeView === 'feedback', ShortSurvey & FullSurvey)
 ```
 
 ### State Management
@@ -183,7 +185,7 @@ Tags follow a hybrid embedded+registry model:
 ### Chat Flow
 ```
 1. User opens Chat view → ChatView mounts
-2. User types message → sendMessage() sends POST to /api/v0/chat/stream with Authorization Bearer header
+2. User types message → sendMessage() sends POST to /api/v0/chat/stream with credentials ('include') using HttpOnly access_token cookie
 3. Server receives request, validates user, loads/creates chat, and streams SSE events (text/event-stream)
 4. Server emits context_loaded, ack, and streams LLM tokens (event: token)
 5. Stream completes → backend persists assistant message → frontend receives event: done
@@ -280,10 +282,10 @@ const { entries, addEntry, updateEntry } = useJournalEntries();
 - No custom sync protocol needed — Y.Doc is the single source of truth
 
 ### Why React without Router?
-- Simple single-page flow
-- Reduced bundle size
-- No URL management complexity
-- Faster initial load
+- Lightweight single-page conditional rendering without heavy router dependencies
+- Custom `useRouter` hook synchronizes navigation state with URL query parameters (`?view=...`) and HTML5 `popstate` history events for browser/mobile back-button support and reload preservation
+- Single source of truth for navigation state
+- Reduced bundle size and faster initial load
 
 ### Why uv for Python?
 - 10-100x faster than pip

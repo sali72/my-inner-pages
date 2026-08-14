@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.5.1-alpha] - 2026-08-14
+
 ### Fixed & Refactored
-- **Backend Architecture Audit & Query Refactoring**: Streamlined `app/` modules (`auth`, `journals`, `chat`, `memory`, `ai`, `feedback`). Extracted `LLMAdminService` and facade logic out of route files, consolidated duplicated schemas into `app/core/schemas.py`, introduced typed Pydantic responses for memory endpoints, optimized MongoDB queries to single-pass atomic Motor/Beanie operations, and added global FastAPI exception handlers for domain & auth exceptions.
-- **Tag Subsystem Reliability & UX**: Fixed React Rules of Hooks ordering in `TagManager.tsx`, non-destructive tag removal (`#tag` -> `tag`), Yjs IndexedDB cache invalidation on tag deletion/rename, and mobile back navigation tag preservation. Centralized tag normalization, AST parsing, contrast styling, and schemas into `tagUtils.ts` with comprehensive end-to-end component flow tests.
+- **API Boundary & Type Synchronization Audit**: Synchronized Pydantic response schemas across all backend modules (`auth`, `journals`, `chat`, `admin`, `ai`, `feedback`, `memory`) with TypeScript interfaces in `frontend/src/types/`. Fixed missing fields (`is_active`, `last_login`, `preferences` in `UserResponse`, `id` in `ProviderConfig`, nullable `error` in `MirrorReflection`, `rumination_index` in `JournalEntry`). Centralized API response types into domain modules (`auth.ts`, `admin.ts`, `feedback.ts`, `schemas.ts`) with root barrel exports in `types/index.ts`.
+- **API Client Error Payload Formatting**: Enhanced `frontend/src/utils/api.ts` to export `ApiError`, formatted array validation error details cleanly into human-readable strings, ensured consistent status code handling (401, 403, 429, 5xx), and added vitest coverage in `apiErrorHandling.test.ts`.
+- **Backend Architecture Audit & Query Optimization**: Extracted `LLMAdminService` out of route handlers, consolidated core schemas, optimized Motor/Beanie database queries to single-pass atomic operations, and added typed Pydantic response models across memory endpoints.
+- **Tag Subsystem Reliability**: Fixed React hook rules in `TagManager.tsx`, non-destructive tag removal, Yjs IndexedDB cache invalidation on tag delete/rename, and mobile back navigation tag state preservation.
 
 ## [v0.5.0-alpha] - 2026-08-13
 

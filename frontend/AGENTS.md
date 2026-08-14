@@ -18,7 +18,7 @@ React 18 SPA with TypeScript, Vite, Tailwind CSS, TanStack Query, Playwright.
 
 ## Architecture
 - **Feature-based components:** `auth/`, `journal/`, `chat/`, `mirror/`, `settings/`, `admin/`, `landing/`, `layout/`, `common/`
-- **No router:** `App.tsx` renders the active view (values: `journal`, `mirror`, `chat`, `settings`, `admin`) based on query parameters parsed by the `useRouter` hook, making the URL the single source of truth.
+- **No router:** `App.tsx` renders the active view (values: `journal`, `mirror`, `chat`, `settings`, `admin`, `feedback`) based on query parameters parsed by the `useRouter` hook, making the URL the single source of truth.
 - **State:** AuthContext (global auth), ThemeContext (preferences), TanStack React Query (server data), local state for ephemeral UI, useRouter (navigation)
 - **SSE chat streaming:** `useChatStream` hook manages streaming state via `fetch()` + `ReadableStream`, with `AbortController` for cancellation. ConnectionState (`connected` | `disconnected` | `failed`) reflects whether a chat is loaded and ready. ChatView is always mounted (CSS `hidden`) to preserve state across view switches.
 - **Offline/Sync:** Keystrokes are instantly persisted locally to IndexedDB via Yjs + `y-indexeddb` per journal entry, making the local document the source of truth. Unsynced changes (including offline-created drafts starting with `draft-`) are written to `localStorage` and synced to the backend in the background via `useBackgroundSync` hook (online/focus listeners, 30s interval) which calls `syncService.syncUnsyncedEntries()` to map draft IDs to MongoDB ObjectIds.
@@ -45,7 +45,7 @@ React 18 SPA with TypeScript, Vite, Tailwind CSS, TanStack Query, Playwright.
 - **Imports:** path aliases over relative; external first, local second
 - **Components:** arrow functions, destructured inline props
 - **CSS:** Tailwind utility classes only — no CSS modules or styled-components
-- **Types:** TypeScript interfaces for models, type aliases for unions, Zod schemas for API
+- **Types:** TypeScript interfaces in domain files (`auth.ts`, `admin.ts`, `feedback.ts`, `chat.ts`, `mirror.ts`, `schemas.ts`) centrally re-exported via `types/index.ts`, type aliases for unions, Zod schemas for API validation.
 
 ## Testing strategy
 - **Unit & Component Testing (Vitest):** Run with `npm test`. Uses `@testing-library/react` + `jsdom`. Vitest tests run fast in-memory without browser startup overhead and should be preferred for validating component rendering, custom hooks, utilities, and isolated state logic.

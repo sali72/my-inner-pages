@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     # Application Configuration
     environment: str = "development"
     app_name: str = "My Inner Pages"
-    app_version: str = "0.1.0"  # auto-set from git tag in deploy; override via APP_VERSION env var
+    app_version: str = "0.5.1-alpha"  # auto-set from git tag in deploy; override via APP_VERSION env var
     bcrypt_rounds: int = 12
     
     # Rate Limiting Configuration

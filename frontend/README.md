@@ -97,7 +97,7 @@ npm run test:e2e
 
 ## Architecture
 
-Single-page app with feature-based organization. Auth state via Context API. No routing - conditional rendering based on authentication state and view state (`journal` | `mirror` | `settings`).
+Single-page app with feature-based organization. Auth state via Context API. Single-page navigation via custom `useRouter` hook synchronized with URL query parameters and HTML5 history events (`popstate`), conditionally rendering active views (`journal` | `mirror` | `chat` | `settings` | `admin` | `feedback`).
 
 **User Flow:**
 1. Unauthenticated users see landing page
