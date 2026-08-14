@@ -6,12 +6,15 @@ import { authService } from '@/services/authService';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
 
-class ApiError extends Error {
+export class ApiError extends Error {
     status: number;
-    constructor(message: string, status: number) {
+    detail?: unknown;
+
+    constructor(message: string, status: number, detail?: unknown) {
         super(message);
         this.name = 'ApiError';
         this.status = status;
+        this.detail = detail;
     }
 }
 
@@ -51,11 +54,29 @@ async function request<T>(
         if (!response.ok) {
             consecutiveFailures++;
 
-            let detail = response.statusText;
+            let detailMessage = response.statusText || `HTTP ${response.status}`;
+            let rawDetail: unknown = undefined;
+
             try {
                 const body = await response.json();
-                detail = body.detail ?? detail;
-            } catch {}
+                rawDetail = body.detail ?? body.message ?? body.error;
+
+                if (typeof body.detail === 'string') {
+                    detailMessage = body.detail;
+                } else if (Array.isArray(body.detail)) {
+                    detailMessage = body.detail
+                        .map((err: Record<string, unknown>) => (typeof err === 'object' && err?.msg ? String(err.msg) : JSON.stringify(err)))
+                        .join('; ');
+                } else if (typeof body.message === 'string') {
+                    detailMessage = body.message;
+                } else if (typeof body.error === 'string') {
+                    detailMessage = body.error;
+                } else if (body.detail && typeof body.detail === 'object') {
+                    detailMessage = JSON.stringify(body.detail);
+                }
+            } catch {
+                // Response body was not JSON or failed to parse
+            }
 
             if (response.status === 401) {
                 const isAuthEndpoint = endpoint.includes('/auth/refresh') || endpoint.includes('/auth/login');
@@ -89,6 +110,13 @@ async function request<T>(
                     data: { endpoint, duration_ms: Math.round(duration) },
                 });
                 window.dispatchEvent(new CustomEvent('auth:expired'));
+            } else if (response.status === 403) {
+                Sentry.addBreadcrumb({
+                    category: 'auth',
+                    message: 'Access forbidden',
+                    level: 'warning',
+                    data: { endpoint, duration_ms: Math.round(duration) },
+                });
             } else if (response.status === 429) {
                 toast.error('Too many requests — please slow down');
             }
@@ -103,7 +131,7 @@ async function request<T>(
                         status_code: String(response.status),
                     },
                     extra: {
-                        detail,
+                        detail: detailMessage,
                         duration_ms: Math.round(duration),
                         consecutive_failures: consecutiveFailures,
                     },
@@ -126,7 +154,7 @@ async function request<T>(
                 });
             }
 
-            throw new ApiError(detail, response.status);
+            throw new ApiError(detailMessage, response.status, rawDetail);
         }
 
         consecutiveFailures = 0;

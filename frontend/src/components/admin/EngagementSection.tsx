@@ -2,19 +2,10 @@ import React from 'react';
 import { Repeat, Layers, FileText } from 'lucide-react';
 import { ProgressBar } from './ProgressBar';
 
-interface EngagementData {
-  wau: number;
-  mau: number;
-  stickiness: number;
-  returning_users: number;
-  return_rate: number;
-  engaged_users: number;
-  avg_entries_per_active_user: number;
-  avg_journal_length: number;
-}
+import type { EngagementStats } from '@/types';
 
 interface EngagementSectionProps {
-  data: EngagementData;
+  data: EngagementStats;
   totalUsers: number;
 }
 

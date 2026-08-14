@@ -3,18 +3,10 @@ import { UserPlus, AlertCircle } from 'lucide-react';
 import { Sparkline } from './Sparkline';
 import { ProgressBar } from './ProgressBar';
 
-interface AcquisitionData {
-  signups_today: number;
-  signups_period: number;
-  google_oauth_count: number;
-  email_password_count: number;
-  verified_count: number;
-  unverified_stale_count: number;
-  daily_signups: { date: string; count: number }[];
-}
+import type { AcquisitionStats } from '@/types';
 
 interface AcquisitionSectionProps {
-  data: AcquisitionData;
+  data: AcquisitionStats;
   totalUsers: number;
   periodDays: number;
 }

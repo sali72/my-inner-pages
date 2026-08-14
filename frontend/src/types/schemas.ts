@@ -17,7 +17,7 @@ export type JournalResponse = z.infer<typeof journalResponseSchema>;
 
 export const journalListResponseSchema = z.object({
   items: z.array(journalResponseSchema),
-  next_cursor: z.string().nullable(),
+  next_cursor: z.string().nullable().optional(),
 });
 
 export type JournalListResponse = z.infer<typeof journalListResponseSchema>;
@@ -25,6 +25,8 @@ export type JournalListResponse = z.infer<typeof journalListResponseSchema>;
 export const messageResponseSchema = z.object({
   message: z.string(),
 });
+
+export type MessageResponse = z.infer<typeof messageResponseSchema>;
 
 export const chatSummarySchema = z.object({
   id: z.string(),
@@ -51,6 +53,8 @@ export const chatMessageSchema = z.object({
   content: z.string(),
   created_at: z.string(),
 });
+
+export type ChatMessageResponse = z.infer<typeof chatMessageSchema>;
 
 export const chatResponseSchema = z.object({
   id: z.string(),

@@ -1,20 +1,13 @@
+import type {
+  UserResponse,
+  LoginResponse,
+  SessionResponse,
+  SessionListResponse,
+} from '@/types';
+
+export type { UserResponse, LoginResponse, SessionResponse, SessionListResponse };
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
-
-export interface UserResponse {
-  id: string;
-  email: string;
-  is_verified: boolean;
-  role: string;
-  created_at?: string;
-  login_count?: number;
-  feedback_triggers?: Record<string, boolean>;
-}
-
-export interface LoginResponse {
-  access_token: string;
-  token_type: string;
-  user: UserResponse;
-}
 
 async function request<T>(
   path: string,
@@ -32,29 +25,23 @@ async function request<T>(
     let detail = response.statusText;
     try {
       const body = await response.json();
-      detail = body.detail ?? detail;
+      if (typeof body.detail === 'string') {
+        detail = body.detail;
+      } else if (Array.isArray(body.detail)) {
+        detail = body.detail.map((err: any) => err.msg || JSON.stringify(err)).join('; ');
+      } else if (typeof body.message === 'string') {
+        detail = body.message;
+      } else if (typeof body.error === 'string') {
+        detail = body.error;
+      } else if (body.detail && typeof body.detail === 'object') {
+        detail = JSON.stringify(body.detail);
+      }
     } catch (error) {
       console.error('Failed to parse error response body:', error);
     }
     throw new Error(detail);
   }
   return response.json();
-}
-
-export interface SessionResponse {
-  family_id: string;
-  device_name: string;
-  browser: string;
-  os: string;
-  ip_address?: string;
-  created_at: string;
-  last_used_at: string;
-  is_current: boolean;
-}
-
-export interface SessionListResponse {
-  sessions: SessionResponse[];
-  total_count: number;
 }
 
 export const authService = {

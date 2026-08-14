@@ -5,60 +5,9 @@ import { SummaryCards } from './SummaryCards';
 import { AcquisitionSection } from './AcquisitionSection';
 import { EngagementSection } from './EngagementSection';
 
+import type { AdminStatsResponse } from '@/types';
+
 type PeriodType = '7d' | '14d' | '30d' | '90d';
-
-interface LifetimeStats {
-  total_users: number;
-  total_journals: number;
-  total_chats: number;
-  verified_users: number;
-}
-
-interface SummaryData {
-  lifetime: LifetimeStats;
-  signups_current_period: number;
-  signups_prev_period: number;
-  active_users_period: number;
-  active_users_prev_period: number;
-  journals_current_period: number;
-  journals_prev_period: number;
-  chats_current_period: number;
-  chats_prev_period: number;
-}
-
-interface DailySignup {
-  date: string;
-  count: number;
-}
-
-interface AcquisitionData {
-  signups_today: number;
-  signups_period: number;
-  google_oauth_count: number;
-  email_password_count: number;
-  verified_count: number;
-  unverified_stale_count: number;
-  daily_signups: DailySignup[];
-}
-
-interface EngagementData {
-  wau: number;
-  mau: number;
-  stickiness: number;
-  returning_users: number;
-  return_rate: number;
-  engaged_users: number;
-  avg_entries_per_active_user: number;
-  avg_journal_length: number;
-}
-
-interface AdminStatsResponse {
-  period: PeriodType;
-  period_days: number;
-  summary: SummaryData;
-  acquisition: AcquisitionData;
-  engagement: EngagementData;
-}
 
 export const OverviewTab: React.FC = () => {
   const [period, setPeriod] = useState<PeriodType>('14d');

@@ -1,35 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '@/utils/api';
 
-export interface LiteLLMParams {
-  model: string;
-  api_base?: string;
-  api_key?: string;
-  rpm?: number;
-  tpm?: number;
-}
+import type {
+  LiteLLMParams,
+  ProviderConfig,
+  ProviderTestResult,
+  DiagnosticsResponse,
+} from '@/types';
 
-export interface ProviderConfig {
-  model_name: string;
-  litellm_params: LiteLLMParams;
-  order?: number;
-  is_active: boolean;
-}
-
-export interface ProviderTestResult {
-  index: number;
-  model: string;
-  status: string;
-  latency: number;
-  details: string;
-}
-
-export interface DiagnosticsResponse {
-  total_models: number;
-  working_models: number;
-  failed_models: number;
-  results: ProviderTestResult[];
-}
+export type { LiteLLMParams, ProviderConfig, ProviderTestResult, DiagnosticsResponse };
 
 export const PRESETS = [
   {

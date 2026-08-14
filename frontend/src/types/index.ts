@@ -11,6 +11,8 @@ export interface JournalEntry {
   mood?: string;
   isNew?: boolean;
   created_at?: string;
+  updated_at?: string;
+  rumination_index?: number | null;
 }
 
 export type ViewType = 'journal' | 'mirror' | 'chat' | 'settings' | 'admin' | 'feedback';
@@ -39,3 +41,10 @@ export interface ThemeSettings {
   appearance: AppearanceSettings;
   writing: WritingSettings;
 }
+
+export * from './schemas';
+export * from './auth';
+export * from './admin';
+export * from './feedback';
+export * from './chat';
+export * from './mirror';

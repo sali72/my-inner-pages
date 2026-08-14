@@ -2,40 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '@/utils/api';
 import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 
-interface QuestionDistribution {
-  question_id: string;
-  label: string;
-  count: number;
-}
-
-interface SummaryResponse {
-  total_responses: number;
-  by_variant: Record<string, number>;
-  by_trigger: Record<string, number>;
-  average_overall_feel: number | null;
-  question_distributions: Record<string, QuestionDistribution[]>;
-  headline_counts: Record<string, Record<string, number>>;
-}
-
-interface FeedbackItem {
-  id: string;
-  user_id: string;
-  variant: string;
-  trigger: string;
-  answers: Record<string, unknown>;
-  context: { entry_count: number; days_since_signup: number; current_view: string | null; locale: string; session_entry_count: number };
-  questionnaire_version: string;
-  app_version: string;
-  created_at: string;
-}
-
-interface ListResponse {
-  items: FeedbackItem[];
-  total: number;
-  page: number;
-  page_size: number;
-  total_pages: number;
-}
+import type {
+  FeedbackSummaryResponse as SummaryResponse,
+  FeedbackListResponse as ListResponse,
+} from '@/types';
 
 export const AdminFeedbackView: React.FC = () => {
   const [tab, setTab] = useState<'summary' | 'raw'>('summary');
@@ -145,7 +115,7 @@ export const AdminFeedbackView: React.FC = () => {
                 <p className="text-2xl font-bold text-primary">{v}</p>
               </div>
             ))}
-            {summary.average_overall_feel !== null && (
+            {summary.average_overall_feel != null && (
               <div className="card p-4 border-accent/30">
                 <p className="text-xs text-secondary uppercase font-semibold mb-1">Avg. feel</p>
                 <p className="text-2xl font-bold text-primary">{summary.average_overall_feel.toFixed(1)}</p>

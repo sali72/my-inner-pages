@@ -2,27 +2,10 @@ import React from 'react';
 import { Users, Activity, BookOpen, MessageSquare, ShieldCheck, Zap } from 'lucide-react';
 import { StatCard } from './StatCard';
 
-interface LifetimeStats {
-  total_users: number;
-  total_journals: number;
-  total_chats: number;
-  verified_users: number;
-}
-
-interface SummaryData {
-  lifetime: LifetimeStats;
-  signups_current_period: number;
-  signups_prev_period: number;
-  active_users_period: number;
-  active_users_prev_period: number;
-  journals_current_period: number;
-  journals_prev_period: number;
-  chats_current_period: number;
-  chats_prev_period: number;
-}
+import type { SummaryStats } from '@/types';
 
 interface SummaryCardsProps {
-  data: SummaryData;
+  data: SummaryStats;
   periodDays: number;
 }
 

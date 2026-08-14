@@ -19,26 +19,7 @@ import { api } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { ConfirmModal } from '@components/journal';
 
-interface UserItem {
-  id: string;
-  email: string;
-  role: string;
-  is_active: boolean;
-  is_verified: boolean;
-  auth_provider: 'google' | 'email';
-  login_count: number;
-  journal_count: number;
-  chat_count: number;
-  created_at: string;
-  last_login?: string;
-}
-
-interface UserListResponse {
-  total: number;
-  skip: number;
-  limit: number;
-  users: UserItem[];
-}
+import type { UserItem, UserListResponse } from '@/types';
 
 export const UsersTab: React.FC = () => {
   const { user: currentUser } = useAuth();
