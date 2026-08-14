@@ -78,10 +78,3 @@ class UpdateJournalRequest(BaseModel):
                     "Only letters, numbers, spaces, underscores, and hyphens are allowed."
                 )
         return v
-
-
-class PaginationParams(BaseModel):
-    """Pagination parameters for list endpoints."""
-    
-    page: int = Field(default=1, ge=1, description="Page number (1-indexed)")
-    page_size: int = Field(default=20, ge=1, le=100, description="Items per page")

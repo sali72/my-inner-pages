@@ -38,23 +38,3 @@ class DuplicateDocumentException(RepositoryException):
         message = f"{model_name} with {field}='{value}' already exists"
         details = {"model": model_name, "field": field, "value": value}
         super().__init__(message, details)
-
-
-class ValidationException(AppException):
-    """Exception raised for validation errors."""
-    pass
-
-
-class AuthenticationException(AppException):
-    """Exception raised for authentication errors."""
-    pass
-
-
-class AuthorizationException(AppException):
-    """Exception raised for authorization errors."""
-    pass
-
-
-class TransactionException(DatabaseException):
-    """Exception raised for transaction errors."""
-    pass
