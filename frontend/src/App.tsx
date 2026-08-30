@@ -9,7 +9,10 @@ import { Header, Sidebar, AlphaWarningModal } from '@components/layout';
 import { JournalView, ConfirmModal } from '@components/journal';
 import { MirrorView } from '@components/mirror';
 import { MirrorReflection, MirrorMode } from '@/types/mirror';
+import { DiscoveriesView } from '@components/discoveries';
+import { PatternExcerpt } from '@/types/discoveries';
 import { ChatView } from '@components/chat';
+import { ChatContext } from '@/types/chat';
 import { SettingsView } from '@components/settings';
 const AdminView = lazy(() => import('@components/admin/AdminView').then(m => ({ default: m.AdminView })));
 import { FullSurvey, ShortSurvey } from '@components/feedback';
@@ -43,7 +46,7 @@ const AppInner: React.FC = () => {
       window.history.replaceState(
         { isApp: true, showAuth: true, index: window.history.state?.index ?? 0 },
         '',
-        searchStr ? `?${searchStr}` : '/'
+        window.location.pathname + (searchStr ? `?${searchStr}` : '')
       );
     }
   }, [pendingVerification]);
@@ -51,7 +54,7 @@ const AppInner: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatHistoryOpen, setChatHistoryOpen] = useState(false);
   const [chatInitialMessage, setChatInitialMessage] = useState<string | null>(null);
-  const [chatContext, setChatContext] = useState<{ type: 'journal'; title: string } | { type: 'mirror'; mode: string } | null>(null);
+  const [chatContext, setChatContext] = useState<ChatContext | null>(null);
   const [mirrorReflections, setMirrorReflections] = useState<Record<MirrorMode, MirrorReflection | null>>({
     emotional: null,
     cognitive: null,
@@ -167,6 +170,16 @@ const AppInner: React.FC = () => {
     updateNavigationState({ activeView: 'chat', selectedEntryId: null, selectedChatId: 'new' });
   };
 
+  const handleStartChatFromDiscoveries = (insight: string, excerpts?: PatternExcerpt[]) => {
+    let message = `I'd like to explore this observation noticed in my journaling:\n\n"${insight}"`;
+    if (excerpts && excerpts.length > 0) {
+      message += `\n\nReferenced passages:\n` + excerpts.map(e => `> "${e.quote}"`).join('\n');
+    }
+    setChatInitialMessage(message);
+    setChatContext({ type: 'discoveries', insight });
+    updateNavigationState({ activeView: 'chat', selectedEntryId: null, selectedChatId: 'new' });
+  };
+
   const handleDeleteEntry = async (id: number | string) => {
     try {
       await deleteEntry(id);
@@ -241,6 +254,10 @@ const AppInner: React.FC = () => {
             onSelectEntry={(id, action) => updateNavigationState({ selectedEntryId: id }, action)}
           />
         ) : null}
+
+        {activeView === 'discoveries' && (
+          <DiscoveriesView onStartChat={handleStartChatFromDiscoveries} />
+        )}
 
         {activeView === 'mirror' && <MirrorView isDark={isDark} onStartChat={handleStartChatFromMirror} reflections={mirrorReflections} onReflectionChange={handleMirrorReflectionChange} />}
 

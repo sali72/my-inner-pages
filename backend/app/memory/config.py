@@ -26,5 +26,5 @@ class MemoryModuleConfig(BaseSettings):
     min_entries_for_update: int = 1
     update_after_entries: int = 5
     update_after_words: int = 5000
-    updater_max_tokens: int = 1000
+    updater_max_tokens: int = 2500
     updater_temperature: float = 0.3

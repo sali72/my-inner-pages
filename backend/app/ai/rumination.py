@@ -66,7 +66,7 @@ def _detect_language(text: str) -> str:
     return "en"
 
 
-def compute_rumination_index(text: str, lang: Optional[str] = None) -> float:
+def compute_rumination_index(text: str, lang: Optional[str] = None) -> Optional[float]:
     if not text:
         return 0.0
 
@@ -74,7 +74,7 @@ def compute_rumination_index(text: str, lang: Optional[str] = None) -> float:
     cfg = _LANGUAGES.get(lang)
 
     if cfg is None:
-        return 0.0
+        return None  # Indeterminate, do not assume 0.0
 
     words = cfg.tokenizer.findall(text.lower())
 

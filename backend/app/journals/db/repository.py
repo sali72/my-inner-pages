@@ -140,6 +140,20 @@ class JournalRepository:
                 details={"user_id": user_id, "error": str(e)}
             )
 
+    async def find_first_by_user(self, user_id: str) -> Optional[Journal]:
+        try:
+            return await self.model.find({"user_id": user_id}).sort([("created_at", 1), ("_id", 1)]).first_or_none()
+        except PyMongoError as e:
+            logger.error("journal_find_first_failed", error=str(e), user_id=user_id)
+            return None
+
+    async def find_latest_by_user(self, user_id: str) -> Optional[Journal]:
+        try:
+            return await self.model.find({"user_id": user_id}).sort([("created_at", -1), ("_id", -1)]).first_or_none()
+        except PyMongoError as e:
+            logger.error("journal_find_latest_failed", error=str(e), user_id=user_id)
+            return None
+
     async def update(
         self,
         journal_id: PydanticObjectId,

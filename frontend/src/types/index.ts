@@ -15,11 +15,12 @@ export interface JournalEntry {
   rumination_index?: number | null;
 }
 
-export type ViewType = 'journal' | 'mirror' | 'chat' | 'settings' | 'admin' | 'feedback';
+export type ViewType = 'journal' | 'discoveries' | 'mirror' | 'chat' | 'settings' | 'admin' | 'feedback';
 
 export function isValidView(v: string): v is ViewType {
-  return v === 'journal' || v === 'mirror' || v === 'chat' || v === 'settings' || v === 'admin' || v === 'feedback';
+  return v === 'journal' || v === 'discoveries' || v === 'mirror' || v === 'chat' || v === 'settings' || v === 'admin' || v === 'feedback';
 }
+
 
 export type Mode = 'light' | 'dark' | 'system';
 export type Accent = 'sage' | 'dusk' | 'amber' | 'slate' | 'blush' | 'ink' | 'sand' | 'moss';
@@ -48,3 +49,4 @@ export * from './admin';
 export * from './feedback';
 export * from './chat';
 export * from './mirror';
+export * from './discoveries';

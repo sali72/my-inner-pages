@@ -35,3 +35,8 @@ export interface ChatState {
   error: string | null;
   resumed: boolean;
 }
+
+export type ChatContext =
+  | { type: 'journal'; title: string }
+  | { type: 'mirror'; mode: string }
+  | { type: 'discoveries'; insight: string };

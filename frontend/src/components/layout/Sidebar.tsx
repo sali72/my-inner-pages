@@ -1,5 +1,5 @@
-import React from 'react';
-import { BookOpen, Sparkles, MessageCircle, Settings, Shield, HeartHandshake } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BookOpen, Compass, Sparkles, MessageCircle, Settings, Shield, HeartHandshake } from 'lucide-react';
 import { ViewType } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -12,6 +12,7 @@ interface SidebarProps {
 
 const MAIN_ITEMS: { view: ViewType; icon: typeof BookOpen; label: string }[] = [
   { view: 'journal', icon: BookOpen, label: 'Journal' },
+  { view: 'discoveries', icon: Compass, label: 'Discoveries' },
   { view: 'mirror', icon: Sparkles, label: 'Mirror' },
   { view: 'chat', icon: MessageCircle, label: 'Chat' },
 ];
@@ -29,7 +30,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { user } = useAuth();
 
+  const [hasUnseenDiscoveries, setHasUnseenDiscoveries] = useState(false);
+
+  useEffect(() => {
+    const checkUnseen = () => {
+      if (activeView === 'discoveries') {
+        setHasUnseenDiscoveries(false);
+      }
+    };
+    checkUnseen();
+    window.addEventListener('discoveries_viewed', checkUnseen);
+    return () => window.removeEventListener('discoveries_viewed', checkUnseen);
+  }, [activeView]);
+
   const handleViewClick = (view: ViewType) => {
+    if (view === 'discoveries') {
+      setHasUnseenDiscoveries(false);
+    }
     onViewChange(view);
     onClose();
   };
@@ -66,17 +83,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               key={view}
               onClick={() => handleViewClick(view)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all ${
                 activeView === view
                   ? 'bg-accent-muted text-accent'
                   : 'text-muted hover:bg-accent-tint'
               }`}
             >
-              <Icon className="w-5 h-5" />
-              {label}
+              <div className="flex items-center gap-3">
+                <Icon className="w-5 h-5" />
+                {label}
+              </div>
+              {view === 'discoveries' && hasUnseenDiscoveries && (
+                <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+              )}
             </button>
           ))}
         </nav>
+
 
         <hr className="border-default mb-2" />
 

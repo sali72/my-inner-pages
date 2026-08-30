@@ -12,6 +12,8 @@ const MAX_TEXTAREA_ROWS = 10;
 const LINE_HEIGHT = 22;
 const INPUT_VERTICAL_PADDING = 24;
 
+import { ChatContext } from '@/types/chat';
+
 interface ChatViewProps {
   isDark: boolean;
   initialMessage?: string | null;
@@ -20,8 +22,9 @@ interface ChatViewProps {
   onToggleChatHistory: () => void;
   selectedChatId: string | null;
   onSelectChat: (id: string | null, action?: 'push' | 'replace') => void;
-  chatContext?: { type: 'journal'; title: string } | { type: 'mirror'; mode: string } | null;
+  chatContext?: ChatContext | null;
 }
+
 
 export const ChatView: React.FC<ChatViewProps> = ({
   isDark,
@@ -255,12 +258,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent border border-accent/20">
                         {chatContext.type === 'journal' ? (
                           <>Chatting about: {chatContext.title}</>
-                        ) : (
+                        ) : chatContext.type === 'mirror' ? (
                           <>Exploring: {chatContext.mode} Reflection</>
+                        ) : (
+                          <>Exploring: Observation</>
                         )}
                       </span>
                     </div>
                   )}
+
                   {messages.length === 0 ? (
                     <div className="min-h-[calc(100dvh-6rem)] flex flex-col items-center justify-center p-8 text-center">
                       <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mb-4 shadow-lg">

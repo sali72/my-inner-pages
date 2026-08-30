@@ -17,9 +17,16 @@ class UserModelBaseline(BaseModel):
     confidence: float = 0.0
 
 
+class PatternExcerpt(BaseModel):
+    entry_id: str = ""
+    quote: str = ""
+    entry_date: Optional[str] = None
+
+
 class PatternItem(BaseModel):
     description: str = ""
     evidence: str = ""
+    source_excerpts: list[PatternExcerpt] = Field(default_factory=list)
 
 
 class UserModel(Document):
