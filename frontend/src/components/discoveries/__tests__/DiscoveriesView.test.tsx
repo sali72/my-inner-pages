@@ -112,8 +112,9 @@ describe('DiscoveriesView Component', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('mindfulness')).toBeInTheDocument();
 
-    const exploreButton = screen.getByRole('button', { name: /Explore this/i });
+    const exploreButton = screen.getByRole('button', { name: /Explore in chat/i });
     fireEvent.click(exploreButton);
+
 
     expect(onStartChatMock).toHaveBeenCalledTimes(1);
     expect(onStartChatMock).toHaveBeenCalledWith(

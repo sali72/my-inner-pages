@@ -1,6 +1,6 @@
 import React from 'react';
 import { PatternCard, PatternExcerpt } from '@/types/discoveries';
-import { Sparkles, MessageSquare, HelpCircle, Quote } from 'lucide-react';
+import { Sparkles, MessageSquare, Quote } from 'lucide-react';
 
 interface EmergingSectionProps {
   patterns: PatternCard[];
@@ -85,26 +85,13 @@ export const EmergingSection: React.FC<EmergingSectionProps> = ({
                 )}
               </div>
 
-              <div className="flex items-center gap-3 pt-3 border-t border-default/40 mt-auto">
+              <div className="pt-3 border-t border-default/40 mt-auto">
                 <button
                   onClick={() => onStartChat(pattern.description, pattern.excerpts)}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-accent-muted text-accent hover:bg-accent hover:text-white transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium bg-accent-tint text-accent hover:bg-accent hover:text-white transition-all shadow-xs group"
                 >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  Explore this
-                </button>
-                <button
-                  onClick={() =>
-                    onStartChat(
-                      `I'd like to reflect on this thread noticed in my writing:\n"${pattern.description}"\n\nCould we talk through what this might signify?`,
-                      pattern.excerpts
-                    )
-                  }
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-muted hover:text-body hover:bg-surface-hover transition-colors"
-                  title="Ask curious questions about this observation"
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  Tell me more
+                  <MessageSquare className="w-4 h-4 transition-transform group-hover:scale-110" />
+                  Explore in chat
                 </button>
               </div>
             </div>
@@ -114,3 +101,4 @@ export const EmergingSection: React.FC<EmergingSectionProps> = ({
     </section>
   );
 };
+

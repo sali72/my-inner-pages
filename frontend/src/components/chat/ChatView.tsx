@@ -104,9 +104,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const editInputRef = useRef<HTMLTextAreaElement>(null);
   const processedMessageRef = useRef<string>('');
-  const pendingMessageRef = useRef<string | null>(null);
   const prevStreaming = useRef(isStreaming);
   const titleRefreshed = useRef(false);
+
 
   const loadChatList = useCallback(async () => {
     try {
@@ -148,18 +148,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
   useEffect(() => {
     if (initialMessage && initialMessage !== processedMessageRef.current) {
       processedMessageRef.current = initialMessage;
-      pendingMessageRef.current = initialMessage;
       startNewChat();
-    }
-  }, [initialMessage, startNewChat]);
-
-  useEffect(() => {
-    if (connectionState === 'connected' && pendingMessageRef.current) {
-      sendMessage(pendingMessageRef.current);
-      pendingMessageRef.current = null;
+      sendMessage(initialMessage);
       onInitialMessageSent?.();
+    } else if (!initialMessage) {
+      processedMessageRef.current = '';
     }
-  }, [connectionState, sendMessage, onInitialMessageSent]);
+  }, [initialMessage, startNewChat, sendMessage, onInitialMessageSent]);
+
 
   const autoResize = useCallback(() => {
     const el = inputRef.current;

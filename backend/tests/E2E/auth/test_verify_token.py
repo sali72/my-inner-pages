@@ -102,9 +102,9 @@ async def test_verify_token_tampered(client: AsyncClient, test_user: dict):
         client: HTTP client without authentication
         test_user: Test user fixture with credentials
     """
-    # Arrange: Corrupt the last character of the token
+    # Arrange: Corrupt the signature of the token
     original_token = test_user["access_token"]
-    tampered_token = original_token[:-1] + ("X" if original_token[-1] != "X" else "Y")
+    tampered_token = original_token[:-5] + "XXXXX"
     
     client.cookies.clear()
     # Act: Verify with tampered token
@@ -112,6 +112,7 @@ async def test_verify_token_tampered(client: AsyncClient, test_user: dict):
         f"{AUTH_PREFIX}{AuthRoutes.VERIFY}",
         cookies={"access_token": tampered_token},
     )
+
     
     # Assert: Verify 401 response
     assert response.status_code == 401
