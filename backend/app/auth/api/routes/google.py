@@ -88,8 +88,13 @@ async def google_callback(
             email=google_user.email,
         )
 
+        from app.auth.api.routes.auth import get_client_ip_and_ua
+        user_agent, ip_address = get_client_ip_and_ua(request)
+
         # 5 – Issue access and refresh tokens
-        access_token, refresh_token = await facade.create_session_tokens(user)
+        access_token, refresh_token = await facade.create_session_tokens(
+            user, user_agent=user_agent, ip_address=ip_address
+        )
 
         # 6 – Set cookies + redirect
         redirect = RedirectResponse(url=settings.frontend_url)

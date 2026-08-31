@@ -45,7 +45,8 @@ async def init_database() -> AsyncIOMotorClient:
     logger.info("initializing_beanie", database=settings.database_name)
     await init_beanie(
         database=client[settings.database_name],
-        document_models=[Journal, Tag, User, RefreshToken, UserModel, Chat, LLMProvider, Feedback]
+        document_models=[Journal, Tag, User, RefreshToken, UserModel, Chat, LLMProvider, Feedback],
+        allow_index_dropping=True,
     )
     logger.info("beanie_initialized")
 

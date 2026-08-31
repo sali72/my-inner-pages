@@ -103,7 +103,8 @@ async def test_db_client(test_settings: Settings) -> AsyncGenerator[AsyncIOMotor
     # Initialize Beanie for current event loop
     await init_beanie(
         database=db,
-        document_models=[User, RefreshToken, Journal, Tag, UserModel, Chat, LLMProvider, Feedback]
+        document_models=[User, RefreshToken, Journal, Tag, UserModel, Chat, LLMProvider, Feedback],
+        allow_index_dropping=True,
     )
     
     try:

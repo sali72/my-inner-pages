@@ -9,9 +9,22 @@ export type { UserResponse, LoginResponse, SessionResponse, SessionListResponse 
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v0';
 
+let isRefreshing = false;
+let refreshSubscribers: Array<(success: boolean) => void> = [];
+
+function subscribeTokenRefresh(cb: (success: boolean) => void) {
+  refreshSubscribers.push(cb);
+}
+
+function onRefreshed(success: boolean) {
+  refreshSubscribers.forEach((cb) => cb(success));
+  refreshSubscribers = [];
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
+  isRetry = false,
 ): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -22,6 +35,35 @@ async function request<T>(
     },
   });
   if (!response.ok) {
+    if (response.status === 401 && !isRetry) {
+      const isAuthEndpoint =
+        path.includes('/auth/refresh') ||
+        path.includes('/auth/login') ||
+        path.includes('/auth/register');
+
+      if (!isAuthEndpoint) {
+        if (isRefreshing) {
+          const refreshed = await new Promise<boolean>((resolve) => {
+            subscribeTokenRefresh(resolve);
+          });
+          if (refreshed) {
+            return request<T>(path, options, true);
+          }
+        } else {
+          isRefreshing = true;
+          try {
+            await authService.refreshToken();
+            isRefreshing = false;
+            onRefreshed(true);
+            return request<T>(path, options, true);
+          } catch {
+            isRefreshing = false;
+            onRefreshed(false);
+          }
+        }
+      }
+    }
+
     let detail = response.statusText;
     try {
       const body = await response.json();
@@ -49,7 +91,12 @@ export const authService = {
     try {
       return await request<UserResponse>('/auth/verify');
     } catch {
-      return null;
+      try {
+        const refreshed = await authService.refreshToken();
+        return refreshed.user;
+      } catch {
+        return null;
+      }
     }
   },
 
