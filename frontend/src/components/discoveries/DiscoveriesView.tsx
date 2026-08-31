@@ -50,10 +50,12 @@ export const DiscoveriesView: React.FC<DiscoveriesViewProps> = ({ onStartChat })
 
   if (loading) {
     return (
-      <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 mx-auto mb-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-          <p className="text-secondary text-sm font-mono">Reading your pages...</p>
+      <div className="p-4 md:p-8">
+        <div className="max-w-4xl mx-auto bg-elevated border border-subtle rounded-2xl shadow-card p-6 md:p-8 flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-10 h-10 mx-auto mb-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            <p className="text-secondary text-sm font-mono">Reading your pages...</p>
+          </div>
         </div>
       </div>
     );
@@ -61,29 +63,33 @@ export const DiscoveriesView: React.FC<DiscoveriesViewProps> = ({ onStartChat })
 
   if (error || !data) {
     return (
-      <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <p className="text-danger text-sm mb-4">{error || 'Something went wrong.'}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 text-xs font-medium rounded-lg bg-surface border border-default hover:bg-surface-hover text-body transition-colors"
-          >
-            Retry
-          </button>
+      <div className="p-4 md:p-8">
+        <div className="max-w-4xl mx-auto bg-elevated border border-subtle rounded-2xl shadow-card p-6 md:p-8 flex items-center justify-center min-h-[400px]">
+          <div className="text-center max-w-md">
+            <p className="text-danger text-sm mb-4">{error || 'Something went wrong.'}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 text-xs font-medium rounded-lg bg-surface border border-default hover:bg-surface-hover text-body transition-colors"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto pt-6">
-      <JourneySection journey={data.journey} />
-      <EmergingSection
-        patterns={data.patterns}
-        activeThemes={data.activeThemes}
-        onStartChat={onStartChat}
-      />
-      <MomentsSection moments={data.moments} />
+    <div className="p-4 md:p-8">
+      <div className="max-w-4xl mx-auto bg-elevated border border-subtle rounded-2xl shadow-card p-6 md:p-8">
+        <JourneySection journey={data.journey} />
+        <EmergingSection
+          patterns={data.patterns}
+          activeThemes={data.activeThemes}
+          onStartChat={onStartChat}
+        />
+        <MomentsSection moments={data.moments} />
+      </div>
     </div>
   );
 };
