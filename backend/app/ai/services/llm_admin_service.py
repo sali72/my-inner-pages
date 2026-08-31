@@ -74,8 +74,8 @@ async def _probe_provider(index: int, provider_dict: dict) -> ProviderTestResult
         kwargs = {
             "model": model,
             "messages": test_messages,
-            "max_tokens": 5,
-            "timeout": 12,
+            "max_tokens": 60,
+            "timeout": 30,
         }
         if api_base_resolved:
             kwargs["api_base"] = api_base_resolved
@@ -84,7 +84,8 @@ async def _probe_provider(index: int, provider_dict: dict) -> ProviderTestResult
 
         response = await litellm.acompletion(**kwargs)
         latency = time.time() - start_time
-        content = response.choices[0].message.content
+        msg = response.choices[0].message
+        content = getattr(msg, "content", None) or getattr(msg, "reasoning", None) or getattr(msg, "reasoning_content", None)
         response_text = (content or "").strip()
 
         if not response_text:
@@ -95,6 +96,7 @@ async def _probe_provider(index: int, provider_dict: dict) -> ProviderTestResult
                 latency=latency,
                 details="Error: Empty response received",
             )
+
 
         return ProviderTestResult(
             index=index,
