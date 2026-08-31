@@ -11,21 +11,19 @@ logger = get_logger(__name__)
 MOCK_USER_MODEL_JSON = json.dumps({
     "version": 1,
     "baseline": {
-        "emotionalTone": "generally positive with moments of reflection",
-        "thinkingStyle": "analytical and self-aware",
-        "selfFocus": "moderate — balances internal and external attention",
+        "emotionalTone": "reflective",
+        "thinkingStyle": "explorative",
+        "selfFocus": "balanced",
         "confidence": 0.3
     },
-    "patterns": [
-        {"description": "tends to reflect on personal growth", "evidence": "multiple entries mention learning and progress"},
-        {"description": "often writes about goals and habits", "evidence": "frequent references to daily routines and improvement"}
-    ],
-    "activeThemes": ["personal growth", "self-discovery"],
+    "patterns": [],
+    "activeThemes": [],
     "conversationGuidelines": [
         "respond with warmth and encouragement",
         "offer reflective questions about patterns"
     ]
 })
+
 
 
 class MockLLMClient(LLMClient):

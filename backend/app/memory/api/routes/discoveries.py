@@ -40,10 +40,11 @@ async def get_discoveries(
         else None
     )
 
-    total_words = user_model.stats.totalWords if (user_model and user_model.stats) else 0
-    if not total_words and total_entries > 0:
+    total_words = 0
+    if total_entries > 0:
         journals, _ = await journal_repo.find_all_by_user(user_id, limit=10000)
         total_words = sum(len((j.content_text or "").split()) for j in journals)
+
 
     has_model_output = user_model is not None and (
         len(user_model.patterns) > 0

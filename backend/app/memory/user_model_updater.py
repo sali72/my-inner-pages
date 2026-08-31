@@ -214,14 +214,18 @@ class UserModelUpdater:
                     else:
                         logger.info("quote_verification_dropped_excerpt", entry_id=entry_id, quote_preview=quote[:50])
 
-            verified_patterns.append(
-                PatternItem(
-                    description=desc,
-                    evidence=evidence,
-                    source_excerpts=verified_excerpts,
+            if verified_excerpts:
+                verified_patterns.append(
+                    PatternItem(
+                        description=desc,
+                        evidence=evidence,
+                        source_excerpts=verified_excerpts,
+                    )
                 )
-            )
+            else:
+                logger.info("pattern_dropped_due_to_unverified_excerpts", pattern_description=desc[:60])
         return verified_patterns
+
 
     def _parse_and_merge(
         self,
