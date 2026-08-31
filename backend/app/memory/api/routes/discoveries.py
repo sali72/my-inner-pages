@@ -45,28 +45,11 @@ async def get_discoveries(
         journals, _ = await journal_repo.find_all_by_user(user_id, limit=10000)
         total_words = sum(len((j.content_text or "").split()) for j in journals)
 
-
-    has_model_output = user_model is not None and (
-        len(user_model.patterns) > 0
-        or bool(user_model.baseline.emotionalTone or user_model.baseline.thinkingStyle)
-    )
-
-    journey_status = "active" if has_model_output else "empty"
     model_version = user_model.version if user_model else 0
     last_model_update = (
         user_model.updatedAt.isoformat()
         if (user_model and user_model.updatedAt)
         else None
-    )
-
-    journey = JourneyStateResponse(
-        status=journey_status,
-        totalEntries=total_entries,
-        totalWords=total_words,
-        firstEntryDate=first_entry_date,
-        lastEntryDate=last_entry_date,
-        lastModelUpdate=last_model_update,
-        modelVersion=model_version,
     )
 
     patterns_response: list[PatternCardResponse] = []
@@ -85,9 +68,9 @@ async def get_discoveries(
         )
 
     if user_model:
-        active_themes = user_model.activeThemes
-
         for idx, p in enumerate(user_model.patterns):
+            if not p.source_excerpts:
+                continue
             excerpts_resp = [
                 PatternExcerptResponse(
                     entryId=exc.entry_id,
@@ -105,7 +88,10 @@ async def get_discoveries(
                 )
             )
 
-        if user_model.createdAt:
+        if patterns_response:
+            active_themes = user_model.activeThemes
+
+        if user_model.createdAt and patterns_response:
             moments.append(
                 MomentItemResponse(
                     id=f"baseline_ready_{user_model.version}",
@@ -116,6 +102,19 @@ async def get_discoveries(
                 )
             )
 
+    has_model_output = len(patterns_response) > 0
+    journey_status = "active" if has_model_output else "empty"
+
+    journey = JourneyStateResponse(
+        status=journey_status,
+        totalEntries=total_entries,
+        totalWords=total_words,
+        firstEntryDate=first_entry_date,
+        lastEntryDate=last_entry_date,
+        lastModelUpdate=last_model_update if has_model_output else None,
+        modelVersion=model_version,
+    )
+
     moments.sort(key=lambda m: m.date)
 
     return DiscoveriesResponse(
@@ -125,3 +124,4 @@ async def get_discoveries(
         activeThemes=active_themes,
         moments=moments,
     )
+

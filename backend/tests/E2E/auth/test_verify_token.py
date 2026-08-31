@@ -106,10 +106,11 @@ async def test_verify_token_tampered(client: AsyncClient, test_user: dict):
     original_token = test_user["access_token"]
     tampered_token = original_token[:-1] + ("X" if original_token[-1] != "X" else "Y")
     
-    # Act: Verify with tampered token (use Cookie header to avoid jar issues)
+    client.cookies.clear()
+    # Act: Verify with tampered token
     response = await client.get(
         f"{AUTH_PREFIX}{AuthRoutes.VERIFY}",
-        headers={"Cookie": f"access_token={tampered_token}"},
+        cookies={"access_token": tampered_token},
     )
     
     # Assert: Verify 401 response
@@ -130,14 +131,16 @@ async def test_verify_token_deleted_user(client: AsyncClient, test_user: dict):
     assert user is not None
     await user.delete()
     
+    client.cookies.clear()
     # Act: Verify with token for deleted user
     response = await client.get(
         f"{AUTH_PREFIX}{AuthRoutes.VERIFY}",
-        headers={"Cookie": f"access_token={test_user['access_token']}"},
+        cookies={"access_token": test_user["access_token"]},
     )
     
     # Assert: Verify 401 response
     assert response.status_code == 401
+
 
 
 @pytest.mark.asyncio
