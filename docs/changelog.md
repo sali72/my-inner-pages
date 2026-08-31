@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Discoveries View & Grounded Insights (`[G-13]`)**: Added Discoveries dashboard (`DiscoveriesView.tsx`, `GET /api/v0/discoveries`) featuring real-time writing journey stats, dynamic word counts, and emerging patterns strictly verified against exact journal quotes with negative valence gating.
+- **Admin LLM Presets & Diagnostics**: Added Groq GPT OSS 120 (`groq/openai/gpt-oss-120b`) and OpenRouter Gemma 4 presets, with extended token budgets/timeouts for reasoning models.
+- **Grounded AI Reflection Principles**: Restructured chat system prompt with first-principles guidance prioritizing concise conversational turn-taking, epistemic humility, and natural grounding over clinical scripts.
+
+### Fixed & Improved
+- **Chat Handoff & Session Navigation**: Resolved race conditions when launching chat from Discoveries pattern cards, preventing duplicate empty chat creation and consolidating actions into a single "Explore in chat" button.
+- **Global Error Logging Cleanliness**: Replaced multi-page traceback dumps with concise structured single-line errors (`compact_exc_info_processor`) while muting third-party debug loggers (`LiteLLM`, `httpx`).
+- **Data Validation & Legacy Schema Resilience**: Added auto-truncation for overlong legacy chat and journal titles to prevent Pydantic validation errors on load.
+- **Auth & Session Hygiene**: Resolved session multiplication issues with MongoDB TTL cleanup and silent refresh handling.
+
+
 ## [v0.5.1-alpha] - 2026-08-14
 
 ### Fixed & Refactored
