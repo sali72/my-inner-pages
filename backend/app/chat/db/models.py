@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 from beanie import Document
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ChatMessage(BaseModel):
@@ -20,6 +20,13 @@ class Chat(Document):
     )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def truncate_title(cls, v: str) -> str:
+        if isinstance(v, str) and len(v) > 100:
+            return v[:97].rstrip() + "..."
+        return v
 
     class Settings:
         name = "chats"

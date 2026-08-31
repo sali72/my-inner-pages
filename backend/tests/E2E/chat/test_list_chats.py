@@ -120,3 +120,29 @@ async def test_list_chats_pagination(authenticated_client: AsyncClient, test_use
     assert response_data_page2["total"] == 5
     assert len(response_data_page2["items"]) == 2
     assert response_data_page2["page"] == 2
+
+
+@pytest.mark.asyncio
+async def test_list_chats_with_overlong_title(authenticated_client: AsyncClient, test_user: dict):
+    """
+    Test that legacy/raw documents in MongoDB with titles exceeding 100 characters
+    are truncated gracefully rather than skipped with validation errors.
+    """
+    user_id = test_user["user_id"]
+
+    long_title = "I just received this emotional reflection on my journaling and I'd like to explore it with you: " + "a" * 100
+    chat = Chat(
+        user_id=user_id,
+        title=long_title,
+        messages=[ChatMessage(role="user", content="Hello")],
+    )
+    await chat.insert()
+
+    response = await authenticated_client.get(CHAT_PREFIX)
+    assert response.status_code == 200
+    response_data = response.json()
+    assert response_data["total"] == 1
+    assert len(response_data["items"]) == 1
+    assert len(response_data["items"][0]["title"]) <= 100
+    assert response_data["items"][0]["title"].endswith("...")
+
