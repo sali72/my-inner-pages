@@ -64,7 +64,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
     setChatListError(null);
     const currentChatId = chatIdRef.current;
     if (selectedChatId === 'new') {
-      if (currentChatId !== null || messages.length > 0) {
+      if (currentChatId !== null) {
         startNewChat();
       }
     } else if (selectedChatId !== null) {
@@ -72,7 +72,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
         loadChat(selectedChatId);
       }
     }
-  }, [selectedChatId, loadChat, startNewChat, messages.length]);
+  }, [selectedChatId, loadChat, startNewChat]);
+
 
   const selectedChatIdRef = useRef(selectedChatId);
   useEffect(() => {
