@@ -48,11 +48,17 @@ async def trigger_user_model_update(
             conversationGuidelines=len(updated.conversationGuidelines),
         )
     except Exception as e:
-        logger.exception("manual_user_model_update_failed", user_id=str(current_user.id))
+        logger.error(
+            "manual_user_model_update_failed",
+            user_id=str(current_user.id),
+            error=str(e),
+            error_type=type(e).__name__,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="User model update failed",
         )
+
 
 
 @router.get("/user-model", summary="Get current user model (dev only)")

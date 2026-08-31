@@ -12,24 +12,19 @@ export type { LiteLLMParams, ProviderConfig, ProviderTestResult, DiagnosticsResp
 
 export const PRESETS = [
   {
-    name: 'OpenRouter Free DeepSeek',
-    model: 'openrouter/deepseek/deepseek-chat-v3.1:free',
+    name: 'OpenRouter Free Gemma 4',
+    model: 'openrouter/google/gemma-4:free',
     apiBase: 'https://openrouter.ai/api/v1',
     apiKey: '${OPENROUTER_API_KEY}',
   },
   {
-    name: 'OpenRouter Free Gemma 2',
-    model: 'openrouter/google/gemma-2-9b-it:free',
-    apiBase: 'https://openrouter.ai/api/v1',
-    apiKey: '${OPENROUTER_API_KEY}',
-  },
-  {
-    name: 'Local Ollama Llama 3',
-    model: 'ollama/llama3.2',
-    apiBase: 'http://localhost:11434/v1',
-    apiKey: 'none',
+    name: 'Groq GPT OSS 120',
+    model: 'groq/openai/gpt-oss-120',
+    apiBase: 'https://api.groq.com/openai/v1',
+    apiKey: '${GROQ_API_KEY}',
   }
 ];
+
 
 export function useLlmProviders() {
   const [providers, setProviders] = useState<ProviderConfig[]>([]);

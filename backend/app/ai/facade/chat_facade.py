@@ -91,8 +91,8 @@ class ChatFacade:
                 await self._chat_persistence.truncate_messages(
                     actual_chat_id, user_id, keep
                 )
-            except Exception:
-                logger.exception("edit_truncate_failed", chat_id=actual_chat_id, keep=keep)
+            except Exception as e:
+                logger.error("edit_truncate_failed", chat_id=actual_chat_id, keep=keep, error=str(e), error_type=type(e).__name__)
 
         # Send ACK if message_id provided
         if message_id:
@@ -124,12 +124,19 @@ class ChatFacade:
             aborted = True
             logger.info("stream_cancelled_by_client", user_id=user_id, chat_id=actual_chat_id)
             raise
-        except Exception:
-            logger.exception("stream_generation_failed", user_id=user_id, chat_id=actual_chat_id)
+        except Exception as e:
+            logger.error(
+                "stream_generation_failed",
+                user_id=user_id,
+                chat_id=actual_chat_id,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             yield format_sse(
                 "error", {"content": "An unexpected error occurred during generation."}
             )
             return
+
         finally:
             full_response = "".join(buffer)
             duration_ms = round((time.monotonic() - t0) * 1000)

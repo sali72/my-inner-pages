@@ -51,8 +51,14 @@ async def trigger_update_if_needed(updater: "UserModelUpdater", user_id: str) ->
         if await updater.needs_update(user_id):
             logger.info("background_update_triggered", user_id=user_id)
             await updater.update(user_id)
-    except Exception:
-        logger.exception("background_update_failed", user_id=user_id)
+    except Exception as e:
+        logger.error(
+            "background_update_failed",
+            user_id=user_id,
+            error=str(e),
+            error_type=type(e).__name__,
+        )
+
 
 
 class UserModelUpdater:
