@@ -1,5 +1,7 @@
 import type { JSONContent } from '@tiptap/core';
 
+export const JOURNAL_TITLE_MAX_LENGTH = 200;
+
 export interface JournalEntry {
   id: number | string;
   date: string;

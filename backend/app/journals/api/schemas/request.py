@@ -24,11 +24,15 @@ class CreateJournalRequest(BaseModel):
     tags: Optional[list[str]] = Field(default=None, description="Optional tags for categorization (max 20, max 50 chars each)")
     created_at: Optional[datetime] = Field(default=None, description="Override creation date")
     
-    @field_validator("title")
+    @field_validator("title", mode="before")
     @classmethod
     def strip_whitespace(cls, v: Optional[str]) -> Optional[str]:
-        """Strip leading/trailing whitespace."""
-        return v.strip() if v else v
+        """Strip leading/trailing whitespace and normalize multiline/excess whitespace."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return " ".join(v.split())
+        return v
 
 
 class UpdateJournalRequest(BaseModel):
@@ -52,11 +56,15 @@ class UpdateJournalRequest(BaseModel):
     tags: Optional[list[str]] = Field(None, description="Updated tags (max 20, max 50 chars each)")
     created_at: Optional[datetime] = Field(default=None, description="Override creation date")
     
-    @field_validator("title")
+    @field_validator("title", mode="before")
     @classmethod
     def strip_whitespace(cls, v: Optional[str]) -> Optional[str]:
-        """Strip leading/trailing whitespace if provided."""
-        return v.strip() if v else v
+        """Strip leading/trailing whitespace and normalize multiline/excess whitespace if provided."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return " ".join(v.split())
+        return v
     
     @field_validator("tags")
     @classmethod

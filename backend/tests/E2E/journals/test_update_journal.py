@@ -119,3 +119,72 @@ async def test_update_journal_not_found(authenticated_client: AsyncClient):
     
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_update_journal_with_max_length_title(authenticated_client: AsyncClient, test_user: dict):
+    """
+    Test updating a journal entry with a title of exactly 200 characters.
+    """
+    orig_text = "Original text."
+    create_response = await authenticated_client.post(
+        f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
+        json={"title": "Short Title", "content_json": make_tiptap_json(orig_text)}
+    )
+    assert create_response.status_code == 201
+    journal_id = create_response.json()["id"]
+
+    title_200 = "U" * 200
+    response = await authenticated_client.put(
+        f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}/{journal_id}",
+        json={"title": title_200}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["title"] == title_200
+
+
+@pytest.mark.asyncio
+async def test_update_journal_with_excess_title_fails(authenticated_client: AsyncClient, test_user: dict):
+    """
+    Test updating a journal entry with title > 200 chars returns 422.
+    """
+    orig_text = "Original text."
+    create_response = await authenticated_client.post(
+        f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
+        json={"title": "Short Title", "content_json": make_tiptap_json(orig_text)}
+    )
+    assert create_response.status_code == 201
+    journal_id = create_response.json()["id"]
+
+    title_201 = "U" * 201
+    response = await authenticated_client.put(
+        f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}/{journal_id}",
+        json={"title": title_201}
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_update_journal_title_normalized(authenticated_client: AsyncClient, test_user: dict):
+    """
+    Test updating journal title with extra whitespace and newlines normalizes correctly.
+    """
+    create_response = await authenticated_client.post(
+        f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
+        json={"title": "Short Title", "content_json": make_tiptap_json("Text.")}
+    )
+    assert create_response.status_code == 201
+    journal_id = create_response.json()["id"]
+
+    raw_title = "   \n  " + ("C" * 100) + "\n\n" + ("D" * 99) + "   "
+    response = await authenticated_client.put(
+        f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}/{journal_id}",
+        json={"title": raw_title}
+    )
+
+    assert response.status_code == 200
+    expected_title = ("C" * 100) + " " + ("D" * 99)
+    assert len(expected_title) == 200
+    assert response.json()["title"] == expected_title

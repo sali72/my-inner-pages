@@ -35,7 +35,9 @@ class JournalFacade:
         created_at: Optional[datetime] = None,
     ) -> Journal:
         if title is not None:
-            self._validate_title(title)
+            title = " ".join(title.split())
+            if title:
+                self._validate_title(title)
 
         content_text = extract_text_from_tiptap_json(content_json)
         self._validate_content(content_text)
@@ -45,7 +47,7 @@ class JournalFacade:
 
         journal = await self.repository.create(
             user_id=user_id,
-            title=title.strip() if title else title,
+            title=title,
             content_json=content_json,
             content_text=content_text,
             tags=normalized_tags,
@@ -95,8 +97,9 @@ class JournalFacade:
         obj_id = validate_object_id(journal_id, "journal_id")
 
         if title is not None:
-            self._validate_title(title)
-            title = title.strip()
+            title = " ".join(title.split())
+            if title:
+                self._validate_title(title)
 
         content_text: Optional[str] = None
         rumination_index: Optional[float] = None

@@ -7,7 +7,7 @@ import { Placeholder } from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 
 import { sanitizeTag, parseHashTags, replaceHashtagInTiptapAst } from '@utils/tagUtils';
-import { JournalEntry, FontStyle, ContentFontSize } from '@/types';
+import { JournalEntry, FontStyle, ContentFontSize, JOURNAL_TITLE_MAX_LENGTH } from '@/types';
 import { getFontClass, getFontSizeClass } from '@utils/fonts';
 import { detectRTL } from '@utils/textDirection';
 import { ConfirmModal } from './ConfirmModal';
@@ -259,7 +259,8 @@ export const JournalPage: React.FC<JournalPageProps> = ({
   });
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
+    const rawVal = e.target.value;
+    const val = rawVal.replace(/[\r\n]+/g, ' ').slice(0, JOURNAL_TITLE_MAX_LENGTH);
     setTitle(val);
     if (isLoaded) {
       ydoc.transact(() => {
@@ -267,6 +268,27 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         titleText.delete(0, titleText.length);
         titleText.insert(0, val);
       });
+    }
+  };
+
+  const handleTitlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pastedText = e.clipboardData.getData('text');
+    if (/[\r\n]/.test(pastedText)) {
+      e.preventDefault();
+      const sanitized = pastedText.replace(/[\r\n]+/g, ' ');
+      const input = e.currentTarget;
+      const start = input.selectionStart ?? 0;
+      const end = input.selectionEnd ?? 0;
+      const current = title;
+      const next = (current.slice(0, start) + sanitized + current.slice(end)).slice(0, JOURNAL_TITLE_MAX_LENGTH);
+      setTitle(next);
+      if (isLoaded) {
+        ydoc.transact(() => {
+          const titleText = ydoc.getText('title');
+          titleText.delete(0, titleText.length);
+          titleText.insert(0, next);
+        });
+      }
     }
   };
 
@@ -447,10 +469,12 @@ export const JournalPage: React.FC<JournalPageProps> = ({
         <input
           type="text"
           value={title}
+          maxLength={JOURNAL_TITLE_MAX_LENGTH}
           onChange={handleTitleChange}
+          onPaste={handleTitlePaste}
           onBlur={() => save()}
           placeholder="Title..."
-          className={`w-full text-3xl md:text-4xl ${getFontClass(font)} font-bold text-body bg-transparent border-none focus:outline-none p-0 mb-4`}
+          className={`w-full text-3xl md:text-4xl ${getFontClass(font)} font-bold text-body bg-transparent border-none focus:outline-none p-0 mb-4 break-words`}
           style={{ direction: detectRTL(title) ? 'rtl' : 'ltr' }}
           autoFocus={isNew}
         />

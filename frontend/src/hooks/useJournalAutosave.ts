@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { JournalEntry } from '@/types';
+import { JournalEntry, JOURNAL_TITLE_MAX_LENGTH } from '@/types';
 import { isEntryUnsynced, saveUnsyncedEntry, removeUnsyncedEntry } from '@utils/offlineStorage';
+import { ApiError } from '@utils/api';
+import { toast } from 'sonner';
 
 export type SaveStatus = 'error' | 'unsynced' | null;
 
@@ -20,6 +22,10 @@ interface UseJournalAutosaveParams {
 
 function isRealId(v: string | number | null): boolean {
   return v !== null && v !== 'pending' && !v.toString().startsWith('draft-');
+}
+
+function sanitizeTitle(val: string): string {
+  return val.trim().replace(/[\r\n]+/g, ' ').slice(0, JOURNAL_TITLE_MAX_LENGTH);
 }
 
 export function useJournalAutosave({
@@ -72,10 +78,10 @@ export function useJournalAutosave({
     const currentJson = editor ? editor.getJSON() : contentJson;
     const draftCheckId = entryIdRef.current;
     const targetTags = customTags || allTags;
+    const trimmedTitle = sanitizeTitle(title);
+    const trimmedContent = content.trim();
 
     if (isNew && (draftCheckId === null || draftCheckId === undefined)) {
-      const trimmedTitle = title.trim();
-      const trimmedContent = content.trim();
       const hasContentToSave = trimmedTitle !== '' || trimmedContent !== '' || targetTags.length > 0;
       if (!hasContentToSave) return;
 
@@ -85,8 +91,16 @@ export function useJournalAutosave({
         try {
           const id = await onCreate!(trimmedTitle, trimmedContent, targetTags, isoDate, currentJson);
           entryIdRef.current = id;
+          setSaveStatus(null);
           return id;
-        } catch {
+        } catch (err) {
+          if (err instanceof ApiError && (err.status === 422 || err.status === 400)) {
+            entryIdRef.current = null;
+            setSaveStatus('error');
+            toast.error(err.message || 'Validation error while saving entry');
+            return null;
+          }
+
           const tempId = `draft-${Date.now()}`;
           entryIdRef.current = tempId;
           const updatedEntry: JournalEntry = {
@@ -121,8 +135,8 @@ export function useJournalAutosave({
     if (draftCheckId && draftCheckId.toString().startsWith('draft-')) {
       const updatedEntry: JournalEntry = {
         id: draftCheckId,
-        title: title.trim(),
-        content: content.trim(),
+        title: trimmedTitle,
+        content: trimmedContent,
         content_json: currentJson,
         tags: targetTags,
         created_at: isoDate,
@@ -136,8 +150,6 @@ export function useJournalAutosave({
     const currentActiveId = isNew ? entryIdRef.current : entry.id;
     if (isRealId(currentActiveId)) {
       const realId = currentActiveId as string | number;
-      const trimmedTitle = title.trim();
-      const trimmedContent = content.trim();
 
       try {
         if (onUpdateById) {
@@ -158,7 +170,14 @@ export function useJournalAutosave({
           });
         }
         removeUnsyncedEntry(realId);
-      } catch {
+        setSaveStatus(null);
+      } catch (err) {
+        if (err instanceof ApiError && (err.status === 422 || err.status === 400)) {
+          setSaveStatus('error');
+          toast.error(err.message || 'Validation error while updating entry');
+          return;
+        }
+
         const updatedEntry: JournalEntry = {
           id: realId,
           title: trimmedTitle,
@@ -187,7 +206,7 @@ export function useJournalAutosave({
     if (!id || id === 'pending') return;
 
     const isoDate = entryDate ? new Date(entryDate).toISOString() : undefined;
-    const trimmedTitle = title.trim();
+    const trimmedTitle = sanitizeTitle(title);
     const trimmedContent = content.trim();
     const currentJson = editor ? editor.getJSON() : contentJson;
     const dateChanged = !isNew && isoDate

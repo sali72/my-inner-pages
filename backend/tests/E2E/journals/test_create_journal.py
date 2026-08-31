@@ -81,3 +81,67 @@ async def test_create_journal_with_minimal_data(authenticated_client: AsyncClien
     assert db_journal is not None
     assert db_journal.title == journal_data["title"]
     assert db_journal.tags == []
+
+
+@pytest.mark.asyncio
+async def test_create_journal_with_max_length_title(authenticated_client: AsyncClient, test_user: dict):
+    """
+    Test creating a journal entry with a title of exactly 200 characters.
+    """
+    title_200 = "T" * 200
+    raw_text = "Testing 200 char title."
+    journal_data = {
+        "title": title_200,
+        "content_json": make_tiptap_json(raw_text)
+    }
+
+    response = await authenticated_client.post(
+        f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
+        json=journal_data
+    )
+
+    assert response.status_code == 201
+    assert response.json()["title"] == title_200
+
+
+@pytest.mark.asyncio
+async def test_create_journal_with_excess_title_fails(authenticated_client: AsyncClient):
+    """
+    Test creating a journal entry with a title exceeding 200 characters returns 422.
+    """
+    title_201 = "T" * 201
+    raw_text = "Testing >200 char title."
+    journal_data = {
+        "title": title_201,
+        "content_json": make_tiptap_json(raw_text)
+    }
+
+    response = await authenticated_client.post(
+        f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
+        json=journal_data
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_journal_title_whitespace_and_newline_normalized(authenticated_client: AsyncClient):
+    """
+    Test that leading/trailing whitespace and newlines are normalized before length check.
+    """
+    # 200 chars padded with leading/trailing spaces and newlines
+    raw_title = "   \n  " + ("A" * 100) + "\n\n" + ("B" * 99) + "   "
+    journal_data = {
+        "title": raw_title,
+        "content_json": make_tiptap_json("Content here.")
+    }
+
+    response = await authenticated_client.post(
+        f"{JOURNALS_PREFIX}{JournalRoutes.ROOT}",
+        json=journal_data
+    )
+
+    assert response.status_code == 201
+    expected_title = ("A" * 100) + " " + ("B" * 99)
+    assert len(expected_title) == 200
+    assert response.json()["title"] == expected_title

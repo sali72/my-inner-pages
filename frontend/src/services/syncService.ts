@@ -1,5 +1,6 @@
 import { api } from '@utils/api';
 import { journalResponseSchema } from '@/types/schemas';
+import { JOURNAL_TITLE_MAX_LENGTH } from '@/types';
 import { getUnsyncedEntries, removeUnsyncedEntry } from '@utils/offlineStorage';
 import { getAuthSession, isCurrentAuthSession } from '@utils/authSession';
 
@@ -22,10 +23,11 @@ export async function syncUnsyncedEntries(
     if (globalInFlight.has(id.toString())) continue;
     const entry = unsynced[id];
     globalInFlight.add(id.toString());
+    const sanitizedTitle = (entry.title || '').trim().replace(/[\r\n]+/g, ' ').slice(0, JOURNAL_TITLE_MAX_LENGTH);
     try {
       if (id.toString().startsWith('draft-')) {
         const created = await api.post('/journals', {
-          title: entry.title,
+          title: sanitizedTitle,
           content_json: entry.content_json || { type: 'doc', content: entry.content ? [{ type: 'paragraph', content: [{ type: 'text', text: entry.content }] }] : [] },
           tags: entry.tags,
           created_at: entry.created_at,
@@ -38,7 +40,7 @@ export async function syncUnsyncedEntries(
         }
       } else {
         await api.put(`/journals/${id}`, {
-          title: entry.title,
+          title: sanitizedTitle,
           content_json: entry.content_json || { type: 'doc', content: entry.content ? [{ type: 'paragraph', content: [{ type: 'text', text: entry.content }] }] : [] },
           tags: entry.tags,
           created_at: entry.created_at,

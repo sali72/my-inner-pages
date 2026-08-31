@@ -27,6 +27,18 @@ class Journal(Document):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+    @field_validator("title", mode="before")
+    @classmethod
+    def truncate_title(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            cleaned = " ".join(v.split())
+            if len(cleaned) > 200:
+                return cleaned[:197].rstrip() + "..."
+            return cleaned
+        return v
+
     @field_validator("tags")
     @classmethod
     def validate_tags(cls, v: list[str]) -> list[str]:
